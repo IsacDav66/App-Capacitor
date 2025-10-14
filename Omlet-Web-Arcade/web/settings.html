@@ -1,0 +1,63 @@
+<!-- Archivo: /web/settings.html -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajustes</title>
+
+    <!-- Hojas de Estilo Estandarizadas -->
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+</head>
+
+<body class="layout-with-bars">
+
+    <!-- Barra Superior -->
+    <div class="top-bar">
+        <div class="top-left">
+            <a href="home.html">
+                <button id="back-to-home-btn" class="header-back-btn">←</button>
+            </a>
+        </div>
+        <span class="text-lg font-bold">Ajustes</span>
+        <div class="top-right"></div> <!-- Espaciador -->
+    </div>
+
+    <!-- Contenido Principal -->
+    <main class="settings-main">
+        <div class="settings-section">
+            <h2 class="section-title">Ajustes de Superposición</h2>
+
+            <div class="setting-item">
+                <div class="item-text">
+                    <h3>Activar Burbuja Flotante</h3>
+                    <p>Muestra una burbuja en pantalla para detectar juegos en segundo plano.</p>
+                </div>
+                <div class="item-control">
+                    <!-- Toggle Switch CSS -->
+                    <label class="switch">
+                        <input type="checkbox" id="bubble-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Mensaje de estado -->
+            <p id="settings-output" class="settings-status"></p>
+
+        </div>
+    </main>
+
+    <!-- Barra Inferior (Opcional, pero mantiene la consistencia) -->
+    <div class="bottom-bar">
+        <!-- Puedes copiar el contenido de la barra inferior de home.html aquí si lo deseas -->
+    </div>
+
+    <script src="./js/app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,140 @@
+<!-- START OF FILE home.html -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feed Principal - Omlet Web Arcade</title>
+
+    <!-- Hojas de Estilo Estandarizadas -->
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <!-- ==================================================== -->
+    <!-- === INICIO: ESTRUCTURA DEL MENÚ LATERAL (NUEVO) === -->
+    <!-- ==================================================== -->
+    
+    <!-- Contenedor del Menú Lateral -->
+    <aside id="side-menu" class="side-menu">
+        <!-- Perfil de Usuario -->
+        <div class="menu-profile">
+            <div id="menu-profile-bg" class="menu-profile-background"></div>
+            <!-- CÓDIGO NUEVO Y CORREGIDO en home.html -->
+            <a id="menu-avatar-link" href="#"> <!-- Enlace añadido con un ID -->
+                <img id="menu-avatar" src="./assets/img/default-avatar.png" alt="Avatar" class="menu-avatar">
+            </a>
+            <div class="menu-user-info">
+                <span id="menu-username" class="menu-username">Cargando...</span>
+                <span class="menu-user-level">Lvl. 20</span>
+                <div class="level-bar">
+                    <div class="level-progress"></div>
+                </div>
+            </div>
+            <!-- Botones Superiores -->
+            <div class="menu-top-buttons">
+                <button class="menu-button-missions">✔️ Missions</button>
+                <button class="menu-button-coins">💲 100K</button>
+            </div>
+        </div>
+    
+        <!-- Opciones de Navegación -->
+        <nav class="menu-nav">
+            <a href="#" class="menu-nav-item">
+                📊
+                <span>Statistics</span>
+            </a>
+            <a href="settings.html" class="menu-nav-item"> <!-- <-- ENLACE CAMBIADO -->
+                ⚙️
+                <span>Settings</span>
+            </a>
+            <a href="profile.html" class="menu-nav-item"> <!-- Enlace a la página de perfil -->
+                👤
+                <span>Editar Perfil</span>
+            </a>
+            <a href="#" id="logout-btn" class="menu-nav-item"> <!-- Botón de cerrar sesión -->
+                🚪
+                <span>Cerrar Sesión</span>
+            </a>
+        </nav>
+    </aside>
+    
+    <!-- Overlay oscuro para el fondo cuando el menú está abierto -->
+    <div id="menu-overlay" class="menu-overlay"></div>
+    
+    <!-- ==================================================== -->
+    <!-- === FIN: ESTRUCTURA DEL MENÚ LATERAL === -->
+    <!-- ==================================================== -->
+
+    <!-- Barra superior -->
+    <div class="top-bar">
+        <div class="top-left">
+            <!-- CLAVE: Añadir un ID al botón de menú para el JS -->
+            <img id="hamburger-btn" src="./assets/icons/menu.svg" alt="Menú" style="cursor: pointer;">
+            <img src="./assets/icons/search.svg" alt="Buscar">
+        </div>
+        <div class="top-right">
+            <img src="./assets/icons/market.svg" alt="Inicio">
+            <img src="./assets/icons/friends.svg" alt="Amigos">
+            <img src="./assets/icons/notification.svg" alt="Notificaciones">
+        </div>
+    </div>
+
+    <!-- Contenido -->
+    <main>
+        <!-- Barra de estado / Log de Sesión (REINTRODUCIDO con IDs) -->
+        <div class="p-2 text-center text-xs text-gray-500">
+            <p id="log-output">Verificando sesión...</p>
+            <p id="app-status" class="mt-1 text-yellow-300"></p>
+        </div>
+        
+        <!-- CONTENEDOR DONDE SE INYECTARÁ EL FEED DINÁMICO -->
+        <div id="posts-container">
+            <!-- El JS inyectará los posts aquí -->
+        </div>
+    </main>
+
+    <!-- Barra inferior -->
+    <div class="bottom-bar">
+    
+        <!-- 1. HOME -->
+        <a href="home.html" class="nav-btn" id="home-link">
+            <img src="./assets/icons/home.svg" alt="Inicio">
+        </a>
+    
+        <!-- 2. LIVE -->
+        <a href="#" class="nav-btn" id="live-link">
+            <img src="./assets/icons/live.svg" alt="En vivo">
+        </a>
+    
+        <!-- 3. PUBLICAR (El enlace es el que tiene el ID) -->
+        <a href="create_post.html" class="nav-btn" id="create-post-link">
+            <div id="create-post-btn" class="post-btn-center">
+                <img src="./assets/icons/addpost.svg" alt="Agregar" style="width: 24px; height: 24px;">
+            </div>
+        </a>
+    
+        <!-- 4. JUEGOS -->
+        <a href="#" class="nav-btn" id="games-link">
+            <img src="./assets/icons/games.svg" alt="Juegos">
+        </a>
+    
+        <!-- 5. CHAT -->
+        <a href="#" class="nav-btn" id="chat-link">
+            <img src="./assets/icons/chat.svg" alt="Chat">
+        </a>
+    </div>
+
+    <script src="./js/app.js"></script>
+
+
+</body>
+
+</html>
+<!-- END OF FILE -->

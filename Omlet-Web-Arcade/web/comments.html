@@ -1,0 +1,61 @@
+<!-- START OF FILE comments.html (CORREGIDO PARA ANIDACIÓN) -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comentarios</title>
+
+    <!-- Hojas de Estilo Estandarizadas -->
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+
+</head>
+
+<body>
+    <!-- Barra Superior -->
+    <div class="comments-header">
+        <button id="back-to-home-btn" class="header-back-btn">←</button>
+        <span class="header-title">Comentarios</span>
+        <div id="comment-output" class="header-output"></div>
+    </div>
+
+    <!-- Contenedor del Post Original -->
+    <div id="original-post-container" class="p-4 border-b border-gray-700 bg-black">
+        <p class="text-center text-gray-500">Cargando publicación original...</p>
+    </div>
+
+    <!-- Contenido de Comentarios -->
+    <main id="comments-feed">
+        <!-- Los comentarios se inyectarán aquí -->
+        <p class="text-center text-gray-500 pt-8">Cargando comentarios...</p>
+    </main>
+
+    <!-- Barra de Input de Comentario -->
+    <div class="comment-input-bar">
+        <div id="reply-to-status">
+            Respondiendo a: <span id="reply-to-username" class="font-bold"></span>
+            <button id="cancel-reply-btn" class="float-right font-bold text-red-400">X</button>
+        </div>
+        <div class="input-row">
+            <!-- Añadir maxlength="500" -->
+            <textarea id="comment-content" placeholder="Escribe un comentario..." rows="1" maxlength="500"></textarea>
+            <button id="send-comment-btn" class="comment-send-btn">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </button>
+        </div>
+        <!-- AÑADIR ESTA LÍNEA para el contador -->
+        <div id="char-counter" class="char-counter">500</div>
+
+    </div>
+
+    <script src="./js/app.js"></script>
+</body>
+
+</html>

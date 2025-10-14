@@ -1,0 +1,76 @@
+<!-- START OF FILE create_post.html -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Publicación</title>
+
+    <!-- Hojas de Estilo Estandarizadas -->
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+
+</head>
+
+<body class="body-create-post">
+    <!-- Barra Superior (Corregida) -->
+    <div class="create-post-header">
+        <div class="header-left">
+            <button type="button" id="cancel-post-btn">Cancelar</button>
+        </div>
+        <div class="header-center">
+            <span class="header-title">Nueva Publicación</span>
+        </div>
+        <div class="header-right">
+            <button type="button" id="publish-btn" class="post-button">Publicar</button>
+        </div>
+    </div>
+
+    <!-- Contenido del Formulario -->
+    <main class="p-4 max-w-lg mx-auto">
+        <form id="post-form">
+
+            <!-- Campo de Texto -->
+            <textarea id="post-content"
+                class="w-full h-24 p-3 bg-gray-900 text-white border-none rounded-lg resize-none placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-600 mb-4"
+                placeholder="¿Qué estás pensando?" maxlength="500" style="padding-left: 10px;
+    padding-top: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;"></textarea>
+
+            <!-- Previsualización de Imagen -->
+            <div id="image-preview-box" class="preview-box mb-4">
+                <p id="image-placeholder" class="text-gray-500">Haz clic en el icono de abajo para añadir una foto.</p>
+                <img id="post-image-preview" src="" alt="Vista previa" style="display:none;">
+            </div>
+
+            <!-- Botones de Acción (Imagen y Oculto) -->
+        <div class="flex space-x-4 mb-6">
+            <!-- CLAVE: Añadir type="button" y ID -->
+            <button type="button" id="select-image-btn" class="p-3 bg-gray-800 rounded-full hover:bg-gray-700 transition">
+                    <!-- Icono de Imagen/Galería -->
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 4-4 5 10z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Input de archivo oculto -->
+            <input type="file" id="post-file-input" name="postImage" accept="image/*" style="display:none;">
+        </form>
+
+        <p id="post-output" class="text-center text-sm text-yellow-300"></p>
+    </main>
+
+    <script src="./js/app.js"></script>
+    <!-- Incluimos el mismo app.js para la funcionalidad -->
+</body>
+
+</html>
+<!-- END OF FILE -->

@@ -1,0 +1,191 @@
+/* --- FEED GENERAL --- */
+    #posts-container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 12px;
+        background-color: black;
+    }
+
+    /* --- TARJETA DE POST --- */
+    .post-card {
+        background: #111;
+        border: 1px solid #222;
+        border-radius: 14px;
+        padding: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .post-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(255, 255, 255, 0.05);
+    }
+
+    /* --- CABECERA DEL POST (avatar + nombre) --- */
+    .post-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .post-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background-color: #333;
+        object-fit: cover;
+    }
+
+    .post-username {
+        font-weight: bold;
+        color: #fff;
+        font-size: 0.95rem;
+    }
+
+    .post-time {
+        color: #aaa;
+        font-size: 0.8rem;
+    }
+
+    /* --- CONTENIDO DEL POST --- */
+    .post-content {
+        color: #ddd;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        margin-bottom: 8px;
+    }
+
+    /* --- IMAGEN --- */
+    .post-image {
+        width: 100%;
+        max-height: 320px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-top: 8px;
+        background: #000;
+    }
+
+    /* --- ACCIONES --- */
+    .post-actions {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 10px;
+        padding-top: 6px;
+        border-top: 1px solid #222;
+    }
+
+    .post-actions button {
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+
+    .post-actions button:hover {
+        color: #fff;
+    }
+
+    .post-avatar { /* Asegúrate que esta clase es para el <img> */
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: #333; /* Fondo visible si la imagen no carga */
+    object-fit: cover;
+}
+
+
+/* CLAVE: Animación de "Estallido" (usamos una escala rápida) */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        
+        .like-icon.liked {
+            color: #FF4466; /* Rojo brillante para el like */
+            animation: pop 0.3s ease-out;
+        }
+
+
+
+
+
+
+
+
+         /* Barra superior */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(to bottom, #1a1a1a, #000);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            z-index: 10;
+        }
+
+        .top-left,
+        .top-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-bar img {
+            width: 22px;
+            height: 22px;
+            opacity: 0.95;
+        }
+
+
+
+
+
+        /* Barra inferior */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 55px;
+            background: linear-gradient(to top, #1a1a1a, #000);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 15px;
+            z-index: 10;
+        }
+
+        .bottom-bar a {
+            background: none;
+            border: none;
+            outline: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .bottom-bar a img {
+            width: 24px;
+            height: 24px;
+            opacity: 0.9;
+        }
+
+        .bottom-bar a:active img {
+            opacity: 1;
+            transform: scale(1.1);
+        }

@@ -1,0 +1,14 @@
+{
+  "appId": "com.omletwebfinal",
+  "appName": "Omlet Web Arcade",
+  "webDir": "web", 
+  "plugins": {
+    "GameDetector": {
+      "android": {
+        "packageName": "com.omletwebfinal.plugins.gamedetector"
+      }
+    }
+  },
+  "bundledWebRuntime": true,
+  "npmClient": "npm"
+}

@@ -1,0 +1,628 @@
+/* =========================================================
+   ARCHIVO: /web/css/pages.css
+   Estilos específicos para páginas individuales.
+========================================================= */
+
+/* ========================================
+   --- PÁGINA: Login y Registro ---
+   ======================================== */
+.login-register-body {
+  padding-top: 2rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#globe-visual {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.login-register-body input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: white;
+}
+
+/* ========================================
+   --- PÁGINA: Completar Perfil (profile.html) ---
+   ======================================== */
+.profile-input {
+  width: 70px;
+  padding: 4px 12px;
+  background-color: #333;
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  border: none;
+  outline: none;
+}
+.gender-select {
+  appearance: none;
+  background-color: #333;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+#username-input {
+  background-color: #333;
+  color: white;
+  border-radius: 9999px;
+  padding: 6px 16px;
+  border: none;
+  outline: none;
+  text-align: center;
+  caret-color: transparent;
+  transition: background 0.3s;
+}
+#username-input:focus {
+  caret-color: white;
+  background-color: #444;
+}
+#profile-pic-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: #444;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#profile-pic-container:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px #6a3ab2;
+}
+#profile-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: none;
+}
+#default-avatar-svg {
+  width: 60px;
+  height: 60px;
+  color: #fff;
+}
+#complete-profile-btn {
+  background-color: #6a3ab2;
+  transition: background 0.3s ease;
+}
+#complete-profile-btn:hover {
+  background-color: #8558d6;
+}
+
+/* ========================================
+   --- PÁGINA: Comentarios (comments.html) ---
+   ======================================== */
+
+/* CORRECCIÓN: Estilos mejorados para el header de comentarios */
+.comments-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    border-bottom: 1px solid #333;
+    z-index: 10;
+}
+
+.header-back-btn,
+.header-output {
+    flex: 1; /* Hacen que las secciones izquierda y derecha ocupen el mismo espacio */
+}
+
+.header-back-btn {
+    font-size: 1.5rem; /* 2xl */
+    color: #9ca3af; /* gray-400 */
+    text-align: left;
+}
+
+.header-title {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 700;   /* font-bold */
+    text-align: center;
+    /* El título se centrará automáticamente en el espacio disponible */
+}
+
+.header-output {
+    font-size: 0.875rem; /* text-sm */
+    color: #facc15;     /* yellow-400 */
+    text-align: right;   /* Alinea el texto de estado a la derecha */
+    white-space: nowrap; /* Evita que el texto se parta en dos líneas */
+}
+.comment-input-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  min-height: 60px;
+  background: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  padding: 5px 10px;
+  border-top: 1px solid #333;
+  z-index: 10;
+}
+.input-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+#comment-content {
+  background: #333;
+  color: white;
+  border-radius: 20px;
+  padding: 10px 15px;
+  resize: none;
+  flex-grow: 1;
+  margin-right: 10px;
+  border: none;
+  outline: none;
+}
+.comment-send-btn {
+  background: #6a3ab2;
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+#reply-to-status {
+  width: 100%;
+  background-color: #2a2a2a;
+  color: #ccc;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: 10px;
+  margin-bottom: 5px;
+  display: none;
+}
+.comment-thread {
+  padding: 12px 15px;
+  border-bottom: 1px solid #222;
+}
+.comment-item {
+  display: flex;
+  gap: 10px;
+}
+.comment-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #555;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+.replies-container {
+  margin-top: 12px;
+  padding-left: 25px;
+  border-left: 2px solid #333;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.char-counter {
+    width: calc(100% - 60px); /* Alinear con el textarea */
+    text-align: right;
+    font-size: 0.75rem;
+    color: #666;
+    padding-right: 10px;
+}
+
+/* ========================================
+   --- PÁGINA: Crear Post (create_post.html) ---
+   ======================================== */
+
+/* --- NUEVA REGLA PARA SOLUCIONAR EL BUG VISUAL --- */
+/* Añade padding en la parte inferior del contenedor de scroll */
+main#comments-feed {
+    padding-bottom: 65px;
+}
+
+.body-create-post{
+    padding: 0%;
+}
+
+.create-post-header {
+    height: 50px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    color: white;
+}
+
+.header-left,
+.header-right {
+    flex: 1; /* Ocupan el mismo espacio para un centrado perfecto */
+}
+
+.header-left {
+    text-align: left;
+}
+.header-right {
+    text-align: right;
+}
+
+.header-center {
+    text-align: center;
+}
+
+.header-center .header-title {
+    font-weight: 700;   /* font-bold */
+    font-size: 1.125rem; /* text-lg */
+}
+
+#cancel-post-btn {
+    background: none;
+    border: none;
+    color: #9ca3af; /* text-gray-400 */
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.post-button {
+    background-color: #6A3AB2;
+    color: white;
+    padding: 6px 14px; /* Un poco más de padding horizontal */
+    border-radius: 8px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+.preview-box {
+    background-color: #222;
+    height: 200px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.preview-box img {
+    object-fit: contain;
+}
+
+/* ========================================
+   --- PÁGINA: Perfil de Usuario (user_profile.html) ---
+   ======================================== */
+.profile-header {
+  position: relative;
+  text-align: center;
+  padding: 20px 0;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.profile-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("../assets/backgrounds/windows-bg.jpeg"); /* Ruta local */
+  background-size: cover;
+  background-position: center;
+  z-index: -1;
+  filter: brightness(0.7);
+}
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid white;
+  object-fit: cover;
+  margin: 0 auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+.profile-avatar.editable {
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.profile-avatar.editable:hover {
+  filter: brightness(0.8);
+}
+.profile-username-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+#edit-profile-btn {
+  display: none;
+  cursor: pointer;
+}
+.profile-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 15px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+.stat-item .count {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+.stat-item .label {
+  font-size: 0.8rem;
+  color: #ccc;
+}
+
+.profile-level,
+.last-played {
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.profile-tabs {
+    display: flex;
+    justify-content: space-around;
+    background-color: #121212;
+    border-bottom: 1px solid #333;
+    position: relative;
+    z-index: 10;
+}
+
+.tab-btn {
+    padding: 15px 10px;
+    color: #aaa;
+    font-weight: bold;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.tab-btn.active {
+    color: white;
+    border-bottom-color: #6A3AB2;
+}
+
+#saved-tab {
+    display: none;
+}
+
+/* --- INICIO DE LA CORRECCIÓN DE PESTAÑAS --- */
+
+/* 1. Contenedor principal: Usamos Grid para superponer los paneles */
+.tabs-container {
+    display: grid;
+    position: relative;
+    overflow: hidden;
+    transition: height 0.3s ease-in-out;
+}
+
+/* 2. Paneles de contenido: Todos ocupan la misma celda de la grid */
+.tab-content {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.35s ease-in-out, opacity 0.35s ease-in-out;
+    /* Por defecto, los paneles están fuera de la vista */
+    transform: translateX(100%);
+    display: none; /* Empezamos con display none para el cálculo inicial */
+}
+
+/* 3. El panel activo está centrado y visible */
+.tab-content.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+/* 4. Clases para controlar las animaciones de entrada y salida */
+.slide-in-right { transform: translateX(100%); }
+.slide-in-left  { transform: translateX(-100%); }
+.slide-out-right{ transform: translateX(100%); }
+.slide-out-left { transform: translateX(-100%); }
+
+
+/* --- FIN DE LA CORRECCIÓN DE PESTAÑAS --- */
+
+#about-content {
+  position: relative; /* Para que la animación funcione correctamente */
+  padding: 20px;
+  background-image: url("../assets/backgrounds/pixel-art-bg.png");
+  background-size: 100% auto;
+  background-repeat: repeat-y;
+  background-position: center top;
+}
+
+.bio-section {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 15px;
+  border-radius: 8px;
+}
+#posts-container,
+#saved-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 12px;
+}
+.edit-cover-btn {
+  display: none;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: 1px solid #666;
+  font-size: 1.2rem;
+  /* display: flex; ya no es necesario aquí */
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.edit-cover-btn:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+/* Corrección para el bug del tooltip fantasma de Quill.js */
+.ql-tooltip {
+    display: none !important;
+}
+/* -- Editor Quill.js -- */
+#bio-editor {
+  background-color: transparent;
+  color: white;
+  min-height: 100px;
+}
+.ql-container.ql-snow {
+  border: 1px solid transparent;
+}
+.ql-toolbar.ql-snow {
+  display: none;
+  border: 1px solid #444;
+  border-radius: 5px 5px 0 0;
+}
+.ql-snow .ql-stroke {
+  stroke: #fff;
+}
+.ql-snow .ql-picker-label {
+  color: #fff;
+}
+#bio-editor.editing .ql-container.ql-snow {
+  border: 1px solid #444;
+  background: rgba(20, 20, 20, 0.5);
+  border-radius: 0 0 5px 5px;
+}
+#bio-editor .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px auto;
+  border-radius: 8px;
+}
+
+/* ========================================
+   --- PÁGINA: Ajustes (settings.html) ---
+   ======================================== */
+.settings-main {
+    padding: 20px;
+}
+
+.settings-section {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.item-text h3 {
+    font-weight: bold;
+    color: #eee;
+}
+
+.item-text p {
+    font-size: 0.85rem;
+    color: #999;
+}
+
+.settings-status {
+    font-size: 0.8rem;
+    color: #facc15; /* yellow-400 */
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* --- Estilos para el Interruptor (Toggle Switch) --- */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #6A3AB2; /* Púrpura */
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}

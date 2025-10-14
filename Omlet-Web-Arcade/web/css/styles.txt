@@ -1,0 +1,198 @@
+/* =========================================================
+   Archivo: /web/css/styles.css
+   Estilos CSS Puros que Reemplazan a Tailwind CSS
+   ========================================================= */
+
+/* --- Variables de Color (para referencia) --- */
+:root {
+    --color-black: #000000;
+    --color-gray-900: #111827; /* Fondo general */
+    --color-gray-800: #1f2937; /* Botones oscuros, etc. */
+    --color-gray-700: #374151; /* Fondo de Inputs */
+    --color-gray-600: #4b5563; /* Borde, texto sutil */
+    --color-gray-500: #6b7280; /* Placeholder */
+    --color-gray-400: #9ca3af; /* Etiquetas, texto inactivo */
+    --color-gray-300: #d1d5db; /* Botón activo */
+    --color-white: #ffffff;
+    --color-indigo-600: #4f46e5; /* Botón Acceder */
+    --color-green-600: #10b981; /* Botón Registrar */
+    --color-yellow-300: #fcd34d; /* Output */
+}
+
+/* --- Base --- */
+body {
+    background-color: var(--color-black);
+    color: var(--color-white);
+    min-height: 100vh;
+    padding-top: 2rem; /* pt-8 */
+    padding-left: 2rem; /* px-8 */
+    padding-right: 2rem; /* px-8 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: sans-serif; /* Usar una fuente por defecto */
+}
+
+/* --- Layout Principal --- */
+.container {
+    max-width: 320px; /* max-w-xs (aprox) */
+    width: 100%;
+}
+
+/* --- Globo 3D --- */
+#globe-visual {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 3rem auto; /* mb-12 */
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- TABS de Navegación --- */
+.tabs-container {
+    display: flex;
+    margin-bottom: 2rem; /* mb-8 */
+}
+
+.tab-button {
+    flex: 1;
+    padding-top: 0.75rem; /* py-3 */
+    padding-bottom: 0.75rem; /* py-3 */
+    font-weight: 600; /* font-semibold */
+    text-align: center;
+    transition: background-color 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.tab-active {
+    background-color: #ffffff; /* bg-gray-400 */
+    color: var(--color-black);
+    border-top-right-radius: 9999px; /* rounded-l-full */
+    border-bottom-right-radius: 9999px;
+}
+
+.tab-inactive {
+    background-color: var(--color-gray-900); /* bg-gray-900 */
+    color: var(--color-gray-400); /* text-gray-400 */
+    border-top-right-radius: 9999px; /* rounded-r-full */
+    border-bottom-right-radius: 9999px;
+}
+.tabs-container .tab-active + .tab-inactive {
+    border-radius: 0 9999px 9999px 0; /* Asegura el redondeo solo en el lado derecho */
+}
+.tabs-container .tab-inactive:first-child {
+    border-radius: 9999px 0 0 9999px; /* Asegura el redondeo solo en el lado izquierdo */
+}
+
+/* --- Formulario General --- */
+form label {
+    display: block;
+    color: var(--color-gray-400);
+    margin-bottom: 0.5rem; /* mb-2 */
+    font-size: 1rem; /* text-base */
+}
+
+form input {
+    width: 100%;
+    padding: 1rem; /* p-4 */
+    margin-bottom: 1.5rem; /* mb-6 o mb-8 */
+    background-color: var(--color-gray-700);
+    color: var(--color-white);
+    border: none;
+    border-radius: 1rem; /* rounded-2xl */
+    /* Desactivar focus rings */
+    outline: none;
+    box-shadow: none;
+}
+
+/* Ajustes de margen específico del Login */
+#login-password {
+    margin-bottom: 2rem; /* mb-8 */
+}
+#repeat-password {
+    margin-bottom: 2rem; /* mb-8 */
+}
+
+
+/* --- Opciones Inferiores (Restablecer/Google) --- */
+.options-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem; /* text-sm */
+    margin-bottom: 1.5rem; /* mb-6 */
+}
+.options-bottom-text {
+    color: var(--color-gray-400);
+}
+
+.buttons-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem; /* space-x-4 */
+}
+
+/* Botón Restablecer */
+.btn-restore {
+    padding: 0.75rem 1rem; /* py-3 px-4 */
+    background-color: var(--color-gray-400);
+    color: var(--color-black);
+    font-weight: 600; /* font-semibold */
+    border-radius: 9999px; /* rounded-full */
+    font-size: 1rem; /* text-base */
+    border: none;
+    cursor: pointer;
+    flex: 1;
+}
+
+/* Botón Google */
+.btn-google {
+    width: 3rem; /* w-12 */
+    height: 3rem; /* h-12 */
+    background-color: var(--color-gray-800);
+    border-radius: 9999px; /* rounded-full */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-gray-600);
+    cursor: pointer;
+}
+.btn-google img {
+    width: 1.5rem; /* w-6 h-6 */
+    height: 1.5rem;
+}
+
+/* --- Botón de Acción Principal --- */
+.btn-primary {
+    width: 100%;
+    padding: 1rem; /* py-4 */
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 700; /* font-bold */
+    border-radius: 1rem; /* rounded-2xl */
+    transition: background-color 0.15s;
+    margin-top: 2rem; /* mt-8 */
+    border: none;
+    cursor: pointer;
+}
+
+/* Colores Específicos */
+.btn-login {
+    background-color: var(--color-indigo-600);
+}
+.btn-register {
+    background-color: var(--color-green-600);
+}
+
+.output-message {
+    margin-top: 2rem; /* mt-8 */
+    text-align: center;
+    font-size: 0.875rem; /* text-sm */
+    color: var(--color-yellow-300);
+    z-index: 20;
+}
