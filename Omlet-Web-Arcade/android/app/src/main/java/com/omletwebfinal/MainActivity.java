@@ -1,9 +1,19 @@
 package com.omletwebfinal;
 
 import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.Plugin; // Necesario para la lista
-import java.util.ArrayList; // Necesario para la lista
-import android.os.Bundle; // Necesario para el Bundle
+import com.getcapacitor.Plugin;
+import java.util.ArrayList;
+import android.os.Bundle;
+
+// =========================================================
+// === INICIO DE LAS MODIFICACIONES ===
+// =========================================================
+import android.graphics.Color;
+import android.view.View;
+import android.view.Window;
+// =========================================================
+// === FIN DE LAS MODIFICACIONES ===
+// =========================================================
 
 // Importar el plugin
 import com.omletwebfinal.plugins.gamedetector.GameDetector;
@@ -16,10 +26,18 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(GameDetector.class);
     }
 
-    // Dejamos el onCreate vacío para evitar que el compilador se queje de la firma.
-    @Override
+   @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // El registro está en el constructor (arriba).
+        Window window = getWindow();
+
+        // === COLOR DE BARRAS ===
+        window.setNavigationBarColor(Color.parseColor("#1a1a1a"));
+        window.setStatusBarColor(Color.parseColor("#1a1a1a")); // <-- Añade esta línea
+
+        // === NUEVO: Desactiva el modo inmersivo para que no tape el contenido ===
+        // Esto evita que tu app quede detrás de la barra de estado
+        window.getDecorView().setSystemUiVisibility(0);
     }
+
 }

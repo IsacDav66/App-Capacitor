@@ -35,8 +35,8 @@
 .profile-input {
   width: 70px;
   padding: 4px 12px;
-  background-color: #333;
-  color: white;
+  background-color: var(--color-ui);
+  color: var(--color-text);
   border-radius: 8px;
   text-align: center;
   border: none;
@@ -44,8 +44,8 @@
 }
 .gender-select {
   appearance: none;
-  background-color: #333;
-  color: white;
+  background-color: var(--color-ui);
+  color: var(--color-text);;
   padding: 4px 12px;
   border-radius: 8px;
   border: none;
@@ -53,8 +53,8 @@
   cursor: pointer;
 }
 #username-input {
-  background-color: #333;
-  color: white;
+  background-color: var(--color-ui);
+  color: var(--color-text);
   border-radius: 9999px;
   padding: 6px 16px;
   border: none;
@@ -64,22 +64,22 @@
   transition: background 0.3s;
 }
 #username-input:focus {
-  caret-color: white;
-  background-color: #444;
+  caret-color: var(--color-text);
+  background-color: var(--color-surface);
 }
 #profile-pic-container {
   position: relative;
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background-color: #444;
+  background-color: var(--color-ui);
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 #profile-pic-container:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 10px #6a3ab2;
+  box-shadow: 0 0 10px var(--color-accent);
 }
 #profile-img {
   width: 100%;
@@ -91,34 +91,57 @@
 #default-avatar-svg {
   width: 60px;
   height: 60px;
-  color: #fff;
+  color: var(--color-text);
 }
 #complete-profile-btn {
-  background-color: #6a3ab2;
+  background-color: var(--color-accent);
   transition: background 0.3s ease;
 }
 #complete-profile-btn:hover {
-  background-color: #8558d6;
+  background-color: var(--color-ui);
 }
 
+.button-custom{
+  width: 80%; /* w-4/5 */
+  padding-top: 0.75rem; /* py-3 = 3 × 0.25rem */
+  padding-bottom: 0.75rem;
+  color:  var(--color-text); /* text-white */
+  font-weight: 700; /* font-bold */
+  border-radius: 0.75rem; /* rounded-xl */
+  transition: all 0.15s ease; /* transition + duration-150 */
+}
+
+#dice-btn path{
+  fill: var(--color-text);
+}
 /* ========================================
    --- PÁGINA: Comentarios (comments.html) ---
    ======================================== */
 
 /* CORRECCIÓN: Estilos mejorados para el header de comentarios */
+
+.main-comments{
+    overflow-y: auto;
+    height: auto /* Mantiene espacio dinámico */
+
+}
 .comments-header {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     height: 50px;
-    background: #1a1a1a;
+    background: var(--color-ui);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 15px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--color-border);
     z-index: 10;
+}
+
+#original-post-container{
+  border-color: var(--color-border);
 }
 
 .header-back-btn,
@@ -128,7 +151,7 @@
 
 .header-back-btn {
     font-size: 1.5rem; /* 2xl */
-    color: #9ca3af; /* gray-400 */
+    color: var(--color-text-secondary); /* gray-400 */
     text-align: left;
 }
 
@@ -151,11 +174,11 @@
   left: 0;
   right: 0;
   min-height: 60px;
-  background: #1a1a1a;
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   padding: 5px 10px;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--color-ui);
   z-index: 10;
 }
 .input-row {
@@ -164,8 +187,8 @@
   width: 100%;
 }
 #comment-content {
-  background: #333;
-  color: white;
+  background: var(--color-ui);
+  color: var(--color-text);
   border-radius: 20px;
   padding: 10px 15px;
   resize: none;
@@ -175,8 +198,8 @@
   outline: none;
 }
 .comment-send-btn {
-  background: #6a3ab2;
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-text);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -188,7 +211,7 @@
 #reply-to-status {
   width: 100%;
   background-color: #2a2a2a;
-  color: #ccc;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   padding: 4px 12px;
   border-radius: 10px;
@@ -197,7 +220,7 @@
 }
 .comment-thread {
   padding: 12px 15px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--color-ui);
 }
 .comment-item {
   display: flex;
@@ -214,7 +237,7 @@
 .replies-container {
   margin-top: 12px;
   padding-left: 25px;
-  border-left: 2px solid #333;
+  border-left: 2px solid var( --color-ui);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -228,15 +251,18 @@
     padding-right: 10px;
 }
 
+
+
+.comment-icon path {
+  fill: var(--color-text);
+}
+
 /* ========================================
    --- PÁGINA: Crear Post (create_post.html) ---
    ======================================== */
 
 /* --- NUEVA REGLA PARA SOLUCIONAR EL BUG VISUAL --- */
 /* Añade padding en la parte inferior del contenedor de scroll */
-main#comments-feed {
-    padding-bottom: 65px;
-}
 
 .body-create-post{
     padding: 0%;
@@ -244,13 +270,13 @@ main#comments-feed {
 
 .create-post-header {
     height: 50px;
-    background-color: #1a1a1a;
-    border-bottom: 1px solid #333;
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-ui);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 15px;
-    color: white;
+    color: var(--color-text);
 }
 
 .header-left,
@@ -277,14 +303,14 @@ main#comments-feed {
 #cancel-post-btn {
     background: none;
     border: none;
-    color: #9ca3af; /* text-gray-400 */
+    color: var(--color-text-secondary); /* text-gray-400 */
     cursor: pointer;
     font-size: 1rem;
 }
 
 .post-button {
-    background-color: #6A3AB2;
-    color: white;
+    background-color: var(--color-accent);
+    color: var(--color-text);
     padding: 6px 14px; /* Un poco más de padding horizontal */
     border-radius: 8px;
     font-weight: bold;
@@ -293,7 +319,7 @@ main#comments-feed {
 }
 
 .preview-box {
-    background-color: #222;
+    background-color: var(--color-surface);
     height: 200px;
     border-radius: 12px;
     display: flex;
@@ -305,6 +331,44 @@ main#comments-feed {
 
 .preview-box img {
     object-fit: contain;
+}
+.image-placeholder{
+  color:var(--color-text-secondary);
+}
+
+
+.select-image-btn {
+  padding: 0.75rem; /* p-3 = 3 × 0.25rem */
+  background-color: var(--color-accent); /* bg-gray-800 */
+  border-radius: 9999px; /* rounded-full */
+  transition: background-color 0.2s ease; /* transition */
+}
+
+.select-image-btn:hover {
+  background-color: var(--color-surface); /* hover:bg-gray-700 */
+}
+
+
+
+.custom-textarea {
+  width: 100%;
+  height: 6rem; /* h-24 = 24 * 0.25rem */
+  padding: 0.75rem; /* p-3 = 3 * 0.25rem */
+  background-color: var(--color-ui); /* bg-gray-900 */
+  color: var(--color-text); /* text-white */
+  border: none;
+  border-radius: 0.5rem; /* rounded-lg */
+  resize: none;
+  margin-bottom: 1rem; /* mb-4 = 4 * 0.25rem */
+}
+
+.custom-textarea::placeholder {
+  color: var(--color-text-secondary); /* placeholder-gray-500 */
+}
+
+.custom-textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--color-border); /* focus:ring-1 + focus:ring-gray-600 */
 }
 
 /* ========================================
@@ -325,7 +389,6 @@ main#comments-feed {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url("../assets/backgrounds/windows-bg.jpeg"); /* Ruta local */
   background-size: cover;
   background-position: center;
   z-index: -1;
@@ -335,7 +398,7 @@ main#comments-feed {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  border: 3px solid white;
+  border: 3px solid var(--color-text);
   object-fit: cover;
   margin: 0 auto;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
@@ -376,7 +439,7 @@ main#comments-feed {
 }
 .stat-item .label {
   font-size: 0.8rem;
-  color: #ccc;
+  color: var(--color-text-secondary);
 }
 
 .profile-level,
@@ -388,8 +451,8 @@ main#comments-feed {
 .profile-tabs {
     display: flex;
     justify-content: space-around;
-    background-color: #121212;
-    border-bottom: 1px solid #333;
+    background-color: var(--color-ui);
+    border-bottom: 1px solid var(--color-border);
     position: relative;
     z-index: 10;
 }
@@ -404,8 +467,8 @@ main#comments-feed {
 }
 
 .tab-btn.active {
-    color: white;
-    border-bottom-color: #6A3AB2;
+    color: var(--color-text);
+    border-bottom-color: var(--color-accent);
 }
 
 #saved-tab {
@@ -452,7 +515,6 @@ main#comments-feed {
 #about-content {
   position: relative; /* Para que la animación funcione correctamente */
   padding: 20px;
-  background-image: url("../assets/backgrounds/pixel-art-bg.png");
   background-size: 100% auto;
   background-repeat: repeat-y;
   background-position: center top;
@@ -481,7 +543,7 @@ main#comments-feed {
   border-radius: 50%;
   background-color: rgba(0, 0, 0, 0.6);
   color: white;
-  border: 1px solid #666;
+  border: 1px solid #666666f1;
   font-size: 1.2rem;
   /* display: flex; ya no es necesario aquí */
   align-items: center;
@@ -518,7 +580,7 @@ main#comments-feed {
 }
 #bio-editor.editing .ql-container.ql-snow {
   border: 1px solid #444;
-  background: rgba(20, 20, 20, 0.5);
+  background: rgba(153, 46, 46, 0.5);
   border-radius: 0 0 5px 5px;
 }
 #bio-editor .ql-editor img {
@@ -537,7 +599,7 @@ main#comments-feed {
 }
 
 .settings-section {
-    background-color: #1a1a1a;
+    background-color: var(--color-surface);
     border-radius: 12px;
     padding: 15px;
 }
@@ -545,10 +607,10 @@ main#comments-feed {
 .section-title {
     font-size: 1.1rem;
     font-weight: bold;
-    color: white;
+    color: var(--color-text);
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .setting-item {
@@ -560,17 +622,17 @@ main#comments-feed {
 
 .item-text h3 {
     font-weight: bold;
-    color: #eee;
+    color: var(--color-text);
 }
 
 .item-text p {
     font-size: 0.85rem;
-    color: #999;
+    color: var(--color-text-secondary);
 }
 
 .settings-status {
     font-size: 0.8rem;
-    color: #facc15; /* yellow-400 */
+    color: #facc15; /* yellow-400 */ /*Advertencia*/
     margin-top: 15px;
     text-align: center;
 }
@@ -596,7 +658,7 @@ main#comments-feed {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #333;
+    background-color: var(--color-ui);
     transition: .4s;
 }
 
@@ -607,12 +669,12 @@ main#comments-feed {
     width: 20px;
     left: 4px;
     bottom: 4px;
-    background-color: white;
+    background-color: var(--color-text);
     transition: .4s;
 }
 
 input:checked + .slider {
-    background-color: #6A3AB2; /* Púrpura */
+    background-color: var(--color-accent); /* Púrpura */
 }
 
 input:checked + .slider:before {
@@ -625,4 +687,193 @@ input:checked + .slider:before {
 
 .slider.round:before {
     border-radius: 50%;
+}
+
+
+
+/* =========================================================
+   Layout automático para la página de comentarios
+========================================================= */
+
+/* 1. Preparamos el contenedor principal (el body) */
+.comments-layout {
+    display: grid;
+    /* Define 3 filas: header (auto), main (flexible), footer (auto) */
+    grid-template-rows: auto 1fr auto; 
+    height: 100vh; /* Ocupa toda la altura de la pantalla */
+    overflow: hidden; /* Evita el scroll en el body */
+    padding-top: 0; /* Reseteamos el padding que viene de global.css */
+}
+
+/* 2. El header y el input bar se quedan como están (ya son fijos o de altura auto) */
+.comments-layout .comments-header {
+    position: static; /* Ya no necesita ser fijo, la grid lo posiciona */
+}
+
+.comments-layout .comment-input-bar {
+    position: static; /* Ya no necesita ser fijo, la grid lo posiciona */
+}
+
+/* 3. El contenido principal ahora es el que se encarga del scroll */
+.comments-layout main#comments-feed {
+    overflow-y: auto; /* Permite el scroll vertical solo en esta área */
+    /* No necesita padding-bottom, la grid ya le da el espacio correcto */
+}
+
+
+
+
+
+
+
+
+/* ========================================
+   --- PÁGINA: Temas (themes.html) ---
+======================================== */
+.themes-main {
+    padding: 20px;
+}
+.theme-selector {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--color-surface);
+    border-radius: 16px;
+    margin-bottom: 24px;
+}
+/* REGLA BASE - TODOS los círculos tendrán estas propiedades */
+/* ========================================
+   --- PÁGINA: Temas (themes.html) - CSS FINAL Y DEFINITIVO ---
+======================================== */
+
+/* El contenedor exterior (el círculo) */
+.theme-circle {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.2s, border-color 0.3s;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative; 
+    box-sizing: border-box; /* Mantenemos esto, es buena práctica */
+}
+
+/* ========================================================= */
+/* === INICIO DE LA CORRECCIÓN FINAL === */
+/* ========================================================= */
+
+/* REEMPLAZA LA REGLA ANTERIOR POR ESTA */
+.theme-color-bands {
+    /* Hacemos el div interior más grande que su contenedor */
+    width: 130%;
+    height: 130%;
+
+    /* Lo centramos perfectamente dentro del círculo */
+    position: absolute;
+    top: 50%;
+    left: 59%;
+    transform: translate(-50%, -50%);
+}
+
+/* ========================================================= */
+/* === FIN DE LA CORRECCIÓN === */
+/* ========================================================= */
+
+
+/* La clase 'active' no cambia */
+.theme-circle.active {
+    border-color: var(--color-accent);
+    transform: scale(1.1);
+}
+
+/* El checkmark no cambia */
+.theme-circle.active::before {
+    content: '✔';
+    color: var(--color-text);
+    font-size: 18px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-shadow: 0 0 4px rgba(0,0,0,0.5);
+    z-index: 1; /* Asegura que el check esté por encima de las bandas de color */
+}
+.preview-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: var(--color-text);
+}
+.preview-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.preview-button {
+    background-color: var(--color-accent);
+    color: var(--color-text);
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: bold;
+    border: none;
+}
+.theme-toggle-btn {
+    width: 24px;
+    height: 24px;
+}
+
+/* ========================================
+   --- DEFINICIONES DE TEMAS ---
+======================================== */
+
+/* Tema Púrpura (Default) */
+[data-theme="purple"] {
+    --color-bg: #000000;
+    --color-surface: #111111;
+    --color-ui: #222222;
+    --color-accent: #8A2BE2; /* BlueViolet */
+    --color-text: #FFFFFF;
+}
+
+/* Tema Verde */
+[data-theme="green"] {
+    --color-bg: #011C13;
+    --color-surface: #0A2E22;
+    --color-ui: #133F31;
+    --color-accent: #26DE9D;
+    --color-text: #FFFFFF;
+}
+
+/* Tema Rosa/Marrón */
+[data-theme="rose"] {
+    --color-bg: #2B191D;
+    --color-surface: #40262C;
+    --color-ui: #57333B;
+    --color-accent: #F48A9C;
+    --color-text: #FFFFFF;
+}
+
+/* Tema Azul (Ejemplo adicional) */
+[data-theme="blue"] {
+    --color-bg: #291F37; /* Slate 900 */
+    --color-surface: #3C3552; /* Slate 800 */
+    --color-ui: #5D5279; /* Slate 700 */
+    --color-accent: #9384A9; /* Sky 400 */
+    --color-text: #DABFEE; /* Slate 50 */
+}
+
+/* ========================================
+   --- LÓGICA DE MODO CLARO/OSCURO ---
+======================================== */
+
+/* 
+  Cuando el <html> tenga el atributo data-mode="light",
+  esta regla se activará e invertirá los colores de fondo y texto.
+*/
+html[data-mode="light"] {
+    --color-bg: var(--color-text);
+    --color-text: var(--color-bg);
+    --color-text-secondary: rgba(0, 0, 0, 0.6); /* Un gris oscuro para subtítulos */
 }

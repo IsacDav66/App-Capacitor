@@ -7,6 +7,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crear Publicación</title>
 
+        <!-- ========================================================= -->
+        <!-- === INICIO DEL SCRIPT ANTI-PARPADEO DE TEMA === -->
+        <!-- ========================================================= -->
+        <script>
+            (function () {
+                const theme = localStorage.getItem('app-theme') || 'purple';
+                const mode = localStorage.getItem('app-mode') || 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.setAttribute('data-mode', mode);
+            })();
+        </script>
+        <!-- ========================================================= -->
+        <!-- === FIN DEL SCRIPT === -->
+        <!-- ========================================================= -->
+
     <!-- Hojas de Estilo Estandarizadas -->
     <link href="./css/tailwind.css" rel="stylesheet">
     <link href="./css/global.css" rel="stylesheet">
@@ -35,7 +50,7 @@
 
             <!-- Campo de Texto -->
             <textarea id="post-content"
-                class="w-full h-24 p-3 bg-gray-900 text-white border-none rounded-lg resize-none placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-600 mb-4"
+                class="custom-textarea"
                 placeholder="¿Qué estás pensando?" maxlength="500" style="padding-left: 10px;
     padding-top: 10px;
     padding-right: 10px;
@@ -43,14 +58,14 @@
 
             <!-- Previsualización de Imagen -->
             <div id="image-preview-box" class="preview-box mb-4">
-                <p id="image-placeholder" class="text-gray-500">Haz clic en el icono de abajo para añadir una foto.</p>
+                <p id="image-placeholder" class="image-placeholder">Haz clic en el icono de abajo para añadir una foto.</p>
                 <img id="post-image-preview" src="" alt="Vista previa" style="display:none;">
             </div>
 
             <!-- Botones de Acción (Imagen y Oculto) -->
         <div class="flex space-x-4 mb-6">
             <!-- CLAVE: Añadir type="button" y ID -->
-            <button type="button" id="select-image-btn" class="p-3 bg-gray-800 rounded-full hover:bg-gray-700 transition">
+            <button type="button" id="select-image-btn" class="select-image-btn">
                     <!-- Icono de Imagen/Galería -->
                     <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"
                         xmlns="http://www.w3.org/2000/svg">

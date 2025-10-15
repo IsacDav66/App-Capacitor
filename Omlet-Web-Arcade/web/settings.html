@@ -4,8 +4,22 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Ajustes</title>
+        <!-- ========================================================= -->
+        <!-- === INICIO DEL SCRIPT ANTI-PARPADEO DE TEMA === -->
+        <!-- ========================================================= -->
+        <script>
+            (function () {
+                const theme = localStorage.getItem('app-theme') || 'purple';
+                const mode = localStorage.getItem('app-mode') || 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.setAttribute('data-mode', mode);
+            })();
+        </script>
+        <!-- ========================================================= -->
+        <!-- === FIN DEL SCRIPT === -->
+        <!-- ========================================================= -->
 
     <!-- Hojas de Estilo Estandarizadas -->
     <link href="./css/tailwind.css" rel="stylesheet">
