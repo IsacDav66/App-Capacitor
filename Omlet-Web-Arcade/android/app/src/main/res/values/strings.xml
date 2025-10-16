@@ -4,4 +4,6 @@
     <string name="title_activity_main">Omlet Web Arcade</string>
     <string name="package_name">com.omletwebfinal</string>
     <string name="custom_url_scheme">com.omletwebfinal</string>
+    <!-- AÑADE ESTA LÍNEA EXACTAMENTE IGUAL QUE EN EL PASO ANTERIOR -->
+    <string name="server_client_id">917126689157-ngl5kda1rc4s7g6v85nue90ojo2sasj3.apps.googleusercontent.com</string>
 </resources>

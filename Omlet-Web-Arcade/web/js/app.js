@@ -42,6 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Inicializa los plugins de Capacitor (si están disponibles).
     initializeCapacitorPlugins();
 
+
+    // NUEVO: Inicializar el plugin de Google Auth ANTES de usarlo.
+    // Esto crea los objetos nativos necesarios y evita el crash.
+    if (window.Capacitor && Capacitor.Plugins.GoogleAuth) {
+        Capacitor.Plugins.GoogleAuth.initialize();
+    }
+    
+
      // LLAMA A LA FUNCIÓN AQUÍ PARA ESTABLECER EL COLOR INICIAL
     configureStatusBar(); // <-- AÑADIR ESTA LÍNEA
     updateNativeUIColors();
@@ -170,6 +178,66 @@ function routePage() {
 // =========================================================
 // === FUNCIONES AUXILIARES Y DE PÁGINA ===
 // =========================================================
+
+// AÑADE ESTA NUEVA FUNCIÓN COMPLETA
+async function signInWithGoogle() {
+    const output = document.getElementById('output');
+    output.textContent = 'Iniciando sesión con Google...';
+
+    try {
+        // 1. Llama al plugin nativo
+        const googleUser = await Capacitor.Plugins.GoogleAuth.signIn();
+        
+        // 2. Si tiene éxito, envía el token al backend
+        if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
+            output.textContent = 'Verificando con el servidor...';
+            
+            const response = await fetch(API_BASE_URL + '/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: googleUser.authentication.idToken })
+            });
+
+            const data = await response.json();
+
+            // 3. Procesa la respuesta del backend
+            if (response.ok) {
+                output.textContent = `✅ ${data.message} ¡Redirigiendo!`;
+                localStorage.setItem('authToken', data.token);
+                setTimeout(() => { window.location.href = 'home.html'; }, 500);
+            } else {
+                output.textContent = `❌ Error del servidor: ${data.message}`;
+            }
+        } else {
+             output.textContent = '❌ No se pudo obtener la información de Google.';
+        }
+    } catch (error) {
+        console.error("Error en el inicio de sesión con Google:", error);
+        output.textContent = '❌ Inicio de sesión con Google cancelado o fallido.';
+    }
+}
+
+// =========================================================
+// === INICIO DE LA MODIFICACIÓN ===
+// =========================================================
+
+// NUEVA FUNCIÓN AUXILIAR para construir la URL de la imagen correctamente
+function getFullImageUrl(pathOrUrl) {
+    if (!pathOrUrl) {
+        return './assets/img/default-avatar.png'; // Devuelve el avatar por defecto si no hay nada
+    }
+    // Si la URL ya es completa (empieza con http), la usamos directamente.
+    if (pathOrUrl.startsWith('http')) {
+        return pathOrUrl;
+    }
+    // Si es una ruta local, le añadimos la base de la API.
+    return API_BASE_URL + pathOrUrl;
+}
+
+// =========================================================
+// === FIN DE LA MODIFICACIÓN ===
+// =========================================================
+
 
 // AÑADE ESTA NUEVA FUNCIÓN COMPLETA
 async function updateNativeUIColors() {
@@ -385,53 +453,97 @@ async function toggleSave(postId, buttonElement) {
     }
 }
 
+/**
+ * Genera el HTML para una tarjeta de publicación (post).
+ * Esta versión actualizada puede renderizar imágenes locales o videos de YouTube incrustados.
+ * @param {object} post - El objeto de la publicación que viene de la API.
+ * @returns {string} - La cadena de texto HTML para la tarjeta de publicación.
+ */
 function createPostHTML(post) {
-    const imageUrl = post.image_url ? API_BASE_URL + post.image_url : null;
-    
-    // ESTAS LÍNEAS YA NO SON NECESARIAS
-    // const heartColor = isLiked ? '#FF4466' : '#aaa';
-    // const saveIconColor = isSaved ? '#4A90E2' : '#aaa';
-
-    // Obtenemos el estado desde el post
+    // 1. Determinar el estado de las interacciones del usuario (like y guardado)
     const isLiked = post.is_liked_by_user === true;
     const isSaved = post.is_saved_by_user === true;
     
-    const formattedLikes = (parseInt(post.total_likes) || 0);
-    const formattedComments = (parseInt(post.total_comments) || 0);
-    let profilePicUrl = post.profile_pic_url ? API_BASE_URL + post.profile_pic_url : './assets/img/default-avatar.png';
-    const postImageHTML = imageUrl ? `<div class="mb-3"><img src="${imageUrl}" class="w-full h-auto object-cover rounded-lg"></div>` : '';
-    const avatarHTML = `<a href="user_profile.html?id=${post.user_id}"><img src="${profilePicUrl}" alt="Avatar" class="post-avatar" onerror="this.onerror=null; this.src='./assets/img/default-avatar.png';"/></a>`;
+    // 2. Formatear los contadores de likes y comentarios
+    const formattedLikes = parseInt(post.total_likes) || 0;
+    const formattedComments = parseInt(post.total_comments) || 0;
+    
+    // 3. Obtener la URL de la foto de perfil del autor (maneja URLs internas y externas)
+    const profilePicUrl = getFullImageUrl(post.profile_pic_url);
 
+    // 4. Construir el HTML del avatar del autor del post
+    const avatarHTML = `
+        <a href="user_profile.html?id=${post.user_id}">
+            <img src="${profilePicUrl}" alt="Avatar" class="post-avatar" onerror="this.onerror=null; this.src='./assets/img/default-avatar.png';"/>
+        </a>
+    `;
+
+    // =========================================================
+    // === INICIO DE LA LÓGICA DE MEDIOS (IMAGEN O VIDEO) ===
+    // =========================================================
+    let mediaHTML = '';
+
+    // Si el post tiene un video_id de YouTube, creamos un iframe responsivo
+    if (post.video_id) {
+        mediaHTML = `
+            <div class="mb-3" style="position: relative; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */ height: 0; overflow: hidden; border-radius: 8px; background-color: #000;">
+                <iframe 
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                    src="https://www.youtube-nocookie.com/embed/${post.video_id}?modestbranding=1&rel=0&showinfo=0" 
+                    title="Reproductor de video de YouTube"
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+        `;
+    // Si no hay video, pero hay una imagen, mostramos la imagen
+    } else if (post.image_url) {
+        const imageUrl = API_BASE_URL + post.image_url;
+        mediaHTML = `<div class="mb-3"><img src="${imageUrl}" class="w-full h-auto object-cover rounded-lg"></div>`;
+    }
+    // Si no hay ninguno de los dos, mediaHTML se queda como una cadena vacía.
+
+    // =========================================================
+    // === FIN DE LA LÓGICA DE MEDIOS ===
+    // =========================================================
+
+    // 5. Construir la tarjeta completa del post usando el template string
     return `
         <div class="post-card">
             <div class="post-header">
                 ${avatarHTML}
                 <div>
-                    <div class="post-username"><a href="user_profile.html?id=${post.user_id}">${post.username || 'Anónimo'}</a></div>
+                    <div class="post-username">
+                        <a href="user_profile.html?id=${post.user_id}">${post.username || 'Anónimo'}</a>
+                    </div>
                     <div class="post-time">${formatTimeAgo(post.created_at)}</div>
                 </div>
             </div>
             <div class="post-content">${post.content || ''}</div>
-            ${postImageHTML}
+            
+            <!-- Aquí se inserta el HTML del video o la imagen -->
+            ${mediaHTML}
+            
             <div class="post-actions">
                 <button onclick="toggleLike(${post.post_id}, this)">
-                    <!-- CAMBIO: Quitamos 'style' y añadimos la clase 'liked' si es necesario -->
                     <span class="like-icon ${isLiked ? 'liked' : ''}">${HEART_SVG}</span>
                     <span class="like-count">${formattedLikes}</span>
                 </button>
                 <a href="comments.html?postId=${post.post_id}" style="text-decoration: none;">
                     <button class="comment-icon" style="border: none; background: none; display: flex; align-items: center; gap: 6px;">
                         <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.99998 0.399994H13.8C15.12 0.399994 16.2 1.47999 16.2 2.79999V11.2C16.2 12.52 15.12 13.6 13.8 13.6H11.4L4 15.5L5.39998 13.6H2.99998C1.67998 13.6 0.599976 12.52 0.599976 11.2V2.79999C0.599976 1.47999 1.67998 0.399994 2.99998 0.399994Z"/>
+                            <path d="M2.99998 0.399994H13.8C15.12 0.399994 16.2 1.47999 16.2 2.79999V11.2C16.2 12.52 15.12 13.6 13.8 13.6H11.4L4 15.5L5.39998 13.6H2.99998C1.67998 13.6 0.599976 12.52 0.599976 11.2V2.79999C0.599976 1.47999 1.67998 0.399994 2.99998 0.399994Z"/>
                         </svg>
                         <span>${formattedComments}</span>
                     </button>
                 </a>
                 <button onclick="toggleSave(${post.post_id}, this)">
-                    <!-- CAMBIO: Quitamos 'style' y añadimos la clase 'saved' si es necesario -->
                     <span class="save-icon ${isSaved ? 'saved' : ''}">${SAVE_SVG}</span>
                 </button>
-                <button><img src="./assets/icons/actions/share.svg" width="18"> Compartir</button>
+                <button>
+                    <img src="./assets/icons/actions/share.svg" width="18"> Compartir
+                </button>
             </div>
         </div>
     `;
@@ -619,7 +731,7 @@ async function loadSideMenuData() {
         if (response.ok && data.success) {
             const userData = data.data;
             menuUsername.textContent = userData.username || 'Usuario';
-            menuAvatar.src = userData.profile_pic_url ? `${API_BASE_URL}${userData.profile_pic_url}` : './assets/img/default-avatar.png';
+            menuAvatar.src = getFullImageUrl(userData.profile_pic_url);
             if (userData.userId) {
                 menuAvatarLink.href = `user_profile.html?id=${userData.userId}`;
             }
@@ -841,32 +953,58 @@ async function initCreatePostPage() {
     const contentInput = document.getElementById('post-content');
     const cancelBtn = document.getElementById('cancel-post-btn');
     const selectImageBtn = document.getElementById('select-image-btn');
-    const fileInput = document.getElementById('post-file-input');
+    const selectVideoBtn = document.getElementById('select-video-btn');
+    const imageInput = document.getElementById('post-image-input');
+    const videoInput = document.getElementById('post-video-input');
     const previewImg = document.getElementById('post-image-preview');
+    const previewVideo = document.getElementById('post-video-preview');
     const placeholder = document.getElementById('image-placeholder');
     const output = document.getElementById('post-output');
     const token = localStorage.getItem('authToken');
     if (!token) { window.location.href = 'index.html'; return; }
-    let selectedFile = null;
 
-    cancelBtn.addEventListener('click', () => { window.location.href = 'home.html'; });
-    selectImageBtn.addEventListener('click', (e) => { e.preventDefault(); fileInput.click(); });
-    fileInput.addEventListener('change', (event) => {
+    let selectedFile = null;
+    let fileType = null; // 'image' o 'video'
+
+    const resetPreviews = () => {
+        previewImg.style.display = 'none';
+        previewVideo.style.display = 'none';
+        previewImg.src = '';
+        previewVideo.src = '';
+        URL.revokeObjectURL(previewVideo.src); // Limpia la memoria
+        placeholder.style.display = 'block';
+        selectedFile = null;
+        fileType = null;
+    };
+
+    selectImageBtn.addEventListener('click', () => { imageInput.value = null; imageInput.click(); });
+    selectVideoBtn.addEventListener('click', () => { videoInput.value = null; videoInput.click(); });
+
+    imageInput.addEventListener('change', (event) => {
+        resetPreviews();
         const file = event.target.files[0];
         if (file) {
             selectedFile = file;
-            const reader = new FileReader();
-            reader.onload = e => {
-                previewImg.src = e.target.result;
-                previewImg.style.display = 'block';
-                placeholder.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
-            output.textContent = 'Imagen seleccionada. Lista para publicar.';
-        } else {
-            selectedFile = null;
+            fileType = 'image';
+            previewImg.src = URL.createObjectURL(file);
+            previewImg.style.display = 'block';
+            placeholder.style.display = 'none';
         }
     });
+
+    videoInput.addEventListener('change', (event) => {
+        resetPreviews();
+        const file = event.target.files[0];
+        if (file) {
+            selectedFile = file;
+            fileType = 'video';
+            previewVideo.src = URL.createObjectURL(file);
+            previewVideo.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+    });
+    
+    cancelBtn.addEventListener('click', () => { window.location.href = 'home.html'; });
 
     publishBtn.addEventListener('click', async () => {
         const content = contentInput.value.trim();
@@ -874,35 +1012,45 @@ async function initCreatePostPage() {
             output.textContent = '❌ La publicación no puede estar vacía.';
             return;
         }
-        output.textContent = 'Enviando publicación...';
-        let headers = {};
-        let body;
+
+        publishBtn.disabled = true;
+        publishBtn.textContent = 'Subiendo...';
+        
+        const formData = new FormData();
+        formData.append('content', content);
+        
+        let endpoint = '';
+
         if (selectedFile) {
-            const postFormData = new FormData();
-            postFormData.append('content', content);
-            postFormData.append('postImage', selectedFile);
-            body = postFormData;
+            // El backend espera el archivo en 'postImage' para ambos casos
+            formData.append('postImage', selectedFile, selectedFile.name); 
+            endpoint = fileType === 'image' ? '/api/posts/create' : '/api/posts/create-video-post';
+            output.textContent = fileType === 'video' ? 'Subiendo video a YouTube... Esto puede tardar varios minutos.' : 'Subiendo imagen...';
         } else {
-            headers['Content-Type'] = 'application/json';
-            body = JSON.stringify({ content: content });
+             endpoint = '/api/posts/create'; // Post de solo texto
+             output.textContent = 'Publicando...';
         }
+
         try {
-            const response = await fetch(API_BASE_URL + '/api/posts/create', {
+            const response = await fetch(API_BASE_URL + endpoint, {
                 method: 'POST',
-                headers: { ...headers, 'Authorization': `Bearer ${token}` },
-                credentials: 'omit',
-                body: body
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
             });
             const data = await response.json();
             if (response.ok) {
-                output.textContent = '✅ Publicación completada. Redirigiendo a Home.';
-                setTimeout(() => { window.location.href = 'home.html'; }, 500);
+                output.textContent = '✅ ¡Publicado! Redirigiendo...';
+                setTimeout(() => { window.location.href = 'home.html'; }, 800);
             } else {
                 output.textContent = `❌ Error: ${data.message}`;
+                publishBtn.disabled = false;
+                publishBtn.textContent = 'Publicar';
             }
         } catch (error) {
             output.textContent = '❌ Error de red al crear la publicación.';
             console.error('Error al crear post:', error);
+            publishBtn.disabled = false;
+            publishBtn.textContent = 'Publicar';
         }
     });
 }
@@ -1127,7 +1275,7 @@ async function initUserProfilePage() {
         const profileResponse = await fetch(`${API_BASE_URL}/api/user/profile/${targetUserId}`);
         if (profileResponse.ok) {
             const user = (await profileResponse.json()).data;
-            if (avatar) avatar.src = user.profile_pic_url ? `${API_BASE_URL}${user.profile_pic_url}` : './assets/img/default-avatar.png';
+            if (avatar) avatar.src = getFullImageUrl(user.profile_pic_url);
             if (username) username.textContent = user.username || 'Usuario';
             if (postCount) postCount.textContent = user.post_count;
             if (followersCount) followersCount.textContent = user.followers_count;

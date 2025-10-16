@@ -57,27 +57,35 @@
     padding-bottom: 10px;"></textarea>
 
             <!-- Previsualización de Imagen -->
+            <!-- En create_post.html -->
             <div id="image-preview-box" class="preview-box mb-4">
-                <p id="image-placeholder" class="image-placeholder">Haz clic en el icono de abajo para añadir una foto.</p>
-                <img id="post-image-preview" src="" alt="Vista previa" style="display:none;">
+                <p id="image-placeholder" class="image-placeholder">Haz clic en el icono de abajo para añadir una foto o video.</p>
+                <img id="post-image-preview" src="" alt="Vista previa de imagen" style="display:none;">
+                <video id="post-video-preview" controls style="display:none; max-width:100%; max-height:100%;"></video>
             </div>
-
-            <!-- Botones de Acción (Imagen y Oculto) -->
-        <div class="flex space-x-4 mb-6">
-            <!-- CLAVE: Añadir type="button" y ID -->
-            <button type="button" id="select-image-btn" class="select-image-btn">
-                    <!-- Icono de Imagen/Galería -->
-                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"
-                        xmlns="http://www.w3.org/2000/svg">
+            
+            <div class="flex space-x-4 mb-6">
+                <button type="button" id="select-image-btn" class="select-image-btn">
+                    <!-- Icono de Imagen -->
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd"
                             d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 4-4 5 10z"
                             clip-rule="evenodd"></path>
                     </svg>
                 </button>
+                <!-- NUEVO Botón de Video -->
+                <button type="button" id="select-video-btn" class="select-image-btn">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 001.553.832l3-2a1 1 0 000-1.664l-3-2z">
+                        </path>
+                    </svg>
+                </button>
             </div>
-
-            <!-- Input de archivo oculto -->
-            <input type="file" id="post-file-input" name="postImage" accept="image/*" style="display:none;">
+            
+            <!-- CAMBIAMOS LOS NOMBRES DE LOS INPUTS -->
+            <input type="file" id="post-image-input" name="postImage" accept="image/*" style="display:none;">
+            <input type="file" id="post-video-input" name="postVideo" accept="video/*" style="display:none;">
         </form>
 
         <p id="post-output" class="text-center text-sm text-yellow-300"></p>

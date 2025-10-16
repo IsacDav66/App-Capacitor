@@ -30,6 +30,7 @@
     "@capacitor/cli": "^7.4.3",
     "@capacitor/core": "^7.4.3",
     "@capacitor/status-bar": "^7.0.3",
-    "@capacitor/toast": "^7.0.2"
+    "@capacitor/toast": "^7.0.2",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
   }
 }
