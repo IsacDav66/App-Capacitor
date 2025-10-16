@@ -39,16 +39,20 @@ body {
     color: var(--color-text);
     font-family: Arial, sans-serif;
     margin: 0;
-    padding-top: 50px;    /* Espacio para la barra superior */
+    padding-top: 50px;
+    padding-bottom: 50px;
     height: 100vh;
     overflow: hidden;
+    /* AÑADIMOS ESTO PARA UNA MEJOR ESTRUCTURA */
+    display: flex;
+    flex-direction: column;
 }
 
 main {
     overflow-y: auto;
-    height: calc(100vh - 105px); /* Mantiene espacio dinámico */
+    flex-grow: 1; /* <-- CAMBIADO: Hará que ocupe todo el espacio restante */
+    /* La altura ya no necesita ser calculada manualmente */
 }
-
 /* --- Enlaces --- */
 a {
     color: inherit;
@@ -146,6 +150,5 @@ a {
     background-color: var(--color-ui); /* Usa el color de acent */
     }
 
-.nav-btn svg path {
-  fill:  var(--color-text);
-}
+
+

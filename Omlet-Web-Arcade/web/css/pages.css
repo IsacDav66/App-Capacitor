@@ -419,6 +419,11 @@
   font-size: 1.5rem;
   font-weight: bold;
 }
+/* Regla específica para el modo claro */
+html[data-mode="light"] .profile-username-container {
+    color: var(--color-accent);
+}
+
 #edit-profile-btn {
   display: none;
   cursor: pointer;
@@ -428,7 +433,20 @@
   justify-content: space-around;
   margin-top: 15px;
 }
+/* Regla específica para el modo claro */
+html[data-mode="light"] .profile-stats {
+    color: var(--color-accent);
+}
+html[data-mode="light"] .label{
+    color: var(--color-accent);
+}
 
+html[data-mode="light"] .profile-level{
+    color: var(--color-accent);
+}
+html[data-mode="light"] .last-played{
+    color: var(--color-accent);
+}
 .stat-item {
   display: flex;
   flex-direction: column;
@@ -703,6 +721,7 @@ input:checked + .slider:before {
     height: 100vh; /* Ocupa toda la altura de la pantalla */
     overflow: hidden; /* Evita el scroll en el body */
     padding-top: 0; /* Reseteamos el padding que viene de global.css */
+    padding-bottom:0;
 }
 
 /* 2. El header y el input bar se quedan como están (ya son fijos o de altura auto) */
@@ -865,15 +884,46 @@ input:checked + .slider:before {
 }
 
 /* ========================================
-   --- LÓGICA DE MODO CLARO/OSCURO ---
+   --- LÓGICA DE MODO CLARO/OSCURO (NUEVA VERSIÓN) ---
 ======================================== */
 
-/* 
-  Cuando el <html> tenga el atributo data-mode="light",
-  esta regla se activará e invertirá los colores de fondo y texto.
-*/
-html[data-mode="light"] {
-    --color-bg: var(--color-text);
-    --color-text: var(--color-bg);
-    --color-text-secondary: rgba(0, 0, 0, 0.6); /* Un gris oscuro para subtítulos */
+/* --- TEMA PÚRPURA CLARO --- */
+html[data-theme="purple"][data-mode="light"] {
+    --color-bg: #f3e9ff;       /* Fondo: Lavanda muy claro */
+    --color-surface: #ffffff;  /* Superficie: Blanco puro */
+    --color-ui: #e9d5ff;       /* UI: Lavanda claro */
+    --color-accent: #8A2BE2;   /* Acento: Se mantiene el púrpura fuerte */
+    --color-text: #3b0764;     /* Texto: Púrpura muy oscuro */
+    --color-text-secondary: rgba(59, 7, 100, 0.65);
+}
+
+/* --- TEMA VERDE CLARO --- */
+html[data-theme="green"][data-mode="light"] {
+    --color-bg: #e6fff6;       /* Fondo: Menta muy claro */
+    --color-surface: #ffffff;  /* Superficie: Blanco */
+    --color-ui: #c1fae4;       /* UI: Menta claro */
+    --color-accent: #26DE9D;   /* Acento: Se mantiene el verde fuerte */
+    --color-text: #011C13;     /* Texto: Verde muy oscuro (el bg original) */
+    --color-text-secondary: rgba(1, 28, 19, 0.65);
+}
+
+/* --- TEMA ROSA CLARO --- */
+html[data-theme="rose"][data-mode="light"] {
+    --color-bg: #fff0f3;       /* Fondo: Rosa muy claro */
+    --color-surface: #ffffff;  /* Superficie: Blanco */
+    --color-ui: #ffe0e6;       /* UI: Rosa claro */
+    --color-accent: #F48A9C;   /* Acento: Se mantiene el rosa fuerte */
+    --color-text: #57333B;     /* Texto: Marrón oscuro (el ui original) */
+    --color-text-secondary: rgba(87, 51, 59, 0.65);
+}
+
+/* --- TEMA AZUL CLARO --- */
+/* (Usando la lógica que mencionaste: invertir bg y text, y adaptar el resto) */
+html[data-theme="blue"][data-mode="light"] {
+    --color-bg: #F0EBF5;       /* Fondo: Un lavanda muy pálido, casi blanco */
+    --color-surface: #ffffff;  /* Superficie: Blanco puro */
+    --color-ui: #E3D9ED;       /* UI: Un lavanda un poco más oscuro */
+    --color-accent: #5D5279;   /* Acento: Usamos el color UI oscuro como acento */
+    --color-text: #291F37;     /* Texto: El color de fondo oscuro original */
+    --color-text-secondary: rgba(41, 31, 55, 0.7);
 }

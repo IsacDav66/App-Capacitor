@@ -42,6 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Inicializa los plugins de Capacitor (si están disponibles).
     initializeCapacitorPlugins();
 
+     // LLAMA A LA FUNCIÓN AQUÍ PARA ESTABLECER EL COLOR INICIAL
+    configureStatusBar(); // <-- AÑADIR ESTA LÍNEA
+    updateNativeUIColors();
+
      // 2. NUEVO: Llama a la función para personalizar la UI del sistema.
     setSystemUIColors();
 
@@ -166,6 +170,66 @@ function routePage() {
 // =========================================================
 // === FUNCIONES AUXILIARES Y DE PÁGINA ===
 // =========================================================
+
+// AÑADE ESTA NUEVA FUNCIÓN COMPLETA
+async function updateNativeUIColors() {
+    if (!window.Capacitor || !window.Capacitor.Plugins) {
+        console.log("Modo Navegador: No se actualizarán las barras nativas.");
+        return;
+    }
+
+    try {
+        // 1. Obtenemos los plugins que vamos a usar
+        const { StatusBar, NavigationBar } = window.Capacitor.Plugins;
+
+        // 2. Leemos el valor actual de la variable CSS --color-ui
+        const uiColor = getComputedStyle(document.documentElement).getPropertyValue('--color-ui').trim();
+        const currentMode = localStorage.getItem('app-mode') || 'dark';
+
+        // --- CONTROL DE LA STATUS BAR (SUPERIOR) ---
+        await StatusBar.setBackgroundColor({ color: uiColor });
+
+        // === CORRECCIÓN AQUÍ ===
+        // Usamos las cadenas de texto 'DARK' y 'LIGHT' en lugar del objeto Style
+        await StatusBar.setStyle({ style: currentMode === 'dark' ? 'DARK' : 'LIGHT' });
+        // =======================
+
+        // --- CONTROL DE LA NAVIGATION BAR (INFERIOR) ---
+        // Comprobamos si nuestro plugin personalizado NavigationBar está disponible
+        if (NavigationBar) {
+            await NavigationBar.setColor({
+                color: uiColor,
+                darkButtons: currentMode === 'light'
+            });
+        } else {
+             console.warn("El plugin personalizado NavigationBar no fue encontrado.");
+        }
+
+        console.log(`✅ Barras nativas actualizadas al color: ${uiColor}`);
+
+    } catch (error) {
+        console.error('❌ Error al actualizar los colores de las barras nativas:', error);
+    }
+}
+
+// NUEVA FUNCIÓN para configurar el comportamiento de la Status Bar
+async function configureStatusBar() {
+    if (!window.Capacitor || !window.Capacitor.Plugins.StatusBar) return;
+
+    try {
+        const { StatusBar } = window.Capacitor.Plugins;
+        
+        // La línea MÁGICA:
+        // Le decimos a Capacitor que la webview NO debe superponerse a la barra de estado.
+        await StatusBar.setOverlaysWebView({ overlay: false });
+
+        console.log("✅ Status bar configurada para no superponerse al contenido.");
+    } catch (error) {
+        console.error("❌ Error al configurar el overlay de la status bar:", error);
+    }
+}
+
+
 
 function setupSideMenu() {
     const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -1368,7 +1432,7 @@ async function initThemesPage() {
             position: '0% 0, 20% 0, 40% 0, 60% 0, 80% 0'
         },
         'blue': {
-            image: 'linear-gradient(#0F172A, #0F172A), linear-gradient(#1E293B, #1E293B), linear-gradient(#334155, #334155), linear-gradient(#38BDF8, #38BDF8), linear-gradient(#F8FAFC, #F8FAFC)',
+            image: 'linear-gradient(#291F37, #291F37), linear-gradient(#3C3552, #3C3552), linear-gradient(#5D5279, #5D5279), linear-gradient(#9384A9, #9384A9), linear-gradient(#DABFEE, #DABFEE)',
             size: '20% 100%, 20% 100%, 20% 100%, 20% 100%, 20% 100%',
             position: '0% 0, 20% 0, 40% 0, 60% 0, 80% 0'
         }
@@ -1412,8 +1476,10 @@ async function initThemesPage() {
                 currentTheme = themeName;
                 localStorage.setItem('app-theme', currentTheme);
                 document.documentElement.setAttribute('data-theme', currentTheme);
-                renderThemeCircles(); // Volver a renderizar para actualizar el estado 'active'
+                renderThemeCircles();
+                updateNativeUIColors(); // <-- AÑADIR AQUÍ
             });
+
 
             themeSelector.appendChild(circleWrapper);
         }
@@ -1432,8 +1498,12 @@ async function initThemesPage() {
         currentMode = currentMode === 'dark' ? 'light' : 'dark';
         localStorage.setItem('app-mode', currentMode);
         applyMode(currentMode);
+        updateNativeUIColors(); // <-- AÑADIR AQUÍ
     });
+
 
     renderThemeCircles();
     applyMode(currentMode);
+    updateNativeUIColors(); // <-- Y TAMBIÉN AQUÍ
+
 }
