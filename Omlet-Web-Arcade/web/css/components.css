@@ -17,8 +17,35 @@
 .post-header {
     display: flex;
     align-items: center;
+    justify-content: space-between; /* ¡Clave! Esto empuja el botón a la derecha */
     gap: 10px;
     margin-bottom: 10px;
+}
+
+
+.post-author-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Estilos para el nuevo botón de eliminar */
+.delete-post-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: var(--color-text-secondary); /* Un color sutil */
+    transition: color 0.2s ease;
+}
+
+.delete-post-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.delete-post-btn:hover {
+    color: #ef4444; /* Rojo al pasar el ratón */
 }
 
 .post-avatar {
@@ -255,3 +282,32 @@
     50% { transform: scale(1.3); }
     100% { transform: scale(1); }
 }
+
+
+/*
+  ========================================
+  --- ESTILOS PERSONALIZADOS PARA PLYR.IO ---
+  ========================================
+*/
+:root {
+  /* Hacemos que el color principal de Plyr herede nuestro color de acento del tema */
+  --plyr-color-main: var(--color-accent);
+}
+
+/*
+  ================================================================
+  --- NUEVA REGLA PARA LOS BORDES REDONDEADOS ---
+  ================================================================
+*/
+.plyr__video-embed {
+    border-radius: 0.5rem; /* El radio de borde que pediste */
+    overflow: hidden;      /* ¡LA CLAVE! Esto recorta el video de adentro para que no se salga de las esquinas. */
+    
+    /* Pequeña mejora para el renderizado en algunos navegadores móviles */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+
+
+
+

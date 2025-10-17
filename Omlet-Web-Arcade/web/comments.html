@@ -22,7 +22,8 @@
     <!-- ========================================================= -->
 
 
-
+    <!-- Plyr.io CSS (para los estilos del reproductor) -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <!-- Hojas de Estilo Estandarizadas -->
     <link href="./css/tailwind.css" rel="stylesheet">
     <link href="./css/global.css" rel="stylesheet">
@@ -42,16 +43,20 @@
         <div id="comment-output" class="header-output"></div>
     </div>
 
-    <!-- Contenedor del Post Original -->
+<!-- Contenido Principal (El área de scroll) -->
+<main class="main-comments">
+
+    <!-- Contenedor del Post Original (Separado) -->
     <div id="original-post-container" class="p-4 border-b ">
         <p class="text-center text-gray-500">Cargando publicación original...</p>
     </div>
 
-    <!-- Contenido de Comentarios -->
-    <main id="comments-feed" class="main-comments">
-        <!-- Los comentarios se inyectarán aquí -->
+    <!-- Contenedor para los Comentarios (Separado) -->
+    <div id="comments-list-container">
         <p class="text-center text-gray-500 pt-8">Cargando comentarios...</p>
-    </main>
+    </div>
+
+</main>
 
     <!-- Barra de Input de Comentario -->
     <div class="comment-input-bar">
@@ -73,7 +78,8 @@
         <div id="char-counter" class="char-counter">500</div>
 
     </div>
-
+        <!-- Plyr.io JS (para la funcionalidad del reproductor) -->
+        <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <script src="./js/app.js"></script>
 </body>
 

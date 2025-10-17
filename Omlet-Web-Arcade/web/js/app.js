@@ -30,7 +30,7 @@ const MOON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19
 `; // Inserta aquí el SVG de una luna
 
 
-
+let loggedInUserId = null;
 
 
 // =========================================================
@@ -217,6 +217,96 @@ async function signInWithGoogle() {
     }
 }
 
+// REEMPLAZA TU FUNCIÓN CON ESTA VERSIÓN ACTUALIZADA
+function initializeVideoPlayers() {
+    const videoElements = document.querySelectorAll('.plyr__video-embed:not(.plyr--ready)');
+    const playerInstances = []; 
+
+    videoElements.forEach(element => {
+        const player = new Plyr(element, {
+            clickToPlay: false,
+            youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+            
+            // Ocultamos la barra de volumen para un look más limpio
+            controls: [
+                'play-large',   // El botón de play grande en el centro
+                'play',         // El botón de play/pausa pequeño en la barra
+                'progress',     // La barra de progreso
+                'current-time', // El tiempo actual
+                'mute',         // Botón de silencio (este se queda)
+                // 'volume',    // <-- HEMOS ELIMINADO ESTA LÍNEA
+                'fullscreen'    // Botón de pantalla completa
+            ]
+        });
+
+        // Lógica del "Bucle Inteligente" (sin cambios)
+        player.on('timeupdate', event => {
+            const currentTime = player.currentTime;
+            const duration = player.duration;
+            if (!duration) return;
+            if ((duration - currentTime) < 0.3) {
+                player.currentTime = 0;
+            }
+        });
+
+        playerInstances.push(player);
+    });
+    
+    return playerInstances;
+}
+
+
+// PEGA ESTA FUNCIÓN COMPLETAMENTE NUEVA
+function setupAutoplayObserver(playersToObserve) {
+    // Si no hay reproductores que observar, no hacemos nada
+    if (!playersToObserve || playersToObserve.length === 0) return;
+
+    // Opciones para el observador:
+    // El video se considerará "visible" cuando al menos el 75% de él esté en pantalla.
+    const options = {
+        root: null, // El viewport del navegador es el área de observación
+        rootMargin: '0px',
+        threshold: 0.75 
+    };
+
+    // La función que se ejecutará cada vez que un video entre o salga de la vista
+    const callback = (entries, observer) => {
+        entries.forEach(entry => {
+            // Buscamos la instancia de Plyr correspondiente al elemento HTML que cambió
+            const player = playersToObserve.find(p => p.elements.container === entry.target);
+            if (!player) return;
+
+            // Si el video está "intersectando" (es visible)...
+            if (entry.isIntersecting) {
+                // Pausamos todos los demás videos para que solo uno se reproduzca a la vez
+                playersToObserve.forEach(otherPlayer => {
+                    if (otherPlayer !== player && !otherPlayer.paused) {
+                        otherPlayer.pause();
+                    }
+                });
+                
+                // Reproducimos el video actual en silencio
+                player.muted = true;
+                player.play().catch(error => console.warn("Autoplay bloqueado por el navegador.", error));
+
+            // Si el video ya no es visible...
+            } else {
+                // Lo pausamos
+                player.pause();
+            }
+        });
+    };
+
+    // Creamos el observador
+    const observer = new IntersectionObserver(callback, options);
+
+    // Le decimos al observador que empiece a vigilar cada uno de los reproductores de video
+    playersToObserve.forEach(player => {
+        observer.observe(player.elements.container);
+    });
+}
+
+
 // =========================================================
 // === INICIO DE LA MODIFICACIÓN ===
 // =========================================================
@@ -369,6 +459,60 @@ function formatTimeAgo(dateString) {
     }
 }
 
+// REEMPLAZA TU FUNCIÓN deletePost CON ESTA VERSIÓN
+async function deletePost(postId) {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        alert('Error de sesión. Por favor, inicia sesión de nuevo.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // === INICIO DE LA MEJORA DE UX ===
+            // Comprobamos si estamos en la página de comentarios
+            if (window.location.href.includes('comments.html')) {
+                // Y si el post que se muestra es el que acabamos de borrar
+                const originalPostContainer = document.getElementById('original-post-container');
+                if (originalPostContainer && originalPostContainer.querySelector(`#post-${postId}`)) {
+                    alert('Publicación eliminada. Serás redirigido a la página de inicio.');
+                    window.location.href = 'home.html';
+                    return; // Salimos de la función
+                }
+            }
+            // === FIN DE LA MEJORA DE UX ===
+
+            // Si no estamos en el caso anterior, simplemente eliminamos la tarjeta del DOM
+            const postCard = document.getElementById(`post-${postId}`);
+            if (postCard) {
+                postCard.style.transition = 'opacity 0.5s ease';
+                postCard.style.opacity = '0';
+                setTimeout(() => postCard.remove(), 500);
+            }
+            if (Toast) Toast.show({ text: 'Publicación eliminada' });
+
+        } else {
+            alert(`Error: ${data.message}`);
+        }
+
+    } catch (error) {
+        console.error('Error de red al eliminar el post:', error);
+        alert('Error de red. No se pudo eliminar la publicación.');
+    }
+}
+window.deletePost = deletePost;
+
 async function toggleLike(postId, buttonElement) {
     const token = localStorage.getItem('authToken');
     if (!token) return;
@@ -455,7 +599,9 @@ async function toggleSave(postId, buttonElement) {
 
 /**
  * Genera el HTML para una tarjeta de publicación (post).
- * Esta versión actualizada puede renderizar imágenes locales o videos de YouTube incrustados.
+ * Esta versión incluye:
+ * - Renderizado de imágenes o videos de YouTube.
+ * - Un botón para eliminar la publicación, visible solo para el autor del post.
  * @param {object} post - El objeto de la publicación que viene de la API.
  * @returns {string} - La cadena de texto HTML para la tarjeta de publicación.
  */
@@ -468,61 +614,61 @@ function createPostHTML(post) {
     const formattedLikes = parseInt(post.total_likes) || 0;
     const formattedComments = parseInt(post.total_comments) || 0;
     
-    // 3. Obtener la URL de la foto de perfil del autor (maneja URLs internas y externas)
+    // 3. Obtener la URL de la foto de perfil del autor
     const profilePicUrl = getFullImageUrl(post.profile_pic_url);
 
-    // 4. Construir el HTML del avatar del autor del post
+    // 4. Construir el HTML del avatar del autor
     const avatarHTML = `
         <a href="user_profile.html?id=${post.user_id}">
             <img src="${profilePicUrl}" alt="Avatar" class="post-avatar" onerror="this.onerror=null; this.src='./assets/img/default-avatar.png';"/>
         </a>
     `;
 
-    // =========================================================
-    // === INICIO DE LA LÓGICA DE MEDIOS (IMAGEN O VIDEO) ===
-    // =========================================================
-    let mediaHTML = '';
+    // 5. Lógica para mostrar el botón de eliminar solo si el usuario es el autor
+    let deleteButtonHTML = '';
+    // La variable global 'loggedInUserId' debe ser establecida al iniciar sesión
+    if (loggedInUserId && post.user_id === loggedInUserId) {
+        deleteButtonHTML = `
+            <button class="delete-post-btn" onclick="deletePost(${post.post_id})">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </button>
+        `;
+    }
 
-    // Si el post tiene un video_id de YouTube, creamos un iframe responsivo
+    // 6. Lógica para renderizar el medio (imagen o video)
+    let mediaHTML = '';
     if (post.video_id) {
         mediaHTML = `
-            <div class="mb-3" style="position: relative; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */ height: 0; overflow: hidden; border-radius: 8px; background-color: #000;">
-                <iframe 
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-                    src="https://www.youtube-nocookie.com/embed/${post.video_id}?modestbranding=1&rel=0&showinfo=0" 
-                    title="Reproductor de video de YouTube"
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>
-            </div>
+            <div class="mb-3 plyr__video-embed" data-plyr-provider="youtube" data-plyr-embed-id="${post.video_id}"></div>
         `;
-    // Si no hay video, pero hay una imagen, mostramos la imagen
     } else if (post.image_url) {
         const imageUrl = API_BASE_URL + post.image_url;
         mediaHTML = `<div class="mb-3"><img src="${imageUrl}" class="w-full h-auto object-cover rounded-lg"></div>`;
     }
-    // Si no hay ninguno de los dos, mediaHTML se queda como una cadena vacía.
 
-    // =========================================================
-    // === FIN DE LA LÓGICA DE MEDIOS ===
-    // =========================================================
-
-    // 5. Construir la tarjeta completa del post usando el template string
+    // 7. Construir la tarjeta completa del post, añadiendo un ID único al contenedor principal
     return `
-        <div class="post-card">
+        <div class="post-card" id="post-${post.post_id}">
             <div class="post-header">
-                ${avatarHTML}
-                <div>
-                    <div class="post-username">
-                        <a href="user_profile.html?id=${post.user_id}">${post.username || 'Anónimo'}</a>
+                <div class="post-author-info">
+                    ${avatarHTML}
+                    <div>
+                        <div class="post-username">
+                            <a href="user_profile.html?id=${post.user_id}">${post.username || 'Anónimo'}</a>
+                        </div>
+                        <div class="post-time">${formatTimeAgo(post.created_at)}</div>
                     </div>
-                    <div class="post-time">${formatTimeAgo(post.created_at)}</div>
                 </div>
+                ${deleteButtonHTML}
             </div>
+            
             <div class="post-content">${post.content || ''}</div>
             
-            <!-- Aquí se inserta el HTML del video o la imagen -->
             ${mediaHTML}
             
             <div class="post-actions">
@@ -571,11 +717,18 @@ async function loadFeed() {
             }
             const postsHTML = data.posts.map(post => createPostHTML(post)).join('');
             postsContainer.innerHTML = postsHTML;
+            
+            // === CAMBIO AQUÍ ===
+            // 1. Creamos los reproductores y obtenemos sus instancias
+            const players = initializeVideoPlayers();
+            // 2. Iniciamos el observador de autoplay para esos reproductores
+            setupAutoplayObserver(players);
+
         } else {
             logOutput.textContent = `❌ Error al cargar feed: ${data.message}`;
         }
     } catch (error) {
-        logOutput.textContent = '❌ Error de red al cargar el feed.';
+        logOutput.textContent = `❌ Error de red al cargar el feed: ${error.message}`;
         console.error('Error de red al cargar feed:', error);
     }
 }
@@ -693,6 +846,7 @@ async function loadProtectedData() {
         });
         const data = await response.json();
         if (response.ok) {
+            loggedInUserId = data.data.userId;
             const isProfileComplete = data.data.isProfileComplete;
             if (isProfileComplete) {
                 logOutput.textContent = `✅ Sesión OK. Usuario: ${data.data.username} (ID: ${data.data.userId})`;
@@ -1060,6 +1214,7 @@ function getPostIdFromUrl() {
     return parseInt(params.get('postId'));
 }
 
+// REEMPLAZA TU FUNCIÓN CON ESTA VERSIÓN CORREGIDA
 async function loadOriginalPost(postId, token, originalPostContainer) {
     if (!originalPostContainer) return;
     try {
@@ -1069,7 +1224,18 @@ async function loadOriginalPost(postId, token, originalPostContainer) {
         });
         const data = await response.json();
         if (response.ok) {
+            // 1. Creamos e inyectamos el HTML del post
             originalPostContainer.innerHTML = createPostHTML(data.post);
+            
+            // =========================================================
+            // === LAS LÍNEAS QUE FALTABAN ===
+            // =========================================================
+            // 2. Le decimos a Plyr que active cualquier video nuevo
+            const players = initializeVideoPlayers();
+            // 3. (Opcional pero recomendado) Activamos el autoplay también para esta página
+            setupAutoplayObserver(players);
+            // =========================================================
+
         } else {
             originalPostContainer.innerHTML = `<p class="text-center text-red-500">❌ Error: ${data.message}</p>`;
         }
@@ -1082,7 +1248,7 @@ async function loadOriginalPost(postId, token, originalPostContainer) {
 async function initCommentsPage() {
     const postId = getPostIdFromUrl();
     const token = localStorage.getItem('authToken');
-    const commentsFeed = document.getElementById('comments-feed');
+    const commentsFeed = document.getElementById('comments-list-container'); // <-- CAMBIAMOS EL ID
     const commentInput = document.getElementById('comment-content');
     const sendBtn = document.getElementById('send-comment-btn');
     const backBtn = document.getElementById('back-to-home-btn');
@@ -1107,18 +1273,21 @@ async function initCommentsPage() {
         });
     }
     
-    let currentUserId = null;
+    // let currentUserId = null; // <-- Opcional: puedes mantenerla si la usas para otra cosa
     let parentCommentId = null;
 
     try {
         const userMeResponse = await fetch(API_BASE_URL + '/api/user/me', { headers: { 'Authorization': `Bearer ${token}` } });
         if (userMeResponse.ok) {
-            currentUserId = (await userMeResponse.json()).data.userId;
+            const userData = (await userMeResponse.json()).data;
+            // Asignamos el valor a AMBAS variables (la local y la global)
+            const currentUserId = userData.userId; 
+            loggedInUserId = userData.userId;
         }
     } catch (e) { console.error("Error fetching user id", e); }
 
-    async function loadComments() {
-        commentsFeed.innerHTML = '<p class="text-center text-gray-500 pt-8">Cargando...</p>';
+        async function loadComments() {
+        //commentsFeed.innerHTML = '<p class="text-center text-gray-500 pt-8">Cargando...</p>';
         try {
             const response = await fetch(API_BASE_URL + `/api/posts/${postId}/comments`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -1139,13 +1308,17 @@ async function initCommentsPage() {
                         topLevelComments.push(comment);
                     }
                 });
-                const commentsHTML = topLevelComments.map(c => renderComment(c, currentUserId)).join('');
+                
+                // === LA LÍNEA CORREGIDA ===
+                // Cambiamos 'currentUserId' por la variable global 'loggedInUserId'
+                const commentsHTML = topLevelComments.map(c => renderComment(c, loggedInUserId)).join('');
+                
                 commentsFeed.innerHTML = commentsHTML || '<p class="text-center text-gray-500 pt-8">Sé el primero en comentar.</p>';
             } else {
                 output.textContent = `❌ Error al cargar comentarios: ${data.message}`;
             }
         } catch (error) {
-            output.textContent = '❌ Error de red al cargar comentarios.';
+            output.textContent = `❌ Error de red al cargar comentarios: ${error.message}`;
             console.error('Error de red:', error);
         }
     }
@@ -1223,14 +1396,15 @@ async function initCommentsPage() {
 async function initUserProfilePage() {
     const params = new URLSearchParams(window.location.search);
     let targetUserId = params.get('id');
-    let loggedInUserId = null;
+    // let loggedInUserId = null; // <-- ELIMINAMOS LA DECLARACIÓN LOCAL
     const token = localStorage.getItem('authToken');
 
     if (token) {
         try {
             const meResponse = await fetch(`${API_BASE_URL}/api/user/me`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (meResponse.ok) {
-                loggedInUserId = (await meResponse.json()).data.userId;
+                // Asignamos el valor a la variable GLOBAL que ya existe
+                loggedInUserId = (await meResponse.json()).data.userId; 
             }
         } catch (e) { console.error("No se pudo obtener el usuario logueado", e); }
     }
@@ -1459,6 +1633,9 @@ async function initUserProfilePage() {
                         container.innerHTML = (data.posts && data.posts.length > 0)
                             ? data.posts.map(createPostHTML).join('')
                             : `<p class='text-center text-gray-400 p-8'>No hay contenido para mostrar.</p>`;
+                             // === CAMBIO AQUÍ ===
+                            const players = initializeVideoPlayers();
+                            setupAutoplayObserver(players);
                     } else {
                         container.innerHTML = `<p class='text-center text-red-500 p-8'>Error al cargar contenido.</p>`;
                     }
