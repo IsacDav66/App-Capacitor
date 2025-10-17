@@ -1,0 +1,57 @@
+<!-- Archivo: /web/search.html -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Buscar - Omlet Web Arcade</title>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('app-theme') || 'purple';
+            const mode = localStorage.getItem('app-mode') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-mode', mode);
+        })();
+    </script>
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+</head>
+
+<body class="layout-with-bars">
+
+    <!-- Barra Superior -->
+    <div class="top-bar">
+        <div class="top-left">
+            <a href="home.html" class="header-back-btn">←</a>
+        </div>
+        <div class="search-input-container">
+            <input type="search" id="search-input" placeholder="Buscar usuarios..." autofocus />
+        </div>
+        <div class="top-right"></div> <!-- Espaciador -->
+    </div>
+
+    <!-- Contenido Principal -->
+    <!-- NUEVO: Contenedor para el Historial de Búsqueda -->
+    <div id="search-history-container" class="search-history">
+        <!-- El JavaScript inyectará el historial aquí -->
+    </div>
+    
+    <!-- Contenido Principal -->
+    <main class="search-main">
+        <div id="search-results-container">
+            <p class="search-placeholder">Busca a otros jugadores por su nombre de usuario.</p>
+        </div>
+    </main>
+
+    <!-- Barra Inferior (Opcional, para consistencia) -->
+    <div class="bottom-bar">
+        <!-- Puedes copiar el contenido de la barra inferior de home.html aquí si quieres -->
+    </div>
+
+    <script src="./js/app.js"></script>
+</body>
+
+</html>

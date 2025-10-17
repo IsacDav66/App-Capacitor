@@ -8,6 +8,7 @@ const NAV_HISTORY_KEY = 'navigationHistory';
 let isBackButtonListenerAttached = false;
 let Toast;
 let GameDetectorPlugin;
+const SEARCH_HISTORY_KEY = 'omletSearchHistory';
 
 const HEART_SVG = `
 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-heart">
@@ -140,9 +141,14 @@ function updateNavigationHistory() {
     }
 }
 
-function routePage() {
+// REEMPLAZA TU FUNCIÓN routePage CON ESTA VERSIÓN FINAL
+async function routePage() {
     const currentUrl = window.location.href;
 
+    // Primero, nos aseguramos de saber quién es el usuario logueado
+    await fetchLoggedInUser();
+
+    // Ahora, continuamos con el enrutamiento de la página
     if (currentUrl.includes('index.html') || currentUrl.includes('register.html') || currentUrl.endsWith('/')) {
         const existingToken = localStorage.getItem('authToken');
         if (existingToken) {
@@ -158,20 +164,37 @@ function routePage() {
     } else if (currentUrl.includes('home.html')) {
         loadProtectedData();
         loadSideMenuData();
-        setupSideMenu(); // Lógica del menú lateral
+        setupSideMenu(); 
 
     } else if (currentUrl.includes('create_post.html')) {
         initCreatePostPage();
-    } else if (/profile\.html$/.test(currentUrl)) {
+    
+    // =========================================================
+    // === INICIO DE LA CORRECCIÓN DE ORDEN ===
+    // =========================================================
+    
+    // Comprobamos la URL más específica ('user_profile.html') PRIMERO
+    } else if (currentUrl.includes('user_profile.html')) {
+        loadSideMenuData();
+        setupSideMenu();
+        initUserProfilePage();
+    
+    // Luego, comprobamos la URL más general ('profile.html')
+    } else if (currentUrl.includes('profile.html')) {
         initProfilePage();
+    
+    // =========================================================
+    // === FIN DE LA CORRECCIÓN ===
+    // =========================================================
+
     } else if (currentUrl.includes('comments.html')) {
         initCommentsPage();
-    } else if (currentUrl.includes('user_profile.html')) {
-        initUserProfilePage();
     } else if (currentUrl.includes('settings.html')) {
         initSettingsPage();
-    } else if (currentUrl.includes('themes.html')) { // <-- AÑADIR ESTA LÍNEA
-        initThemesPage(); // <-- AÑADIR ESTA LÍNEA
+    } else if (currentUrl.includes('themes.html')) {
+        initThemesPage();
+    } else if (currentUrl.includes('search.html')) {
+        initSearchPage();
     }
 }
 
@@ -179,6 +202,43 @@ function routePage() {
 // === FUNCIONES AUXILIARES Y DE PÁGINA ===
 // =========================================================
 
+// PEGA ESTA NUEVA FUNCIÓN
+/**
+ * Obtiene los datos del usuario logueado desde la API y establece la variable global loggedInUserId.
+ * @returns {object|null} Los datos del usuario o null si hay un error.
+ */
+async function fetchLoggedInUser() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        // Si no hay token, nos aseguramos de que el ID esté nulo
+        loggedInUserId = null;
+        return null;
+    }
+    
+    // Si el ID ya fue obtenido en esta sesión, no lo volvemos a pedir
+    if (loggedInUserId) {
+        return { id: loggedInUserId }; // Devuelve un objeto simple para consistencia
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            // ¡La parte más importante! Establecemos la variable global.
+            loggedInUserId = data.data.userId;
+            return data.data;
+        } else {
+            loggedInUserId = null;
+            return null;
+        }
+    } catch (error) {
+        console.error("Error al obtener datos del usuario logueado:", error);
+        loggedInUserId = null;
+        return null;
+    }
+}
 // AÑADE ESTA NUEVA FUNCIÓN COMPLETA
 async function signInWithGoogle() {
     const output = document.getElementById('output');
@@ -215,6 +275,175 @@ async function signInWithGoogle() {
         console.error("Error en el inicio de sesión con Google:", error);
         output.textContent = '❌ Inicio de sesión con Google cancelado o fallido.';
     }
+}
+
+// ====================================================
+// === NUEVAS FUNCIONES PARA EL HISTORIAL DE BÚSQUEDA ===
+// ====================================================
+
+// Lee el historial desde localStorage
+function getSearchHistory() {
+    try {
+        return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY)) || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// Guarda un término en el historial
+function addToSearchHistory(term) {
+    if (!term) return;
+    let history = getSearchHistory();
+    // Elimina el término si ya existe para moverlo al principio
+    history = history.filter(item => item.toLowerCase() !== term.toLowerCase());
+    // Añade el nuevo término al principio
+    history.unshift(term);
+    // Limita el historial a los 10 elementos más recientes
+    history = history.slice(0, 10);
+    // Guarda el historial actualizado
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+}
+
+// Dibuja el historial en la página
+function renderSearchHistory() {
+    const historyContainer = document.getElementById('search-history-container');
+    const resultsContainer = document.getElementById('search-results-container');
+    const history = getSearchHistory();
+
+    if (history.length === 0) {
+        historyContainer.innerHTML = '';
+        historyContainer.style.display = 'none';
+        return;
+    }
+
+    const itemsHTML = history.map(item => `
+        <div class="history-item">
+            <span class="history-term" onclick="searchFromHistory('${item}')">${item}</span>
+            <button class="remove-history-item" onclick="removeFromHistory('${item}')">&times;</button>
+        </div>
+    `).join('');
+
+    historyContainer.innerHTML = `
+        <div class="history-header">
+            <span>Búsquedas recientes</span>
+            <button id="clear-history-btn" onclick="clearSearchHistory()">Limpiar todo</button>
+        </div>
+        ${itemsHTML}
+    `;
+    historyContainer.style.display = 'block';
+    resultsContainer.innerHTML = ''; // Limpia los resultados de búsqueda si el historial está visible
+}
+
+// Funciones de ayuda para los botones del historial
+function searchFromHistory(term) {
+    const searchInput = document.getElementById('search-input');
+    searchInput.value = term;
+    performSearch(term);
+}
+function removeFromHistory(term) {
+    let history = getSearchHistory();
+    history = history.filter(item => item !== term);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+    renderSearchHistory(); // Vuelve a dibujar el historial actualizado
+}
+function clearSearchHistory() {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+    renderSearchHistory();
+}
+
+// Hacemos las funciones accesibles globalmente para los `onclick`
+window.searchFromHistory = searchFromHistory;
+window.removeFromHistory = removeFromHistory;
+window.clearSearchHistory = clearSearchHistory;
+
+// ====================================================
+// === NUEVAS FUNCIONES PARA LA PÁGINA DE BÚSQUEDA  ===
+// ====================================================
+
+function initSearchPage() {
+    const searchInput = document.getElementById('search-input');
+    const historyContainer = document.getElementById('search-history-container');
+    const resultsContainer = document.getElementById('search-results-container');
+    let debounceTimer;
+
+    // Al cargar la página, muestra el historial
+    renderSearchHistory();
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const searchTerm = searchInput.value.trim();
+
+        if (searchTerm.length === 0) {
+            resultsContainer.innerHTML = '';
+            renderSearchHistory(); // Muestra el historial si el input está vacío
+            return;
+        }
+
+        // Si el usuario escribe algo, oculta el historial
+        historyContainer.style.display = 'none';
+        resultsContainer.innerHTML = '<p class="search-placeholder">Buscando...</p>';
+
+        debounceTimer = setTimeout(() => {
+            performSearch(searchTerm);
+        }, 300);
+    });
+}
+
+
+// REEMPLAZA tu función performSearch con esta
+async function performSearch(term) {
+    const resultsContainer = document.getElementById('search-results-container');
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user/search?q=${encodeURIComponent(term)}`);
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Si la búsqueda fue exitosa, la guardamos en el historial
+            if (data.users.length > 0) {
+                 addToSearchHistory(term);
+            }
+            renderSearchResults(data.users);
+        } else {
+            resultsContainer.innerHTML = '<p class="search-placeholder">Error al buscar.</p>';
+        }
+    } catch (error) {
+        console.error("Error de red en la búsqueda:", error);
+        resultsContainer.innerHTML = '<p class="search-placeholder">Error de red.</p>';
+    }
+}
+
+function renderSearchResults(users) {
+    const resultsContainer = document.getElementById('search-results-container');
+
+    if (users.length === 0) {
+        resultsContainer.innerHTML = '<p class="search-placeholder">No se encontraron resultados.</p>';
+        return;
+    }
+
+    const usersHTML = users.map(user => {
+        const profilePic = getFullImageUrl(user.profile_pic_url);
+
+        // --- INICIO DE LA LÓGICA "TÚ" ---
+        // Creamos la etiqueta HTML solo si el ID del usuario del resultado
+        // coincide con el ID del usuario que ha iniciado sesión.
+        const youLabelHTML = (loggedInUserId && user.id === loggedInUserId)
+            ? '<span class="you-label">(Tú)</span>'
+            : '';
+        // --- FIN DE LA LÓGICA "TÚ" ---
+
+        return `
+            <a href="user_profile.html?id=${user.id}" class="search-result-item">
+                <img src="${profilePic}" alt="Avatar de ${user.username}" class="search-result-avatar" onerror="this.onerror=null; this.src='./assets/img/default-avatar.png';"/>
+                <div class="search-result-info">
+                    <span class="search-result-username">${user.username}</span>
+                    ${youLabelHTML}
+                </div>
+            </a>
+        `;
+    }).join('');
+
+    resultsContainer.innerHTML = usersHTML;
 }
 
 // REEMPLAZA TU FUNCIÓN CON ESTA VERSIÓN ACTUALIZADA
@@ -1469,6 +1698,7 @@ async function initUserProfilePage() {
                 const bioControls = document.getElementById('bio-edit-controls');
                 const editBioBtn = document.getElementById('edit-bio-btn');
                 const saveBioBtn = document.getElementById('save-bio-btn');
+                let originalBioContent = ''; // <-- AÑADE ESTA LÍNEA AQUÍ
                 const editBioBgBtn = document.getElementById('edit-bio-bg-btn');
                 const bioBgInput = document.getElementById('bio-bg-input');
                 if (bioControls) bioControls.style.display = 'flex';
@@ -1477,11 +1707,32 @@ async function initUserProfilePage() {
                         const toolbar = quill.getModule('toolbar').container;
                         if (!toolbar) return;
                         const isEditing = bioEditorEl.classList.contains('editing');
-                        quill.enable(!isEditing);
-                        bioEditorEl.classList.toggle('editing');
-                        if (saveBioBtn) saveBioBtn.style.display = isEditing ? 'none' : 'inline-block';
-                        toolbar.style.display = isEditing ? 'none' : 'block';
-                        editBioBtn.textContent = isEditing ? '✏️ Editar' : '❌ Cancelar';
+
+                        if (isEditing) {
+                            // --- LÓGICA DE CANCELAR ---
+                            // 1. Restaura el contenido del editor a su estado original guardado
+                            quill.root.innerHTML = originalBioContent;
+
+                            // 2. Desactiva el modo de edición y oculta los controles
+                            quill.enable(false);
+                            bioEditorEl.classList.remove('editing');
+                            if (saveBioBtn) saveBioBtn.style.display = 'none';
+                            toolbar.style.display = 'none';
+                            editBioBtn.textContent = '✏️ Editar';
+
+                        } else {
+                            // --- LÓGICA DE INICIAR EDICIÓN ---
+                            // 1. Guarda el contenido actual ANTES de permitir cualquier cambio
+                            originalBioContent = quill.root.innerHTML;
+
+                            // 2. Activa el modo de edición y muestra los controles
+                            quill.enable(true);
+                            bioEditorEl.classList.add('editing');
+                            if (saveBioBtn) saveBioBtn.style.display = 'inline-block';
+                            toolbar.style.display = 'block';
+                            editBioBtn.textContent = '❌ Cancelar';
+                            quill.focus(); // Opcional: pone el cursor directamente en el editor
+                        }
                     });
                 }
                 if (saveBioBtn) {

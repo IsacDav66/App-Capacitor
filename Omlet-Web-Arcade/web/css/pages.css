@@ -741,10 +741,163 @@ input:checked + .slider:before {
 
 
 
+/* ========================================
+   --- PÁGINA: Búsqueda (search.html) ---
+======================================== */
+.search-input-container {
+    flex-grow: 1;
+    padding: 0 10px;
+}
 
+#search-input {
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 2px solid var(--color-text-secondary);
+    color: var(--color-text);
+    padding: 8px 4px;
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
 
+#search-input:focus {
+    border-bottom-color: var(--color-accent);
+}
+/*
+  ================================================================
+  --- REGLA CORREGIDA PARA ESTILIZAR LA 'X' (CON MÁSCARA) ---
+  ================================================================
+*/
+#search-input::-webkit-search-cancel-button {
+    /* 1. Reseteamos la apariencia por defecto */
+    -webkit-appearance: none;
+    appearance: none;
+    
+    /* 2. Le damos un tamaño */
+    height: 20px;
+    width: 20px;
+    
+    /* 3. Usamos el SVG como una MÁSCARA para definir la forma */
+    -webkit-mask-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    
+    /* 4. ¡LA CLAVE! Ahora aplicamos el color al fondo, que solo será visible a través de la máscara */
+    background-color: var(--color-accent);
+    
+    /* 5. Estilos de interacción */
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
 
+#search-input::-webkit-search-cancel-button:hover {
+    opacity: 1;
+}
+.search-main {
+    padding: 15px;
+}
 
+.search-placeholder {
+    text-align: center;
+    color: var(--color-text-secondary);
+    margin-top: 2rem;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 5px;
+    border-bottom: 1px solid var(--color-ui);
+    transition: background-color 0.2s ease;
+}
+
+.search-result-item:hover {
+    background-color: var(--color-surface);
+}
+
+.search-result-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 15px;
+}
+
+/* NUEVA REGLA: Contenedor para alinear el nombre y la etiqueta */
+.search-result-info {
+    display: flex;
+    align-items: baseline; /* Alinea la base del texto para un look limpio */
+}
+
+.search-result-username {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-right: 0.5rem; /* Espacio entre el nombre y la etiqueta */
+}
+
+/* NUEVA REGLA: Estilo para la etiqueta "(Tú)" */
+.you-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-secondary); /* Usa un color más sutil */
+}
+
+/* ========================================
+   --- ESTILOS PARA EL HISTORIAL DE BÚSQUEDA ---
+======================================== */
+
+.search-history {
+    padding: 15px 15px 15px 15px;
+    border-bottom: 1px solid var(--color-ui);
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+#clear-history-btn {
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.history-term {
+    font-weight: 500;
+    cursor: pointer;
+    flex-grow: 1;
+}
+
+.remove-history-item {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 5px;
+}
 
 /* ========================================
    --- PÁGINA: Temas (themes.html) ---
