@@ -158,14 +158,20 @@
                 <a id="edit-profile-btn" href="profile.html">✏️</a>
             </div>
             <div class="profile-stats">
-                <div class="stat-item"><span id="post-count" class="count">0</span><span
-                        class="label">Publicaciones</span></div>
-                <div class="stat-item"><span id="followers-count" class="count">0</span><span
-                        class="label">Seguidores</span></div>
-                <div class="stat-item"><span id="following-count" class="count">0</span><span
-                        class="label">Siguiendo</span></div>
+                <div class="stat-item"><span id="post-count" class="count">0</span><span class="label">Publicaciones</span></div>
+                <a id="followers-link" class="stat-item">
+                    <span id="followers-count" class="count">0</span>
+                    <span class="label">Seguidores</span>
+                </a>
+                <a id="following-link" class="stat-item">
+                    <span id="following-count" class="count">0</span>
+                    <span class="label">Siguiendo</span>
+                </a>
             </div>
-            <div id="profile-level" class="profile-level">🌱 Lvl. 20</div>
+            <div class="profile-actions-container">
+                <div id="profile-level" class="profile-level">🌱 Lvl. 20</div>
+                <button id="follow-btn" class="follow-btn" style="display: none;">Seguir</button>
+            </div>
             <div id="last-played" class="last-played">🎮 Jugó a Minecraft hace unas horas</div>
         </header>
 

@@ -1,0 +1,58 @@
+<!-- Archivo: /web/followers_list.html -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Lista de Usuarios</title>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('app-theme') || 'purple';
+            const mode = localStorage.getItem('app-mode') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-mode', mode);
+        })();
+    </script>
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+</head>
+
+<body class="layout-with-bars">
+
+    <!-- Barra Superior -->
+    <div class="top-bar">
+        <div class="top-left">
+            <button onclick="window.history.back()" class="header-back-btn">←</button>
+        </div>
+        <div style="font-weight:bold">
+            <span id="page-title">Cargando...</span>
+        </div>
+        <div class="top-right">
+            <!-- Este div ahora actúa como un contrapeso invisible para centrar el título -->
+        </div>
+    </div>
+
+    <!-- NUEVO: Contenedor de Pestañas -->
+    <div class="follow-list-tabs">
+        <button id="followers-tab" class="follow-tab-btn">Seguidores</button>
+        <button id="following-tab" class="follow-tab-btn">Siguiendo</button>
+    </div>
+
+    <!-- Contenido Principal (donde se muestra la lista) -->
+    <main id="follow-list-swipe-container" class="tabs-container">
+    
+        <!-- Panel 1: Contenido de Seguidores (AHORA VACÍO) -->
+        <div id="followers-content" class="tab-content"></div>
+    
+        <!-- Panel 2: Contenido de Siguiendo (AHORA VACÍO) -->
+        <div id="following-content" class="tab-content"></div>
+    
+    </main>
+
+    <script src="./js/app.js"></script>
+</body>
+
+</html>

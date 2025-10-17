@@ -609,6 +609,111 @@ html[data-mode="light"] .last-played{
   border-radius: 8px;
 }
 
+.profile-actions-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 15px;
+}
+
+.follow-btn {
+    background-color: var(--color-accent);
+    color: var(--color-text);
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 8px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+/* Estilo para cuando ya estás siguiendo al usuario */
+.follow-btn.following {
+    background-color: var(--color-ui);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.follow-btn:hover {
+    filter: brightness(1.2);
+}
+
+
+/* ========================================
+   --- PÁGINA: Lista de Seguidores/Seguidos ---
+======================================== */
+
+.follow-list-main {
+    padding-top: 10px;
+}
+
+.follow-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 15px;
+    border-bottom: 1px solid var(--color-ui);
+}
+
+.follow-list-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.follow-list-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.follow-list-username {
+    font-weight: bold;
+}
+
+/* Reutilizamos los estilos del botón .follow-btn que ya creamos */
+.follow-list-item .follow-btn {
+    padding: 6px 16px;
+    font-size: 0.9rem;
+    flex-shrink: 0; /* Evita que el botón se encoja */
+}
+/* ========================================
+   --- ESTILOS PARA LAS PESTAÑAS DE SEGUIDORES ---
+======================================== */
+
+.follow-list-tabs {
+    display: flex;
+    justify-content: space-around;
+    background-color: var(--color-ui);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.follow-tab-btn {
+    flex-grow: 1;
+    padding: 15px 10px;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.follow-tab-btn.active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+}
+
+.follow-list-main {
+    /* Ajustamos el padding para que no quede pegado a las pestañas */
+    padding-top: 10px;
+}
+
 /* ========================================
    --- PÁGINA: Ajustes (settings.html) ---
    ======================================== */

@@ -195,6 +195,8 @@ async function routePage() {
         initThemesPage();
     } else if (currentUrl.includes('search.html')) {
         initSearchPage();
+    } else if (currentUrl.includes('followers_list.html')) { // <-- AÑADE ESTA RUTA
+        initFollowersListPage();
     }
 }
 
@@ -276,6 +278,286 @@ async function signInWithGoogle() {
         output.textContent = '❌ Inicio de sesión con Google cancelado o fallido.';
     }
 }
+// NUEVA FUNCIÓN para seguir/dejar de seguir a un usuario
+async function toggleFollow(targetUserId) {
+    const followBtn = document.getElementById('follow-btn');
+    const followersCountEl = document.getElementById('followers-count');
+    const token = localStorage.getItem('authToken');
+    if (!token || !followBtn) return;
+
+    // Deshabilitamos el botón para evitar clics múltiples
+    followBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user/follow/${targetUserId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            // Actualizamos la UI instantáneamente
+            let currentCount = parseInt(followersCountEl.textContent);
+            if (data.action === 'followed') {
+                followBtn.textContent = 'Siguiendo';
+                followBtn.classList.add('following');
+                followersCountEl.textContent = currentCount + 1;
+            } else { // unfollowed
+                followBtn.textContent = 'Seguir';
+                followBtn.classList.remove('following');
+                followersCountEl.textContent = currentCount - 1;
+            }
+        } else {
+            alert(`Error: ${data.message}`);
+        }
+    } catch (error) {
+        console.error("Error de red al seguir/dejar de seguir:", error);
+    } finally {
+        // Volvemos a habilitar el botón
+        followBtn.disabled = false;
+    }
+}
+window.toggleFollow = toggleFollow; // Hacemos la función accesible globalmente
+
+
+// ====================================================
+// === NUEVAS FUNCIONES PARA LA PÁGINA DE SEGUIDORES ===
+// ====================================================
+
+async function initFollowersListPage() {
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('userId');
+    const initialType = params.get('type') || 'followers';
+    const token = localStorage.getItem('authToken'); // Necesitamos el token para las llamadas a la API
+
+    const pageTitle = document.getElementById('page-title');
+    const followersTabBtn = document.getElementById('followers-tab');
+    const followingTabBtn = document.getElementById('following-tab');
+    const swipeContainer = document.getElementById('follow-list-swipe-container');
+    const followersContent = document.getElementById('followers-content');
+    const followingContent = document.getElementById('following-content');
+
+    if (!userId || !swipeContainer) return;
+
+    // --- CONFIGURACIÓN ESTRUCTURAL (Idéntica a la del perfil) ---
+    const tabs = [followersTabBtn, followingTabBtn];
+    const tabContents = [followersContent, followingContent];
+    let currentTabIndex = initialType === 'followers' ? 0 : 1;
+
+    // --- FUNCIÓN goToTab (Copiada y adaptada del perfil de usuario) ---
+    async function goToTab(index) {
+        if (index < 0 || index >= tabs.length || index === currentTabIndex) return;
+        
+        const prevIndex = currentTabIndex;
+        const newContent = tabContents[index];
+        const prevContent = tabContents[prevIndex];
+        const direction = index > prevIndex ? 'right' : 'left';
+        
+        tabs[prevIndex].classList.remove('active');
+        tabs[index].classList.add('active');
+
+        // Lógica de carga de contenido adaptada para seguidores/seguidos
+        if (newContent.innerHTML.trim() === '') {
+            const typeToFetch = index === 0 ? 'followers' : 'following';
+            await fetchFollowList(userId, typeToFetch, newContent); // Usamos nuestra función fetchFollowList
+        }
+        
+        // Lógica de animación (copiada directamente de la versión que funciona)
+        prevContent.style.display = 'block';
+        newContent.style.display = 'block';
+        newContent.classList.add(direction === 'right' ? 'slide-in-right' : 'slide-in-left');
+        
+        requestAnimationFrame(() => {
+            if (swipeContainer) swipeContainer.style.height = `${newContent.scrollHeight}px`;
+            prevContent.classList.remove('active');
+            prevContent.classList.add(direction === 'right' ? 'slide-out-left' : 'slide-out-right');
+            newContent.classList.add('active');
+            newContent.classList.remove('slide-in-left', 'slide-in-right');
+        });
+
+        setTimeout(() => {
+            prevContent.style.display = 'none';
+            prevContent.classList.remove('slide-out-left', 'slide-out-right');
+            if (currentTabIndex === index && swipeContainer) {
+                 swipeContainer.style.height = 'auto';
+            }
+        }, 350);
+        
+        currentTabIndex = index;
+        history.pushState(null, '', `followers_list.html?userId=${userId}&type=${index === 0 ? 'followers' : 'following'}`);
+    }
+
+    // --- CONFIGURACIÓN DE EVENTOS (Idéntica a la del perfil) ---
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => goToTab(index));
+    });
+
+    let touchStartX = 0;
+    const swipeThreshold = 75;
+    if (swipeContainer) {
+        swipeContainer.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        swipeContainer.addEventListener('touchend', e => {
+            const deltaX = e.changedTouches[0].screenX - touchStartX;
+            if (Math.abs(deltaX) < swipeThreshold) return;
+            if (deltaX < 0) {
+                goToTab(currentTabIndex + 1);
+            } else {
+                goToTab(currentTabIndex - 1);
+            }
+        });
+    }
+
+    // --- CARGA INICIAL (Adaptada del perfil) ---
+    async function initialLoad() {
+        // Mejora de UX: Título de la página
+        try {
+            const profileResponse = await fetch(`${API_BASE_URL}/api/user/profile/${userId}`);
+            if(profileResponse.ok) pageTitle.textContent = (await profileResponse.json()).data.username;
+        } catch (e) { pageTitle.textContent = "Lista"; }
+
+        const initialContent = tabContents[currentTabIndex];
+        tabs[currentTabIndex].classList.add('active');
+        initialContent.style.display = 'block';
+        initialContent.classList.add('active');
+
+        // Cargamos el contenido de la primera pestaña
+        await fetchFollowList(userId, initialType, initialContent);
+        
+        // Ajustamos la altura inicial después de que el contenido se haya cargado y renderizado
+        requestAnimationFrame(() => {
+           if(swipeContainer) {
+                swipeContainer.style.height = `${initialContent.scrollHeight}px`;
+                setTimeout(() => swipeContainer.style.height = 'auto', 350);
+           }
+        });
+    }
+
+    initialLoad();
+}
+
+async function fetchFollowList(userId, type, container) { // 'container' ya se recibe
+    container.innerHTML = '<p class="search-placeholder">Cargando lista...</p>';
+    const token = localStorage.getItem('authToken');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user/${userId}/${type}`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            // ¡LA LÍNEA CLAVE! Pasamos el 'container' a la siguiente función.
+            renderFollowList(data.users, container);
+        } else {
+            container.innerHTML = '<p class="search-placeholder">No se pudo cargar la lista.</p>';
+        }
+    } catch (error) {
+        console.error("Error de red al cargar la lista:", error);
+        // Usamos 'container' también en el catch
+        container.innerHTML = '<p class="search-placeholder">Error de red.</p>';
+    }
+}
+
+function renderFollowList(users, container) { // Ahora recibe 'container'
+    // const listContainer = document.getElementById('follow-list-container'); // <-- Ya no necesitamos esto
+
+    if (!container) return; // Salvaguarda por si el contenedor es nulo
+
+    if (users.length === 0) {
+        container.innerHTML = '<p class="search-placeholder">No hay usuarios en esta lista.</p>';
+        return;
+    }
+
+    const usersHTML = users.map(user => {
+        // ... (la lógica interna del map no cambia) ...
+        const profilePic = getFullImageUrl(user.profile_pic_url);
+        if (loggedInUserId && user.id === loggedInUserId) {
+            return `
+                <div class="follow-list-item">
+                    <a href="user_profile.html?id=${user.id}" class="follow-list-user-info">
+                        <img src="${profilePic}" alt="Avatar" class="follow-list-avatar" />
+                        <span class="follow-list-username">${user.username} (Tú)</span>
+                    </a>
+                </div>
+            `;
+        }
+        const isFollowing = user.is_followed_by_user;
+        const buttonText = isFollowing ? 'Dejar de seguir' : 'Seguir';
+        const buttonClass = isFollowing ? 'follow-btn following' : 'follow-btn';
+        return `
+            <div class="follow-list-item">
+                <a href="user_profile.html?id=${user.id}" class="follow-list-user-info">
+                    <img src="${profilePic}" alt="Avatar" class="follow-list-avatar" />
+                    <span class="follow-list-username">${user.username}</span>
+                </a>
+                <button id="follow-btn-${user.id}" class="${buttonClass}" onclick="toggleFollowInList(${user.id}, this)">
+                    ${buttonText}
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    // Usamos el 'container' recibido
+    container.innerHTML = usersHTML;
+}
+
+// Nueva función para manejar el clic en los botones de la lista
+async function toggleFollowInList(targetUserId, buttonElement) {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    buttonElement.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user/follow/${targetUserId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            // === INICIO DE LA LÓGICA DE SINCRONIZACIÓN ===
+            
+            const isNowFollowing = (data.action === 'followed');
+
+            // 1. Buscamos el elemento del usuario en AMBAS listas
+            const userRowInFollowersList = document.querySelector(`#followers-content .follow-list-item:has(#follow-btn-${targetUserId})`);
+            const userRowInFollowingList = document.querySelector(`#following-content .follow-list-item:has(#follow-btn-${targetUserId})`);
+
+            // 2. Actualizamos el estado del botón en la lista de "Seguidores" (si existe)
+            if (userRowInFollowersList) {
+                const button = userRowInFollowersList.querySelector('button');
+                button.textContent = isNowFollowing ? 'Dejar de seguir' : 'Seguir';
+                button.className = isNowFollowing ? 'follow-btn following' : 'follow-btn';
+            }
+
+            // 3. Actualizamos la lista de "Siguiendo"
+            if (isNowFollowing) {
+                // Si ahora lo seguimos, pero no estaba en la lista, no podemos añadirlo fácilmente
+                // sin recargar. Por ahora, solo actualizamos el estado si ya estaba.
+                if (userRowInFollowingList) {
+                    const button = userRowInFollowingList.querySelector('button');
+                    button.textContent = 'Dejar de seguir';
+                    button.className = 'follow-btn following';
+                }
+            } else {
+                // Si dejamos de seguirlo, lo eliminamos de la lista de "Siguiendo"
+                if (userRowInFollowingList) {
+                    // Animación de desvanecimiento para una mejor UX
+                    userRowInFollowingList.style.transition = 'opacity 0.3s ease';
+                    userRowInFollowingList.style.opacity = '0';
+                    setTimeout(() => userRowInFollowingList.remove(), 300);
+                }
+            }
+            // === FIN DE LA LÓGICA DE SINCRONIZACIÓN ===
+        }
+    } catch (error) {
+        console.error("Error de red:", error);
+    } finally {
+        buttonElement.disabled = false;
+    }
+}
+window.toggleFollowInList = toggleFollowInList;
+
 
 // ====================================================
 // === NUEVAS FUNCIONES PARA EL HISTORIAL DE BÚSQUEDA ===
@@ -1625,29 +1907,26 @@ async function initCommentsPage() {
 async function initUserProfilePage() {
     const params = new URLSearchParams(window.location.search);
     let targetUserId = params.get('id');
-    // let loggedInUserId = null; // <-- ELIMINAMOS LA DECLARACIÓN LOCAL
     const token = localStorage.getItem('authToken');
 
-    if (token) {
-        try {
-            const meResponse = await fetch(`${API_BASE_URL}/api/user/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (meResponse.ok) {
-                // Asignamos el valor a la variable GLOBAL que ya existe
-                loggedInUserId = (await meResponse.json()).data.userId; 
-            }
-        } catch (e) { console.error("No se pudo obtener el usuario logueado", e); }
-    }
+    // La variable global 'loggedInUserId' ya debería estar establecida por 'fetchLoggedInUser'
+    // en la función 'routePage'. Aquí solo la usamos.
+
+    // Si no hay un ID en la URL, asumimos que el usuario quiere ver su propio perfil.
     if (!targetUserId) {
         targetUserId = loggedInUserId;
+        // Si aun así no tenemos un ID (usuario no logueado), lo mandamos a iniciar sesión.
         if (!targetUserId) {
             window.location.href = 'index.html';
             return;
         }
     }
 
+    // --- REFERENCIAS A ELEMENTOS DEL DOM ---
     const bioEditorEl = document.getElementById('bio-editor');
-    if (!bioEditorEl) return;
+    if (!bioEditorEl) return; // Si no estamos en la página correcta, salimos.
 
+    const followBtn = document.getElementById('follow-btn');
     const profileBg = document.getElementById('profile-bg-element');
     const editCoverBtn = document.getElementById('edit-cover-btn');
     const coverFileInput = document.getElementById('cover-file-input');
@@ -1660,6 +1939,14 @@ async function initUserProfilePage() {
     const editBtn = document.getElementById('edit-profile-btn');
     const savedTab = document.getElementById('saved-tab');
     
+    const followersLink = document.getElementById('followers-link');
+const followingLink = document.getElementById('following-link');
+
+if (followersLink) followersLink.href = `followers_list.html?userId=${targetUserId}&type=followers`;
+if (followingLink) followingLink.href = `followers_list.html?userId=${targetUserId}&type=following`;
+
+
+    // --- INICIALIZACIÓN DE QUILL.JS ---
     const quill = new Quill(bioEditorEl, {
         modules: {
             toolbar: [
@@ -1672,12 +1959,18 @@ async function initUserProfilePage() {
         },
         theme: 'snow'
     });
-    quill.enable(false);
+    quill.enable(false); // Deshabilitado por defecto
     
+    // --- LÓGICA PRINCIPAL DE CARGA DE DATOS ---
     try {
-        const profileResponse = await fetch(`${API_BASE_URL}/api/user/profile/${targetUserId}`);
-        if (profileResponse.ok) {
-            const user = (await profileResponse.json()).data;
+        const response = await fetch(`${API_BASE_URL}/api/user/profile/${targetUserId}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+
+        if (response.ok) {
+            const user = (await response.json()).data;
+            
+            // Rellenar datos del perfil (común para todos los visitantes)
             if (avatar) avatar.src = getFullImageUrl(user.profile_pic_url);
             if (username) username.textContent = user.username || 'Usuario';
             if (postCount) postCount.textContent = user.post_count;
@@ -1691,50 +1984,45 @@ async function initUserProfilePage() {
                 document.getElementById('about-content').style.backgroundImage = `url(${API_BASE_URL}${user.bio_bg_url})`;
             }
 
-            if (String(loggedInUserId) === String(targetUserId)) {
+            // =========================================================
+            // === BLOQUE 1: CONTROLES SOLO PARA EL DUEÑO DEL PERFIL ===
+            // =========================================================
+            if (loggedInUserId && String(loggedInUserId) === String(targetUserId)) {
                 if(editBtn) editBtn.style.display = 'inline';
                 if(savedTab) savedTab.style.display = 'block';
 
                 const bioControls = document.getElementById('bio-edit-controls');
                 const editBioBtn = document.getElementById('edit-bio-btn');
                 const saveBioBtn = document.getElementById('save-bio-btn');
-                let originalBioContent = ''; // <-- AÑADE ESTA LÍNEA AQUÍ
+                let originalBioContent = '';
                 const editBioBgBtn = document.getElementById('edit-bio-bg-btn');
                 const bioBgInput = document.getElementById('bio-bg-input');
+
                 if (bioControls) bioControls.style.display = 'flex';
+                
                 if (editBioBtn) {
                     editBioBtn.addEventListener('click', () => {
                         const toolbar = quill.getModule('toolbar').container;
-                        if (!toolbar) return;
                         const isEditing = bioEditorEl.classList.contains('editing');
-
                         if (isEditing) {
-                            // --- LÓGICA DE CANCELAR ---
-                            // 1. Restaura el contenido del editor a su estado original guardado
                             quill.root.innerHTML = originalBioContent;
-
-                            // 2. Desactiva el modo de edición y oculta los controles
                             quill.enable(false);
                             bioEditorEl.classList.remove('editing');
                             if (saveBioBtn) saveBioBtn.style.display = 'none';
                             toolbar.style.display = 'none';
                             editBioBtn.textContent = '✏️ Editar';
-
                         } else {
-                            // --- LÓGICA DE INICIAR EDICIÓN ---
-                            // 1. Guarda el contenido actual ANTES de permitir cualquier cambio
                             originalBioContent = quill.root.innerHTML;
-
-                            // 2. Activa el modo de edición y muestra los controles
                             quill.enable(true);
                             bioEditorEl.classList.add('editing');
                             if (saveBioBtn) saveBioBtn.style.display = 'inline-block';
                             toolbar.style.display = 'block';
                             editBioBtn.textContent = '❌ Cancelar';
-                            quill.focus(); // Opcional: pone el cursor directamente en el editor
+                            quill.focus();
                         }
                     });
                 }
+                
                 if (saveBioBtn) {
                     saveBioBtn.addEventListener('click', async () => {
                         const bioContent = quill.root.innerHTML;
@@ -1747,8 +2035,7 @@ async function initUserProfilePage() {
                             quill.enable(false);
                             bioEditorEl.classList.remove('editing');
                             saveBioBtn.style.display = 'none';
-                            const toolbar = quill.getModule('toolbar').container;
-                            if (toolbar) toolbar.style.display = 'none';
+                            quill.getModule('toolbar').container.style.display = 'none';
                             if (editBioBtn) editBioBtn.textContent = '✏️ Editar';
                             alert('Biografía guardada.');
                         } else {
@@ -1844,8 +2131,24 @@ async function initUserProfilePage() {
                     });
                 }
             }
+            
+            // =========================================================
+            // === BLOQUE 2: LÓGICA DEL BOTÓN DE SEGUIR (PARA VISITANTES) ===
+            // =========================================================
+            if (loggedInUserId && String(loggedInUserId) !== String(targetUserId)) {
+                followBtn.style.display = 'block';
+                if (user.is_followed_by_user) {
+                    followBtn.textContent = 'Siguiendo';
+                    followBtn.classList.add('following');
+                } else {
+                    followBtn.textContent = 'Seguir';
+                    followBtn.classList.remove('following');
+                }
+                followBtn.onclick = () => toggleFollow(targetUserId);
+            }
+
         } else {
-            const errorData = await profileResponse.json();
+            const errorData = await response.json();
             if (document.querySelector('main')) document.querySelector('main').innerHTML = `<p class="text-center text-red-500 p-8">${errorData.message}</p>`;
         }
     } catch (e) {
@@ -1853,6 +2156,7 @@ async function initUserProfilePage() {
         if (document.querySelector('main')) document.querySelector('main').innerHTML = `<p class="text-center text-red-500 p-8">No se pudo conectar para cargar el perfil.</p>`;
     }
     
+    // --- LÓGICA DE PESTAÑAS (TABS) Y SWIPE (SIN CAMBIOS) ---
     const tabs = document.querySelectorAll('.tab-btn');
     const tabContents = Array.from(document.querySelectorAll('.tab-content'));
     const tabContentContainer = document.getElementById('tab-content-container');
@@ -1884,9 +2188,8 @@ async function initUserProfilePage() {
                         container.innerHTML = (data.posts && data.posts.length > 0)
                             ? data.posts.map(createPostHTML).join('')
                             : `<p class='text-center text-gray-400 p-8'>No hay contenido para mostrar.</p>`;
-                             // === CAMBIO AQUÍ ===
-                            const players = initializeVideoPlayers();
-                            setupAutoplayObserver(players);
+                        const players = initializeVideoPlayers();
+                        setupAutoplayObserver(players);
                     } else {
                         container.innerHTML = `<p class='text-center text-red-500 p-8'>Error al cargar contenido.</p>`;
                     }
