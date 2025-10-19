@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chat</title>
+    <!-- ... (tus scripts de tema y CSS links) ... -->
+    <!-- ========================================================= -->
+    <!-- === INICIO DEL SCRIPT ANTI-PARPADEO DE TEMA === -->
+    <!-- ========================================================= -->
+    <script>
+        (function () {
+            const theme = localStorage.getItem('app-theme') || 'purple';
+            const mode = localStorage.getItem('app-mode') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-mode', mode);
+        })();
+    </script>
+    <!-- ========================================================= -->
+    <!-- === FIN DEL SCRIPT === -->
+    <!-- ========================================================= -->
+    <!-- Plyr.io CSS (para los estilos del reproductor) -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <!-- Hojas de Estilo Estandarizadas -->
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+
+</head>
+
+<body class="chat-layout">
+
+    <div class="top-bar">
+        <button onclick="window.history.back()" class="header-back-btn">←</button>
+        <div class="chat-header-info">
+            <img id="chat-user-avatar" src="./assets/img/default-avatar.png" class="chat-header-avatar" />
+            <span id="chat-user-username" class="header-title">Cargando...</span>
+        </div>
+        <div class="top-right"></div>
+    </div>
+
+    <main id="chat-messages-container" class="chat-messages"></main>
+
+    <form id="chat-form" class="comment-input-bar">
+        <div class="input-row">
+            <textarea id="chat-message-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
+            <button type="submit" id="send-chat-btn" class="comment-send-btn">
+                <!-- Icono de enviar -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                    <path fill="currentColor" fill-rule="evenodd"
+                        d="M3.402 6.673c-.26-2.334 2.143-4.048 4.266-3.042l11.944 5.658c2.288 1.083 2.288 4.339 0 5.422L7.668 20.37c-2.123 1.006-4.525-.708-4.266-3.042L3.882 13H12a1 1 0 1 0 0-2H3.883z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </form>
+
+    <!-- Librería de Socket.IO para el cliente -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+
+</html>

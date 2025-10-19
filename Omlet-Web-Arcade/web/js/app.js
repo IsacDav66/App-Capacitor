@@ -198,6 +198,8 @@ async function routePage() {
         initSearchPage();
     } else if (currentUrl.includes('followers_list.html')) { // <-- AÑADE ESTA RUTA
         initFollowersListPage();
+    } else if (currentUrl.includes('chat.html')) { // <-- AÑADE ESTA RUTA
+        initChatPage();
     }
 }
 
@@ -545,49 +547,242 @@ async function toggleFollowInList(targetUserId, buttonElement) {
         const data = await response.json();
 
         if (response.ok) {
-            // === INICIO DE LA LÓGICA DE SINCRONIZACIÓN ===
-            
             const isNowFollowing = (data.action === 'followed');
 
-            // 1. Buscamos el elemento del usuario en AMBAS listas
-            const userRowInFollowersList = document.querySelector(`#followers-content .follow-list-item:has(#follow-btn-${targetUserId})`);
-            const userRowInFollowingList = document.querySelector(`#following-content .follow-list-item:has(#follow-btn-${targetUserId})`);
+            // --- INICIO DE LA LÓGICA DE SINCRONIZACIÓN (SIN :has()) ---
+            
+            // 1. Buscamos TODOS los botones para este usuario en ambas listas
+            const allButtonsForUser = document.querySelectorAll(`#follow-btn-${targetUserId}`);
 
-            // 2. Actualizamos el estado del botón en la lista de "Seguidores" (si existe)
-            if (userRowInFollowersList) {
-                const button = userRowInFollowersList.querySelector('button');
-                button.textContent = isNowFollowing ? 'Dejar de seguir' : 'Seguir';
-                button.className = isNowFollowing ? 'follow-btn following' : 'follow-btn';
-            }
+            allButtonsForUser.forEach(btn => {
+                // Actualizamos cada botón encontrado
+                btn.textContent = isNowFollowing ? 'Dejar de seguir' : 'Seguir';
+                btn.className = isNowFollowing ? 'follow-btn following' : 'follow-btn';
 
-            // 3. Actualizamos la lista de "Siguiendo"
-            if (isNowFollowing) {
-                // Si ahora lo seguimos, pero no estaba en la lista, no podemos añadirlo fácilmente
-                // sin recargar. Por ahora, solo actualizamos el estado si ya estaba.
-                if (userRowInFollowingList) {
-                    const button = userRowInFollowingList.querySelector('button');
-                    button.textContent = 'Dejar de seguir';
-                    button.className = 'follow-btn following';
+                // Si hemos dejado de seguir y el botón está en la lista de "Siguiendo", eliminamos la fila
+                const parentRow = btn.closest('.follow-list-item');
+                const parentContainer = btn.closest('#following-content');
+                if (!isNowFollowing && parentRow && parentContainer) {
+                    parentRow.style.transition = 'opacity 0.3s ease';
+                    parentRow.style.opacity = '0';
+                    setTimeout(() => parentRow.remove(), 300);
                 }
-            } else {
-                // Si dejamos de seguirlo, lo eliminamos de la lista de "Siguiendo"
-                if (userRowInFollowingList) {
-                    // Animación de desvanecimiento para una mejor UX
-                    userRowInFollowingList.style.transition = 'opacity 0.3s ease';
-                    userRowInFollowingList.style.opacity = '0';
-                    setTimeout(() => userRowInFollowingList.remove(), 300);
-                }
-            }
-            // === FIN DE LA LÓGICA DE SINCRONIZACIÓN ===
+            });
+            // --- FIN DE LA LÓGICA ---
         }
     } catch (error) {
         console.error("Error de red:", error);
     } finally {
+        // Habilitamos el botón original en el que se hizo clic
         buttonElement.disabled = false;
     }
 }
 window.toggleFollowInList = toggleFollowInList;
 
+// ====================================================
+// === NUEVAS FUNCIONES PARA LA PÁGINA DE CHAT       ===
+// ====================================================
+
+/**
+ * Inicializa la página de chat: establece la conexión WebSocket,
+ * carga el historial y configura los listeners para enviar/recibir mensajes.
+ */
+async function initChatPage() {
+    const params = new URLSearchParams(window.location.search);
+    const otherUserId = params.get('userId');
+    const token = localStorage.getItem('authToken');
+
+    // Validación inicial
+    if (!otherUserId || !loggedInUserId || !token) {
+        alert("Error: No se pudo iniciar el chat. Sesión inválida o usuario no especificado.");
+        window.history.back();
+        return;
+    }
+
+    const chatMessagesContainer = document.getElementById('chat-messages-container');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-message-input');
+
+    // Conectar al servidor de WebSockets. 
+    // La URL debe ser la base de tu API, sin /app. Socket.IO se conectará automáticamente.
+    const socket = io(API_BASE_URL.replace('/app', ''), {
+        // ¡LA LÍNEA CLAVE!
+        path: "/app/socket.io/"
+    });
+
+    // Crear un nombre de sala único y consistente (ordenando los IDs)
+    const roomName = [loggedInUserId, parseInt(otherUserId)].sort().join('-');
+
+    // 1. EVENTO: Al conectar, unirse a la sala privada
+    socket.on('connect', () => {
+        console.log('Conectado al servidor de chat. ID de socket:', socket.id);
+        socket.emit('join_room', roomName);
+    });
+
+    // 2. Cargar datos iniciales
+    fetchChatHistory(otherUserId);
+    
+    // 3. EVENTO: Al recibir un mensaje del servidor
+    socket.on('receive_message', (message) => {
+        // Asegurarse de no añadir un mensaje que ya hemos añadido instantáneamente
+        if (document.getElementById(`msg-${message.message_id}`)) return;
+        
+        appendMessage(message, false);
+    });
+
+    // 4. ACCIÓN: Enviar un mensaje
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const content = chatInput.value.trim();
+        if (content) {
+            const tempId = `temp-${Date.now()}`;
+
+            // === INICIO DE LA CORRECCIÓN ===
+            // Cambiamos las claves a snake_case para que coincidan con la base de datos
+            // y con lo que espera la función appendMessage.
+            const messageData = {
+                message_id: tempId,
+                sender_id: loggedInUserId,
+                receiver_id: parseInt(otherUserId),
+                content: content,
+                roomName: roomName,
+                created_at: new Date().toISOString()
+            };
+            // === FIN DE LA CORRECCIÓN ===
+            
+            console.log("CLIENTE: Enviando 'send_message' con datos:", messageData);
+            socket.emit('send_message', messageData);
+            
+            appendMessage(messageData, true); 
+            chatInput.value = '';
+            chatInput.focus();
+        }
+    });
+
+    // Manejo de desconexión (opcional pero recomendado)
+    socket.on('disconnect', () => {
+        console.log('Desconectado del servidor de chat.');
+    });
+}
+
+/**
+ * Obtiene el historial del chat desde la API y los datos del otro usuario.
+ * @param {string} otherUserId - El ID del otro usuario en el chat.
+ */
+// REEMPLAZA tu función fetchChatHistory con esta versión completa
+async function fetchChatHistory(otherUserId) {
+    const token = localStorage.getItem('authToken');
+    const chatMessagesContainer = document.getElementById('chat-messages-container');
+    const userAvatarEl = document.getElementById('chat-user-avatar');
+    const userUsernameEl = document.getElementById('chat-user-username');
+
+    try {
+        const profileResponse = await fetch(`${API_BASE_URL}/api/user/profile/${otherUserId}`);
+        if (profileResponse.ok) {
+            const user = (await profileResponse.json()).data;
+            userAvatarEl.src = getFullImageUrl(user.profile_pic_url);
+            userUsernameEl.textContent = user.username;
+        }
+    } catch (e) { userUsernameEl.textContent = "Usuario"; }
+
+    try {
+        const historyResponse = await fetch(`${API_BASE_URL}/api/chat/history/${otherUserId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await historyResponse.json();
+        if (historyResponse.ok && data.success) {
+            const messages = data.messages;
+            if (messages.length === 0) {
+                chatMessagesContainer.innerHTML = '';
+                return;
+            }
+
+            const timeThreshold = 60; 
+            const messagesHTML = messages.map((message, index) => {
+                const prevMessage = messages[index - 1];
+                const nextMessage = messages[index + 1];
+                const isOwn = message.sender_id === loggedInUserId;
+                const messageClass = isOwn ? 'sent' : 'received';
+                let groupClass = '';
+
+                // ... (lógica de agrupación sin cambios) ...
+                const isStartOfGroup = !prevMessage || prevMessage.sender_id !== message.sender_id || (new Date(message.created_at) - new Date(prevMessage.created_at)) / 1000 > timeThreshold;
+                const isEndOfGroup = !nextMessage || nextMessage.sender_id !== message.sender_id || (new Date(nextMessage.created_at) - new Date(message.created_at)) / 1000 > timeThreshold;
+                if (isStartOfGroup && isEndOfGroup) groupClass = 'single';
+                else if (isStartOfGroup) groupClass = 'start-group';
+                else if (isEndOfGroup) groupClass = 'end-group';
+                else groupClass = 'middle-group';
+
+                // --- INICIO DE LA MODIFICACIÓN ---
+                return `
+                    <div id="msg-${message.message_id}" 
+                         class="message-bubble ${messageClass} ${groupClass}"
+                         data-sender-id="${message.sender_id}"
+                         data-timestamp="${message.created_at}">
+                        <p>${message.content}</p>
+                        <span class="message-timestamp">${formatMessageTime(message.created_at)}</span>
+                    </div>
+                `;
+                // --- FIN DE LA MODIFICACIÓN ---
+            }).join('');
+
+            chatMessagesContainer.innerHTML = messagesHTML;
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        }
+    } catch (error) {
+        console.error("Error al cargar el historial del chat:", error);
+    }
+}
+
+/**
+ * Añade una burbuja de mensaje al contenedor del chat.
+ * @param {object} message - El objeto del mensaje.
+ * @param {boolean} isOwnMessage - True si el mensaje es del usuario logueado.
+ */
+function appendMessage(message, isOwnMessage = false) {
+    const chatMessagesContainer = document.getElementById('chat-messages-container');
+    if (!chatMessagesContainer) return;
+
+    // ... (lógica de agrupación en tiempo real sin cambios) ...
+    const lastMessageEl = chatMessagesContainer.querySelector('.message-bubble:last-child');
+    let groupClass = 'single';
+    const timeThreshold = 60;
+    if (lastMessageEl) {
+        const lastSenderId = lastMessageEl.dataset.senderId;
+        const lastTimestamp = lastMessageEl.dataset.timestamp;
+        if (lastSenderId == message.sender_id && (new Date(message.created_at) - new Date(lastTimestamp)) / 1000 <= timeThreshold) {
+            groupClass = 'end-group';
+            if (lastMessageEl.classList.contains('single')) {
+                lastMessageEl.classList.remove('single');
+                lastMessageEl.classList.add('start-group');
+            } else if (lastMessageEl.classList.contains('end-group')) {
+                lastMessageEl.classList.remove('end-group');
+                lastMessageEl.classList.add('middle-group');
+            }
+        }
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.id = `msg-${message.message_id}`;
+    messageDiv.className = `message-bubble ${isOwnMessage ? 'sent' : 'received'} ${groupClass}`;
+    messageDiv.dataset.senderId = message.sender_id;
+    messageDiv.dataset.timestamp = message.created_at;
+    
+    // --- INICIO DE LA MODIFICACIÓN ---
+    const contentP = document.createElement('p');
+    contentP.textContent = message.content;
+    
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'message-timestamp';
+    timestampSpan.textContent = formatMessageTime(message.created_at);
+    
+    messageDiv.appendChild(contentP);
+    messageDiv.appendChild(timestampSpan); // Añadimos el span de la hora
+    // --- FIN DE LA MODIFICACIÓN ---
+
+    chatMessagesContainer.appendChild(messageDiv);
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+}
 
 // ====================================================
 // === NUEVAS FUNCIONES PARA EL HISTORIAL DE BÚSQUEDA ===
@@ -970,6 +1165,15 @@ function setupSideMenu() {
         if (sideMenu && sideMenu.classList.contains('open') && (touchStartX - touchEndX) > swipeThreshold) {
             closeMenu();
         }
+    });
+}
+function formatMessageTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    // Formatea la hora en formato local (ej: "10:45 AM" o "22:45")
+    return date.toLocaleTimeString(navigator.language, {
+        hour: 'numeric',
+        minute: '2-digit'
     });
 }
 
@@ -2175,6 +2379,13 @@ if (followingLink) followingLink.href = `followers_list.html?userId=${targetUser
                     followBtn.classList.remove('following');
                 }
                 followBtn.onclick = () => toggleFollow(targetUserId);
+                // --- AÑADE ESTE CÓDIGO ---
+                // Mostramos y configuramos el botón de chat
+                const chatLinkBtn = document.getElementById('chat-link-btn');
+                if(chatLinkBtn) {
+                    chatLinkBtn.style.display = 'flex'; // Usamos flex para centrar el icono
+                    chatLinkBtn.href = `chat.html?userId=${targetUserId}`;
+                }
             }
 
         } else {

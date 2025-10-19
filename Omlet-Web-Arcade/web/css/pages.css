@@ -1004,6 +1004,210 @@ input:checked + .slider:before {
     padding: 0 5px;
 }
 
+
+/* ========================================
+   --- PÁGINA: CHAT EN TIEMPO REAL (chat.html) ---
+======================================== */
+
+/* 1. Layout Principal */
+.chat-layout {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    overflow: hidden;
+    padding-top: 0; /* Anulamos el padding global */
+    padding-bottom:0;
+}
+
+.chat-layout .top-bar {
+    position: static;
+}
+
+.chat-layout .comment-input-bar { /* Reutilizamos la clase del input de comentarios */
+    position: static;
+}
+
+/* 2. Header del Chat */
+.chat-header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chat-header-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* 3. Contenedor de Mensajes */
+.chat-messages {
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    /* La propiedad 'gap' ha sido eliminada. */
+}
+
+/* 4. Burbujas de Mensajes (Estilo General) */
+.message-bubble {
+    max-width: 75%;
+    padding: 8px 12px; /* Reducimos un poco el padding para acomodar la hora */
+    line-height: 1.4;
+    word-wrap: break-word;
+    transition: border-radius 0.2s ease-in-out, margin-bottom 0.2s ease-in-out;
+    
+    /* --- LÍNEAS AÑADIDAS PARA FLEXBOX --- */
+    display: flex;
+    align-items: flex-end; /* Alinea la hora y el texto en la base */
+    gap: 8px; /* Espacio entre el texto y la hora */
+}
+
+/* AÑADE esta nueva regla para el texto del mensaje */
+.message-bubble p {
+    margin: 0;
+    padding: 0;
+    flex-grow: 1; /* Permite que el texto ocupe el espacio disponible */
+}
+
+/* AÑADE esta nueva regla para el timestamp */
+.message-timestamp {
+    font-size: 0.7rem;
+    color: var(--color-text);
+    opacity: 0.6; /* Lo hacemos más sutil */
+    white-space: nowrap; /* Evita que la hora se parta en dos líneas */
+    align-self: flex-end; /* Se asegura de que esté abajo */
+    margin-bottom: -2px; /* Ajuste fino para la alineación vertical */
+}
+
+/* 5. Burbuja de Mensaje RECIBIDO (del otro usuario) */
+.message-bubble.received {
+    background-color: var(--color-ui);
+    color: var(--color-text);
+    align-self: flex-start; /* Se alinea a la izquierda */
+}
+
+/* 6. Burbuja de Mensaje ENVIADO (nuestro) */
+.message-bubble.sent {
+    background-color: var(--color-accent);
+    color: var(--color-text);
+    align-self: flex-end; /* Se alinea a la derecha */
+}
+
+/* =========================================================
+   --- NUEVOS ESTILOS PARA BURBUJAS AGRUPADAS ---
+========================================================= */
+
+/* Espaciado entre grupos de mensajes */
+.message-bubble.single,
+.message-bubble.end-group {
+    margin-bottom: 10px; /* Un espaciado claro entre un grupo y el siguiente */
+}
+
+/* Espaciado DENTRO de un grupo de mensajes */
+.message-bubble.start-group,
+.message-bubble.middle-group {
+    margin-bottom: 3px; /* Un espaciado mínimo para que parezcan unidas */
+}
+
+/* 5a. Burbujas RECIBIDAS agrupadas */
+.received.single,
+.received.start-group {
+    border-top-left-radius: 20px;
+}
+.received.single,
+.received.end-group {
+    border-bottom-left-radius: 20px;
+}
+.received.single,
+.received.start-group,
+.received.middle-group,
+.received.end-group {
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+.received.middle-group,
+.received.end-group {
+    border-top-left-radius: 4px;
+}
+.received.start-group,
+.received.middle-group {
+    border-bottom-left-radius: 4px;
+}
+
+/* 6a. Burbujas ENVIADAS agrupadas */
+.sent.single,
+.sent.start-group {
+    border-top-right-radius: 20px;
+}
+.sent.single,
+.sent.end-group {
+    border-bottom-right-radius: 20px;
+}
+.sent.single,
+.sent.start-group,
+.sent.middle-group,
+.sent.end-group {
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+}
+.sent.middle-group,
+.sent.end-group {
+    border-top-right-radius: 4px;
+}
+.sent.start-group,
+.sent.middle-group {
+    border-bottom-right-radius: 4px;
+}
+
+/* 7. Input de Mensaje */
+#chat-message-input {
+    background: var(--color-ui);
+    color: var(--color-text);
+    border-radius: 20px;
+    padding: 10px 15px;
+    resize: none;
+    flex-grow: 1;
+    margin-right: 10px;
+    border: none;
+    outline: none;
+}
+
+.header-back-btn,
+.header-output {
+    flex: 0; /* Hacen que las secciones izquierda y derecha ocupen el mismo espacio */
+}
+
+/*
+  ========================================
+  --- ESTILOS PARA EL BOTÓN DE CHAT EN EL PERFIL ---
+  ========================================
+*/
+.chat-profile-btn {
+    display: flex; /* Cambiado a flex para centrar */
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: var(--color-ui);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+.chat-profile-btn svg {
+    width: 22px;
+    height: 22px;
+    fill: var(--color-text);
+}
+
+.chat-profile-btn:hover {
+    filter: brightness(1.2);
+}
+
+
+
 /* ========================================
    --- PÁGINA: Temas (themes.html) ---
 ======================================== */
