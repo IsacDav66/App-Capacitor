@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configureStatusBar(); // <-- AÑADIR ESTA LÍNEA
     updateNativeUIColors();
 
+    syncNativeTheme();
      // 2. NUEVO: Llama a la función para personalizar la UI del sistema.
     setSystemUIColors();
 
@@ -278,6 +279,35 @@ async function signInWithGoogle() {
         output.textContent = '❌ Inicio de sesión con Google cancelado o fallido.';
     }
 }
+
+// ====================================================
+// === NUEVA FUNCIÓN PARA SINCRONIZAR EL TEMA NATIVO ===
+// ====================================================
+
+async function syncNativeTheme() {
+    if (!window.Capacitor || !Capacitor.Plugins.GameDetector) return;
+    try {
+        const styles = getComputedStyle(document.documentElement);
+        
+        // Leemos --color-bg, que es el correcto para el fondo
+        const backgroundColor = styles.getPropertyValue('--color-bg').trim(); 
+        const textColor = styles.getPropertyValue('--color-text').trim();
+        const textSecondaryColor = styles.getPropertyValue('--color-text-secondary').trim();
+
+        // Enviamos el objeto con las claves que el código Java está esperando
+        const theme = {
+            surfaceColor: backgroundColor, // CLAVE CORRECTA: surfaceColor
+            textColor: textColor,
+            textSecondaryColor: textSecondaryColor
+        };
+        
+        await Capacitor.Plugins.GameDetector.setTheme({ theme: theme });
+        console.log("Tema nativo sincronizado:", theme);
+    } catch (error) {
+        console.error("Error al sincronizar el tema nativo:", error);
+    }
+}
+
 // NUEVA FUNCIÓN para seguir/dejar de seguir a un usuario
 async function toggleFollow(targetUserId) {
     const followBtn = document.getElementById('follow-btn');
@@ -2357,6 +2387,7 @@ async function initThemesPage() {
                 document.documentElement.setAttribute('data-theme', currentTheme);
                 renderThemeCircles();
                 updateNativeUIColors(); // <-- AÑADIR AQUÍ
+                syncNativeTheme();
             });
 
 
@@ -2384,5 +2415,6 @@ async function initThemesPage() {
     renderThemeCircles();
     applyMode(currentMode);
     updateNativeUIColors(); // <-- Y TAMBIÉN AQUÍ
+    syncNativeTheme();
 
 }

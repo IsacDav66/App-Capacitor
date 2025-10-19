@@ -1,7 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:orientation="vertical"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@android:color/transparent">
+
+    <!-- CAMBIO: Añadimos un ID a este LinearLayout -->
+    <LinearLayout
+        android:id="@+id/floating_content_background"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:minHeight="200dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp"
+        android:background="@drawable/floating_window_background">
+
+        <!-- CAMBIO: Añadimos un ID -->
+        <TextView
+            android:id="@+id/title_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Jugando ahora:"
+            android:textColor="#AAAAAA"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/game_name_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Detectando..."
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp" />
+    </LinearLayout>
 
 </LinearLayout>

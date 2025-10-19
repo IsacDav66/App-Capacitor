@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-  
-</selector>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval"> <!-- Define la forma como un óvalo/círculo -->
+    <solid android:color="#80000000" /> <!-- Un color semitransparente oscuro -->
+    <stroke android:width="2dp" android:color="#FFFFFF" /> <!-- Un borde blanco -->
+</shape>

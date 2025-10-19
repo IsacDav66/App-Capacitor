@@ -15,7 +15,7 @@
     --color-text: #FFFFFF;       /* 5: Texto principal */
     
     /* Colores derivados */
-    --color-text-secondary: rgba(255, 255, 255, 0.7);
+    --color-text-secondary: #ffffffb3;
     --color-border: #333333;
     
     /* Transición suave para todos los cambios de color */

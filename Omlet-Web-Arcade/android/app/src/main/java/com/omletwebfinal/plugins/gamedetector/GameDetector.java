@@ -132,4 +132,27 @@ public class GameDetector extends Plugin {
         result.put("message", "Foreground Service Detenido.");
         call.resolve(result);
     }
+
+    //=========================================================
+    // === NUEVO MÉTODO PARA RECIBIR EL TEMA DESDE JAVASCRIPT ===
+    // =========================================================
+    @PluginMethod
+    public void setTheme(final com.getcapacitor.PluginCall call) {
+        JSObject theme = call.getObject("theme");
+        if (theme == null) {
+            call.reject("El objeto 'theme' es nulo.");
+            return;
+        }
+
+        Intent intent = new Intent("com.omletwebfinal.THEME_UPDATED");
+        
+        // Aseguramos que usamos las claves correctas que vienen de JS
+        intent.putExtra("surfaceColor", theme.getString("surfaceColor"));
+        intent.putExtra("textColor", theme.getString("textColor"));
+        intent.putExtra("textSecondaryColor", theme.getString("textSecondaryColor"));
+        
+        getContext().sendBroadcast(intent);
+        call.resolve();
+    }
+
 }

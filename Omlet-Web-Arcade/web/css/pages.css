@@ -1152,7 +1152,7 @@ html[data-theme="purple"][data-mode="light"] {
     --color-ui: #e9d5ff;       /* UI: Lavanda claro */
     --color-accent: #8A2BE2;   /* Acento: Se mantiene el púrpura fuerte */
     --color-text: #3b0764;     /* Texto: Púrpura muy oscuro */
-    --color-text-secondary: rgba(59, 7, 100, 0.65);
+    --color-text-secondary: #3b0764a6;
 }
 
 /* --- TEMA VERDE CLARO --- */
@@ -1162,7 +1162,7 @@ html[data-theme="green"][data-mode="light"] {
     --color-ui: #c1fae4;       /* UI: Menta claro */
     --color-accent: #26DE9D;   /* Acento: Se mantiene el verde fuerte */
     --color-text: #011C13;     /* Texto: Verde muy oscuro (el bg original) */
-    --color-text-secondary: rgba(1, 28, 19, 0.65);
+    --color-text-secondary: #011c13a6;
 }
 
 /* --- TEMA ROSA CLARO --- */
@@ -1172,7 +1172,7 @@ html[data-theme="rose"][data-mode="light"] {
     --color-ui: #ffe0e6;       /* UI: Rosa claro */
     --color-accent: #F48A9C;   /* Acento: Se mantiene el rosa fuerte */
     --color-text: #57333B;     /* Texto: Marrón oscuro (el ui original) */
-    --color-text-secondary: rgba(87, 51, 59, 0.65);
+    --color-text-secondary: #57333ba6;
 }
 
 /* --- TEMA AZUL CLARO --- */
@@ -1183,5 +1183,5 @@ html[data-theme="blue"][data-mode="light"] {
     --color-ui: #E3D9ED;       /* UI: Un lavanda un poco más oscuro */
     --color-accent: #5D5279;   /* Acento: Usamos el color UI oscuro como acento */
     --color-text: #291F37;     /* Texto: El color de fondo oscuro original */
-    --color-text-secondary: rgba(41, 31, 55, 0.7);
+    --color-text-secondary: #291f37b3;
 }
