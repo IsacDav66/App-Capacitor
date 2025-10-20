@@ -1047,18 +1047,38 @@ input:checked + .slider:before {
     padding: 15px;
     display: flex;
     flex-direction: column;
-    /* La propiedad 'gap' ha sido eliminada. */
 }
+
+/* NUEVO: Contenedor para la unidad de mensaje (respuesta + burbuja) */
+.message-wrapper {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+}
+.message-wrapper.sent {
+    align-self: flex-end;
+}
+.message-wrapper.received {
+    align-self: flex-start;
+}
+
 
 /* 4. Burbujas de Mensajes (Estilo General) */
 .message-bubble {
-    max-width: 75%;
-    padding: 8px 12px; /* Reducimos un poco el padding para acomodar la hora */
+    max-width: 80%; /* Damos un poco más de espacio */
+    padding: 8px 12px;
     line-height: 1.4;
     word-wrap: break-word;
     transition: border-radius 0.2s ease-in-out, margin-bottom 0.2s ease-in-out;
     
-    /* --- LÍNEAS AÑADIDAS PARA FLEXBOX --- */
+    /* ¡CAMBIO CLAVE! La burbuja principal ahora es un contenedor vertical */
+    display: flex;
+    flex-direction: column; 
+    gap: 5px; /* Espacio entre el snippet de respuesta y el mensaje principal */
+}
+
+/* AÑADE esta nueva regla para el contenedor del mensaje y la hora */
+.message-main-content {
     display: flex;
     align-items: flex-end; /* Alinea la hora y el texto en la base */
     gap: 8px; /* Espacio entre el texto y la hora */
@@ -1068,7 +1088,11 @@ input:checked + .slider:before {
 .message-bubble p {
     margin: 0;
     padding: 0;
-    flex-grow: 1; /* Permite que el texto ocupe el espacio disponible */
+    flex-grow: 1;
+    
+    /* ¡LA LÍNEA CLAVE! */
+    /* Permite que el navegador corte palabras largas para evitar el desbordamiento. */
+    word-break: break-word; 
 }
 
 /* AÑADE esta nueva regla para el timestamp */
@@ -1207,7 +1231,310 @@ input:checked + .slider:before {
 }
 
 
+/* ========================================
+   --- ESTILOS PARA EL SEPARADOR DE FECHA ---
+======================================== */
 
+.date-separator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0 10px 0; /* Espaciado vertical */
+}
+
+.date-separator span {
+    background-color: var(--color-ui);
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* ========================================
+   --- ESTILOS PARA EL HEADER DE FECHA ANCLADO ---
+======================================== */
+
+.sticky-date-header {
+    position: absolute;
+    top: 50px; /* Altura de la top-bar */
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 10px; /* Espacio desde arriba */
+    z-index: 10;
+    pointer-events: none; /* Permite hacer clic a través de él */
+
+    /* Animación de entrada/salida */
+    transform: translateY(-150%);
+    opacity: 0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.sticky-date-header.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.sticky-date-header span {
+    /* Reutilizamos el estilo de la píldora de fecha */
+    background-color: var(--color-ui);
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* ========================================
+   --- ESTILOS PARA LA FUNCIÓN DE RESPONDER ---
+======================================== */
+
+.reply-context {
+    background-color: var(--color-ui);
+    /*padding: 8px 15px;*/
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--color-border);
+    
+    /* --- INICIO DE LA LÓGICA DE ANIMACIÓN --- */
+    
+    /* 1. Estado inicial (oculto) */
+    transform: translateY(100%); /* Empieza completamente abajo, fuera de la vista */
+    opacity: 0;
+    max-height: 0; /* Colapsado para no ocupar espacio */
+    visibility: hidden;
+    
+    /* 2. Transición suave para todas las propiedades */
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
+                opacity 0.3s ease, 
+                max-height 0.3s ease-in-out;
+}
+
+/* 3. Estado activo (visible), que controlaremos desde JS */
+.reply-context.visible {
+    transform: translateY(0);
+    opacity: 1;
+    max-height: 100px; /* Una altura suficiente para que quepa el contenido */
+    visibility: visible;
+    padding: 8px 15px;
+}
+
+.reply-preview {
+    border-left: 3px solid var(--color-accent);
+    padding-left: 10px;
+    overflow: hidden;
+    /* white-space: nowrap; <-- ELIMINADO */
+    min-width: 0; /* ¡CLAVE! Permite que el contenedor se encoja */
+}
+
+.reply-to-user {
+    display: block;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--color-accent);
+}
+
+.reply-snippet {
+    display: block; /* Asegura que se comporte como un bloque */
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    
+    /* Las 3 propiedades mágicas para el truncado */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 20em; /* Limita el ancho para evitar que ocupe demasiado espacio */
+}
+.cancel-reply-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 0 10px;
+}
+
+/* Contenedor para el mensaje respondido dentro de una burbuja */
+.replied-to-snippet {
+    background-color: rgba(0,0,0,0.2);
+    padding: 6px 10px;
+    border-radius: 12px;
+    margin-bottom: 5px;
+    border-left: 3px solid var(--color-accent);
+}
+
+.replied-to-snippet .replied-user {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--color-accent);
+}
+
+.replied-to-snippet .replied-text {
+    display: block; /* Asegura que se comporte como un bloque */
+    color: var(--color-text);
+    opacity: 0.8;
+
+    /* Las 3 propiedades mágicas para el truncado */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+
+/* ========================================
+   --- ESTILOS PARA SALTAR A MENSAJE (HIGHLIGHT) ---
+======================================== */
+
+/* Hacemos que el snippet de respuesta sea clicable */
+.replied-to-snippet {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.replied-to-snippet:hover {
+    background-color: rgba(0,0,0,0.3);
+}
+
+/* Animación de remarcado para el mensaje original */
+@keyframes highlight-animation {
+    0% {
+        background-color: var(--color-accent);
+        opacity: 0.7;
+    }
+    100% {
+        /* El color de fondo volverá al original definido en las clases .sent o .received */
+        background-color: inherit;
+        opacity: 1;
+    }
+}
+
+.message-bubble.highlighted {
+    /* Aplicamos la animación */
+    animation: highlight-animation 1.5s ease-out;
+}
+
+
+
+/* ========================================
+   --- ESTILOS PARA MENÚ CONTEXTUAL (VERSIÓN FINAL CORREGIDA) ---
+======================================== */
+
+/* 1. Fondo difuminado (sin cambios) */
+.context-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+}
+.context-overlay.visible { opacity: 1; visibility: visible; }
+
+/* 2. Burbuja de mensaje activa */
+.message-bubble.context-active {
+    position: relative;
+    z-index: 101;
+    /* La variable --message-color se establece con JS */
+    box-shadow: 0 0 25px 8px var(--message-color, rgba(255,255,255,0.5));
+    transform: scale(1.03);
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+/* 3. El contenedor del menú */
+.context-menu {
+    position: fixed;
+    z-index: 102;
+    visibility: hidden;
+    /* Eliminamos width, display y justify-content. Dejamos que el hijo lo controle. */
+}
+
+.context-menu.visible {
+    visibility: visible;
+}
+
+/* 4. Las opciones del menú */
+/* Opciones del menú (REDISEÑADO) */
+.context-menu-options {
+    display: flex;
+    flex-direction: column; /* Apilamos los botones verticalmente */
+    background-color: var(--color-ui);
+    border-radius: 14px;
+    padding: 6px;
+    min-width: 200px; /* Ancho mínimo para el menú */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+    
+    transform-origin: top center;
+    transform: scale(0.9) translateY(-10px);
+    opacity: 0;
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease;
+}
+
+.context-menu-options svg{
+    fill: var(--color-accent);
+}
+
+
+.context-menu.visible .context-menu-options {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+
+/* 5. Botones individuales del menú */
+.context-menu-button {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: none;
+    border: none;
+    color: var(--color-text);
+    padding: 12px 15px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    border-radius: 8px;
+}
+
+.context-menu-button:hover {
+    background-color: var(--color-surface);
+}
+
+/* Separador entre botones */
+.context-menu-button:not(:last-child) {
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Iconos del menú */
+.context-menu-icon {
+    font-size: 1.2rem;
+    width: 24px; /* Alineación vertical */
+    text-align: center;
+}
+
+/* Estilo para el botón de acción destructiva */
+.context-menu-button.destructive {
+    color: #ef4444; /* Rojo */
+}
+.context-menu-button.destructive .context-menu-icon {
+    color: #ef4444; /* Aseguramos que el emoji/icono también se tiña si es posible */
+}
+
+.message-bubble.pending {
+    opacity: 0.7; /* Hacemos la burbuja ligeramente transparente */
+    pointer-events: none; /* Desactivamos cualquier interacción (long press, etc.) */
+}
 /* ========================================
    --- PÁGINA: Temas (themes.html) ---
 ======================================== */

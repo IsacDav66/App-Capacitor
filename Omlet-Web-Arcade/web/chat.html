@@ -41,7 +41,22 @@
         <div class="top-right"></div>
     </div>
 
+    <!-- NUEVO: Header de Fecha Anclado (Sticky) -->
+    <div id="sticky-date-header" class="sticky-date-header">
+        <span></span>
+    </div>
+    
+    <!-- Contenido Principal (donde se muestra la lista) -->
     <main id="chat-messages-container" class="chat-messages"></main>
+
+    <!-- NUEVO: Barra de Contexto de Respuesta (oculta por defecto) -->
+    <div id="reply-context-bar" class="reply-context">
+        <div class="reply-preview">
+            <span id="reply-to-user" class="reply-to-user"></span>
+            <span id="reply-snippet" class="reply-snippet"></span>
+        </div>
+        <button id="cancel-reply-btn" class="cancel-reply-btn">&times;</button>
+    </div>
 
     <form id="chat-form" class="comment-input-bar">
         <div class="input-row">
@@ -60,6 +75,49 @@
     <!-- Librería de Socket.IO para el cliente -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="./js/app.js"></script>
+
+
+    <!-- ==================================================== -->
+    <!-- === NUEVO: MENÚ CONTEXTUAL PARA MENSAJES       === -->
+    <!-- ==================================================== -->
+    <div id="context-menu-overlay" class="context-overlay"></div>
+    
+    <div id="context-menu" class="context-menu">
+        <div id="context-menu-options" class="context-menu-options">
+            <button id="reply-from-menu-btn" class="context-menu-button">
+                <span class="context-menu-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6.40625 1.08752C6.76562 1.24689 7 1.60627 7 2.00002V4.00002H10.5C13.5375 4.00002 16 6.46252 16 9.50002C16 13.0406 13.4531 14.6219 12.8687 14.9406C12.7906 14.9844 12.7031 15 12.6156 15C12.275 15 12 14.7219 12 14.3844C12 14.15 12.1344 13.9344 12.3062 13.775C12.6 13.5 13 12.95 13 12.0031C13 10.3469 11.6562 9.00314 10 9.00314H7V11.0031C7 11.3969 6.76875 11.7563 6.40625 11.9156C6.04375 12.075 5.625 12.0094 5.33125 11.7469L0.33125 7.24689C0.121875 7.05314 0 6.78439 0 6.50002C0 6.21564 0.121875 5.94689 0.33125 5.75627L5.33125 1.25627C5.625 0.990644 6.04688 0.925019 6.40625 1.08752Z" fill="currentColor"/>
+                    </svg>
+                </span>
+                <span class="context-menu-text">Responder</span>
+            </button>
+            <button id="copy-btn" class="context-menu-button">
+                <span class="context-menu-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path
+                            d="M14.3438 16.875H6.46875C5.79742 16.875 5.15359 16.6083 4.67889 16.1336C4.20418 15.6589 3.9375 15.0151 3.9375 14.3438V6.46875C3.9375 5.79742 4.20418 5.15359 4.67889 4.67889C5.15359 4.20418 5.79742 3.9375 6.46875 3.9375H14.3438C15.0151 3.9375 15.6589 4.20418 16.1336 4.67889C16.6083 5.15359 16.875 5.79742 16.875 6.46875V14.3438C16.875 15.0151 16.6083 15.6589 16.1336 16.1336C15.6589 16.6083 15.0151 16.875 14.3438 16.875Z"
+                            fill="currentColor" />
+                        <path
+                            d="M5.625 2.8125H13.9177C13.7426 2.31934 13.4193 1.89242 12.9921 1.59029C12.5648 1.28816 12.0545 1.12563 11.5312 1.125H3.65625C2.98492 1.125 2.34109 1.39168 1.86639 1.86639C1.39168 2.34109 1.125 2.98492 1.125 3.65625V11.5312C1.12563 12.0545 1.28816 12.5648 1.59029 12.9921C1.89242 13.4193 2.31934 13.7426 2.8125 13.9177V5.625C2.8125 4.87908 3.10882 4.16371 3.63626 3.63626C4.16371 3.10882 4.87908 2.8125 5.625 2.8125Z"
+                            fill="currentColor" />
+                    </svg>
+                </span>
+                <span class="context-menu-text">Copiar</span>
+            </button>
+            <button id="delete-from-menu-btn" class="context-menu-button destructive" style="display: none;">
+                <span class="context-menu-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="18" viewBox="0 0 14 18" fill="none">
+                        <path
+                            d="M1 16C1 17.1 1.9 18 3 18H11C12.1 18 13 17.1 13 16V6C13 4.9 12.1 4 11 4H3C1.9 4 1 4.9 1 6V16ZM13 1H10.5L9.79 0.29C9.61 0.11 9.35 0 9.09 0H4.91C4.65 0 4.39 0.11 4.21 0.29L3.5 1H1C0.45 1 0 1.45 0 2C0 2.55 0.45 3 1 3H13C13.55 3 14 2.55 14 2C14 1.45 13.55 1 13 1Z"
+                            fill="#D33F49" />
+                    </svg>
+                </span>
+                <span class="context-menu-text">Eliminar</span>
+            </button>
+        </div>
+    </div>
+    <!-- ==================================================== -->
 </body>
 
 </html>

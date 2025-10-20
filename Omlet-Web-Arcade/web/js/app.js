@@ -579,97 +579,250 @@ async function toggleFollowInList(targetUserId, buttonElement) {
 }
 window.toggleFollowInList = toggleFollowInList;
 
-// ====================================================
-// === NUEVAS FUNCIONES PARA LA PÁGINA DE CHAT       ===
-// ====================================================
+// ================================================================
+// === SECCIÓN DE CHAT COMPLETA (INCLUYE DESLIZAR PARA RESPONDER) ===
+// ================================================================
+
+// --- Funciones de ayuda para el modo de respuesta ---
 
 /**
- * Inicializa la página de chat: establece la conexión WebSocket,
- * carga el historial y configura los listeners para enviar/recibir mensajes.
+ * Activa la UI para responder a un mensaje específico.
+ * @param {string} messageId - ID del mensaje al que se responde.
+ * @param {string} username - Nombre del usuario del mensaje original.
+ * @param {string} content - Contenido del mensaje original.
  */
+function enterReplyMode(messageId, username, content) {
+    window.currentChatState.currentReplyToId = messageId;
+    document.getElementById('reply-to-user').textContent = username;
+    document.getElementById('reply-snippet').textContent = content;
+    
+    // Ahora solo añadimos la clase 'visible' para activar la animación
+    document.getElementById('reply-context-bar').classList.add('visible');
+    
+    document.getElementById('chat-message-input').focus();
+}
+
+// REEMPLAZA tu función cancelReplyMode
+function cancelReplyMode() {
+    if (window.currentChatState) {
+        window.currentChatState.currentReplyToId = null;
+    }
+    
+    // Ahora solo quitamos la clase 'visible'
+    document.getElementById('reply-context-bar').classList.remove('visible');
+}
+/**
+ * Añade los listeners de eventos táctiles a una burbuja de mensaje para activar el "deslizar para responder".
+ * @param {HTMLElement} messageElement - El elemento div de la burbuja del mensaje.
+ */
+function addSwipeToReplyHandlers(messageElement) {
+    let startX = 0;
+    let deltaX = 0;
+    const swipeThreshold = 80;
+    let longPressTimer;
+
+    messageElement.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        deltaX = 0;
+        messageElement.style.transition = 'transform 0.1s ease-out';
+        
+        // Iniciar el temporizador para la pulsación larga
+        longPressTimer = setTimeout(() => {
+            openContextMenu(messageElement);
+        }, 500); // 500ms = medio segundo
+
+    }, { passive: true });
+
+    messageElement.addEventListener('touchmove', (e) => {
+        // Si el usuario mueve el dedo, cancelamos la pulsación larga
+        clearTimeout(longPressTimer);
+        
+        deltaX = e.touches[0].clientX - startX;
+        if (deltaX > 0) {
+            const pullDistance = Math.min(deltaX, swipeThreshold + 40);
+            messageElement.style.transform = `translateX(${pullDistance}px)`;
+        }
+    }, { passive: true });
+
+    messageElement.addEventListener('touchend', () => {
+        // Al levantar el dedo, siempre cancelamos el temporizador
+        clearTimeout(longPressTimer);
+        
+        messageElement.style.transition = 'transform 0.3s ease-out';
+        if (deltaX > swipeThreshold) {
+            // Lógica de deslizar para responder (sin cambios)
+            const messageId = messageElement.id.replace('msg-', '');
+            const username = messageElement.classList.contains('sent') ? 'Tú' : document.getElementById('chat-user-username').textContent;
+            const content = messageElement.querySelector('p').textContent;
+            enterReplyMode(messageId, username, content);
+            messageElement.style.transform = `translateX(60px)`;
+            setTimeout(() => { messageElement.style.transform = 'translateX(0)'; }, 150);
+        } else {
+            // Si no fue un swipe, devolvemos la burbuja a su sitio
+            messageElement.style.transform = 'translateX(0)';
+        }
+    });
+}
+
+// --- Función principal de la página de chat ---
+
 async function initChatPage() {
+    // Objeto para mantener el estado de esta instancia de chat
+    window.currentChatState = {
+        currentReplyToId: null,
+        contextMenuTarget: null,
+        otherUserId: null,
+        socket: null,
+        roomName: null
+    };
+
     const params = new URLSearchParams(window.location.search);
     const otherUserId = params.get('userId');
     const token = localStorage.getItem('authToken');
 
-    // Validación inicial
     if (!otherUserId || !loggedInUserId || !token) {
-        alert("Error: No se pudo iniciar el chat. Sesión inválida o usuario no especificado.");
+        alert("Error: No se pudo iniciar el chat.");
         window.history.back();
         return;
     }
+    
+    window.currentChatState.otherUserId = otherUserId;
 
-    const chatMessagesContainer = document.getElementById('chat-messages-container');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-message-input');
+    const cancelReplyBtn = document.getElementById('cancel-reply-btn');
+    const stickyHeader = document.getElementById('sticky-date-header');
+    const stickyHeaderText = stickyHeader.querySelector('span');
 
-    // Conectar al servidor de WebSockets. 
-    // La URL debe ser la base de tu API, sin /app. Socket.IO se conectará automáticamente.
     const socket = io(API_BASE_URL.replace('/app', ''), {
-        // ¡LA LÍNEA CLAVE!
         path: "/app/socket.io/"
     });
-
-    // Crear un nombre de sala único y consistente (ordenando los IDs)
+    window.currentChatState.socket = socket;
+    
     const roomName = [loggedInUserId, parseInt(otherUserId)].sort().join('-');
+    window.currentChatState.roomName = roomName;
 
-    // 1. EVENTO: Al conectar, unirse a la sala privada
     socket.on('connect', () => {
-        console.log('Conectado al servidor de chat. ID de socket:', socket.id);
+        console.log('Conectado al servidor de chat. ID:', socket.id);
         socket.emit('join_room', roomName);
     });
 
-    // 2. Cargar datos iniciales
     fetchChatHistory(otherUserId);
     
-    // 3. EVENTO: Al recibir un mensaje del servidor
     socket.on('receive_message', (message) => {
-        // Asegurarse de no añadir un mensaje que ya hemos añadido instantáneamente
         if (document.getElementById(`msg-${message.message_id}`)) return;
-        
         appendMessage(message, false);
     });
 
-    // 4. ACCIÓN: Enviar un mensaje
+    // =========================================================
+    // === NUEVO EVENTO: ESCUCHAR LA CONFIRMACIÓN DEL MENSAJE ===
+    // =========================================================
+    socket.on('message_confirmed', (data) => {
+        const { tempId, realMessage } = data;
+        
+        // --- ¡LA CORRECCIÓN ESTÁ AQUÍ! ---
+        // Añadimos el prefijo "msg-" para que coincida con el ID real del elemento en el DOM.
+        const confirmedMessageElement = document.getElementById(`msg-${tempId}`);
+
+        if (confirmedMessageElement) {
+            // 1. Actualizamos el ID al real
+            confirmedMessageElement.id = `msg-${realMessage.message_id}`;
+            
+            // 2. Quitamos la clase 'pending'
+            confirmedMessageElement.classList.remove('pending');
+            
+            // 3. Actualizamos el timestamp para mostrar la hora en lugar del reloj
+            const timestampSpan = confirmedMessageElement.querySelector('.message-timestamp');
+            if (timestampSpan) {
+                timestampSpan.textContent = formatMessageTime(realMessage.created_at);
+            }
+            
+            // 4. Ahora que es un mensaje real, activamos sus interacciones.
+            addSwipeToReplyHandlers(confirmedMessageElement);
+            
+            console.log(`Mensaje ${tempId} confirmado con el ID real: msg-${realMessage.message_id}`);
+        } else {
+            // Este log nos ayudará a depurar si el problema persiste
+            console.warn(`No se encontró el elemento del mensaje temporal: msg-${tempId}`);
+        }
+    });
+
+    socket.on('message_deleted', (data) => {
+        if (data && data.messageId) {
+            removeMessageFromDOM(data.messageId);
+        }
+    });
+
+    cancelReplyBtn.addEventListener('click', cancelReplyMode);
+
+    
+    cancelReplyBtn.addEventListener('click', cancelReplyMode);
+
     chatForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const content = chatInput.value.trim();
         if (content) {
             const tempId = `temp-${Date.now()}`;
-
-            // === INICIO DE LA CORRECCIÓN ===
-            // Cambiamos las claves a snake_case para que coincidan con la base de datos
-            // y con lo que espera la función appendMessage.
             const messageData = {
                 message_id: tempId,
                 sender_id: loggedInUserId,
                 receiver_id: parseInt(otherUserId),
                 content: content,
                 roomName: roomName,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                parent_message_id: window.currentChatState.currentReplyToId // Añadimos el ID de respuesta
             };
-            // === FIN DE LA CORRECCIÓN ===
             
-            console.log("CLIENTE: Enviando 'send_message' con datos:", messageData);
             socket.emit('send_message', messageData);
-            
             appendMessage(messageData, true); 
             chatInput.value = '';
+            cancelReplyMode(); // Limpiamos la UI de respuesta
             chatInput.focus();
         }
     });
 
-    // Manejo de desconexión (opcional pero recomendado)
-    socket.on('disconnect', () => {
-        console.log('Desconectado del servidor de chat.');
+    // Lógica del header de fecha anclado
+  // =========================================================
+    // === LÓGICA DEL HEADER DE FECHA ANCLADO (STICKY HEADER) ===
+    // =========================================================
+    let dateSeparators = [];
+    let hideHeaderTimeout;
+    const chatMessagesContainer = document.getElementById('chat-messages-container');
+    chatMessagesContainer.addEventListener('scroll', () => {
+        // Obtenemos una lista fresca de los separadores de fecha en cada evento de scroll
+        dateSeparators = Array.from(chatMessagesContainer.querySelectorAll('.date-separator'));
+        if (dateSeparators.length === 0) return;
+
+        let activeSeparatorText = null;
+        const containerTop = chatMessagesContainer.getBoundingClientRect().top;
+
+        // Buscamos el último separador que ha pasado por encima del borde superior del contenedor
+        for (let i = dateSeparators.length - 1; i >= 0; i--) {
+            const separator = dateSeparators[i];
+            if (separator.getBoundingClientRect().top < containerTop) {
+                activeSeparatorText = separator.querySelector('span').textContent;
+                break; // Encontramos el correcto, salimos del bucle
+            }
+        }
+
+        // Actualizamos la visibilidad y el texto del header
+        if (activeSeparatorText) {
+            stickyHeaderText.textContent = activeSeparatorText;
+            stickyHeader.classList.add('visible');
+        } else {
+            stickyHeader.classList.remove('visible');
+        }
+
+        // Reiniciamos el temporizador para ocultar el header si el usuario deja de hacer scroll
+        clearTimeout(hideHeaderTimeout);
+        hideHeaderTimeout = setTimeout(() => {
+            stickyHeader.classList.remove('visible');
+        }, 1500); // Ocultar después de 1.5 segundos de inactividad
     });
 }
 
-/**
- * Obtiene el historial del chat desde la API y los datos del otro usuario.
- * @param {string} otherUserId - El ID del otro usuario en el chat.
- */
-// REEMPLAZA tu función fetchChatHistory con esta versión completa
+// --- Funciones de renderizado (fetchChatHistory y appendMessage) ---
+
 async function fetchChatHistory(otherUserId) {
     const token = localStorage.getItem('authToken');
     const chatMessagesContainer = document.getElementById('chat-messages-container');
@@ -691,98 +844,372 @@ async function fetchChatHistory(otherUserId) {
         });
         const data = await historyResponse.json();
         if (historyResponse.ok && data.success) {
-            const messages = data.messages;
-            if (messages.length === 0) {
-                chatMessagesContainer.innerHTML = '';
-                return;
-            }
-
-            const timeThreshold = 60; 
-            const messagesHTML = messages.map((message, index) => {
-                const prevMessage = messages[index - 1];
-                const nextMessage = messages[index + 1];
+            chatMessagesContainer.innerHTML = '';
+            let lastDate = null;
+            data.messages.forEach((message, index) => {
+                const messageDate = new Date(message.created_at).toDateString();
+                if (messageDate !== lastDate) {
+                    const separator = document.createElement('div');
+                    separator.className = 'date-separator';
+                    separator.innerHTML = `<span>${formatDateSeparator(message.created_at)}</span>`;
+                    chatMessagesContainer.appendChild(separator);
+                    lastDate = messageDate;
+                }
                 const isOwn = message.sender_id === loggedInUserId;
-                const messageClass = isOwn ? 'sent' : 'received';
-                let groupClass = '';
-
-                // ... (lógica de agrupación sin cambios) ...
-                const isStartOfGroup = !prevMessage || prevMessage.sender_id !== message.sender_id || (new Date(message.created_at) - new Date(prevMessage.created_at)) / 1000 > timeThreshold;
-                const isEndOfGroup = !nextMessage || nextMessage.sender_id !== message.sender_id || (new Date(nextMessage.created_at) - new Date(message.created_at)) / 1000 > timeThreshold;
-                if (isStartOfGroup && isEndOfGroup) groupClass = 'single';
-                else if (isStartOfGroup) groupClass = 'start-group';
-                else if (isEndOfGroup) groupClass = 'end-group';
-                else groupClass = 'middle-group';
-
-                // --- INICIO DE LA MODIFICACIÓN ---
-                return `
-                    <div id="msg-${message.message_id}" 
-                         class="message-bubble ${messageClass} ${groupClass}"
-                         data-sender-id="${message.sender_id}"
-                         data-timestamp="${message.created_at}">
-                        <p>${message.content}</p>
-                        <span class="message-timestamp">${formatMessageTime(message.created_at)}</span>
-                    </div>
-                `;
-                // --- FIN DE LA MODIFICACIÓN ---
-            }).join('');
-
-            chatMessagesContainer.innerHTML = messagesHTML;
+                
+                // === ¡LA CORRECCIÓN ESTÁ AQUÍ! ===
+                // Eliminamos el tercer argumento '{ isBatchLoad: true }'
+                appendMessage(message, isOwn);
+                
+            });
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         }
-    } catch (error) {
-        console.error("Error al cargar el historial del chat:", error);
+    } catch (error) { console.error("Error al cargar el historial del chat:", error); }
+}
+
+
+
+// AÑADE ESTA NUEVA FUNCIÓN DE AYUDA
+/**
+ * Calcula la clase de grupo correcta para una burbuja de mensaje basándose en sus vecinos.
+ * @param {HTMLElement} messageEl - El elemento de la burbuja del mensaje a evaluar.
+ * @returns {string} - La clase de grupo ('single', 'start-group', 'middle-group', 'end-group').
+ */
+function getGroupClassFor(messageEl) {
+    const timeThreshold = 60;
+    const senderId = messageEl.dataset.senderId;
+    const timestamp = new Date(messageEl.dataset.timestamp);
+
+    // Encuentra los vecinos reales, ignorando los separadores de fecha
+    let prevMessageEl = messageEl.previousElementSibling;
+    while (prevMessageEl && !prevMessageEl.classList.contains('message-bubble')) {
+        prevMessageEl = prevMessageEl.previousElementSibling;
     }
+    let nextMessageEl = messageEl.nextElementSibling;
+    while (nextMessageEl && !nextMessageEl.classList.contains('message-bubble')) {
+        nextMessageEl = nextMessageEl.nextElementSibling;
+    }
+
+    const isStartOfGroup = !prevMessageEl || 
+                           prevMessageEl.dataset.senderId !== senderId || 
+                           (timestamp - new Date(prevMessageEl.dataset.timestamp)) / 1000 > timeThreshold;
+
+    const isEndOfGroup = !nextMessageEl ||
+                         nextMessageEl.dataset.senderId !== senderId ||
+                         (new Date(nextMessageEl.dataset.timestamp) - timestamp) / 1000 > timeThreshold;
+    
+    if (isStartOfGroup && isEndOfGroup) return 'single';
+    if (isStartOfGroup) return 'start-group';
+    if (isEndOfGroup) return 'end-group';
+    return 'middle-group';
+}
+
+// NUEVA FUNCIÓN para manejar la eliminación visual de un mensaje
+function removeMessageFromDOM(messageId) {
+    const messageElement = document.getElementById(`msg-${messageId}`);
+    if (!messageElement) return;
+
+    // Guardamos referencia a los vecinos ANTES de eliminar
+    let prevMessageEl = messageElement.previousElementSibling;
+    while (prevMessageEl && !prevMessageEl.classList.contains('message-bubble')) {
+        prevMessageEl = prevMessageEl.previousElementSibling;
+    }
+    let nextMessageEl = messageElement.nextElementSibling;
+    while (nextMessageEl && !nextMessageEl.classList.contains('message-bubble')) {
+        nextMessageEl = nextMessageEl.nextElementSibling;
+    }
+
+    // Animación de eliminación
+    messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease, margin 0.3s ease, height 0.3s ease, padding 0.3s ease';
+    messageElement.style.opacity = '0';
+    messageElement.style.transform = 'scale(0.8)';
+    messageElement.style.marginTop = `-${messageElement.offsetHeight}px`;
+    messageElement.style.padding = '0';
+    messageElement.style.height = '0';
+
+    setTimeout(() => {
+        messageElement.remove();
+
+        // Recalculamos las clases de los vecinos DESPUÉS de la eliminación
+        if (prevMessageEl) {
+            const newPrevClass = getGroupClassFor(prevMessageEl);
+            prevMessageEl.className = prevMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + newPrevClass;
+        }
+        if (nextMessageEl) {
+            const newNextClass = getGroupClassFor(nextMessageEl);
+            nextMessageEl.className = nextMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + newNextClass;
+        }
+    }, 300);
 }
 
 /**
  * Añade una burbuja de mensaje al contenedor del chat.
+ * - Gestiona la agrupación de burbujas de forma dinámica.
+ * - Renderiza snippets de respuesta.
+ * - Muestra un estado 'pendiente' para mensajes enviados en tiempo real.
+ * - Activa las interacciones solo para mensajes confirmados.
  * @param {object} message - El objeto del mensaje.
  * @param {boolean} isOwnMessage - True si el mensaje es del usuario logueado.
  */
 function appendMessage(message, isOwnMessage = false) {
     const chatMessagesContainer = document.getElementById('chat-messages-container');
     if (!chatMessagesContainer) return;
-
-    // ... (lógica de agrupación en tiempo real sin cambios) ...
+    
+    // Guardamos una referencia al último mensaje ANTES de añadir el nuevo.
     const lastMessageEl = chatMessagesContainer.querySelector('.message-bubble:last-child');
-    let groupClass = 'single';
-    const timeThreshold = 60;
-    if (lastMessageEl) {
-        const lastSenderId = lastMessageEl.dataset.senderId;
-        const lastTimestamp = lastMessageEl.dataset.timestamp;
-        if (lastSenderId == message.sender_id && (new Date(message.created_at) - new Date(lastTimestamp)) / 1000 <= timeThreshold) {
-            groupClass = 'end-group';
-            if (lastMessageEl.classList.contains('single')) {
-                lastMessageEl.classList.remove('single');
-                lastMessageEl.classList.add('start-group');
-            } else if (lastMessageEl.classList.contains('end-group')) {
-                lastMessageEl.classList.remove('end-group');
-                lastMessageEl.classList.add('middle-group');
-            }
-        }
-    }
 
+    // Creamos el div principal del mensaje
     const messageDiv = document.createElement('div');
     messageDiv.id = `msg-${message.message_id}`;
-    messageDiv.className = `message-bubble ${isOwnMessage ? 'sent' : 'received'} ${groupClass}`;
+    // Las clases de grupo se añadirán más adelante
+    messageDiv.className = `message-bubble ${isOwnMessage ? 'sent' : 'received'}`;
     messageDiv.dataset.senderId = message.sender_id;
     messageDiv.dataset.timestamp = message.created_at;
+
+    // --- Lógica de estado "pendiente" (sin cambios) ---
+    if (String(message.message_id).startsWith('temp-')) {
+        messageDiv.classList.add('pending');
+    }
     
-    // --- INICIO DE LA MODIFICACIÓN ---
+        // =========================================================
+    // === INICIO DE LA CORRECCIÓN: "SALTAR A MENSAJE" ===
+    // =========================================================
+    if (message.parent_message_id) {
+        let parentUsername = message.parent_username;
+        let parentContent = message.parent_content;
+
+        if (isOwnMessage && !parentContent) {
+            const parentMessageEl = document.getElementById(`msg-${message.parent_message_id}`);
+            if (parentMessageEl) {
+                parentContent = parentMessageEl.querySelector('p').textContent;
+                parentUsername = parentMessageEl.classList.contains('sent') 
+                    ? 'Tú' 
+                    : document.getElementById('chat-user-username').textContent;
+            }
+        }
+
+        if (parentContent) {
+            // Creamos un <a> en lugar de un <div>
+            const repliedSnippetLink = document.createElement('a');
+            repliedSnippetLink.className = 'replied-to-snippet';
+            repliedSnippetLink.href = '#'; // Para que el cursor sea un puntero
+            
+            // Asignamos el evento onclick para llamar a nuestra función
+            repliedSnippetLink.onclick = (e) => {
+                e.preventDefault();
+                scrollToMessage(`msg-${message.parent_message_id}`);
+            };
+
+            repliedSnippetLink.innerHTML = `
+                <span class="replied-user">${parentUsername || 'Usuario'}</span>
+                <span class="replied-text">${parentContent}</span>
+            `;
+            messageDiv.appendChild(repliedSnippetLink);
+        }
+    }
+    // =========================================================
+    // === FIN DE LA CORRECCIÓN ===
+    // =========================================================
+
+    // --- Lógica de contenido principal y hora (sin cambios) ---
+    const mainContentWrapper = document.createElement('div');
+    mainContentWrapper.className = 'message-main-content';
     const contentP = document.createElement('p');
     contentP.textContent = message.content;
-    
     const timestampSpan = document.createElement('span');
     timestampSpan.className = 'message-timestamp';
-    timestampSpan.textContent = formatMessageTime(message.created_at);
-    
-    messageDiv.appendChild(contentP);
-    messageDiv.appendChild(timestampSpan); // Añadimos el span de la hora
-    // --- FIN DE LA MODIFICACIÓN ---
+    if (messageDiv.classList.contains('pending')) {
+        timestampSpan.innerHTML = '🕒';
+    } else {
+        timestampSpan.textContent = formatMessageTime(message.created_at);
+    }
+    mainContentWrapper.appendChild(contentP);
+    mainContentWrapper.appendChild(timestampSpan);
+    messageDiv.appendChild(mainContentWrapper);
 
+    // --- AÑADIMOS LA NUEVA BURBUJA AL DOM ---
     chatMessagesContainer.appendChild(messageDiv);
+    
+    // =========================================================
+    // === INICIO DE LA NUEVA LÓGICA DE ACTUALIZACIÓN DE GRUPO ===
+    // =========================================================
+    // 1. Ahora que el nuevo elemento está en el DOM, recalculamos la clase del elemento ANTERIOR.
+    if (lastMessageEl) {
+        const newPrevClass = getGroupClassFor(lastMessageEl);
+        // Reemplazamos solo las clases de grupo, manteniendo 'sent'/'received', etc.
+        lastMessageEl.className = lastMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + newPrevClass;
+    }
+
+    // 2. Calculamos y asignamos la clase correcta a la NUEVA burbuja que acabamos de añadir.
+    const newGroupClass = getGroupClassFor(messageDiv);
+    messageDiv.classList.add(newGroupClass);
+    // =========================================================
+    // === FIN DE LA NUEVA LÓGICA ===
+    // =========================================================
+    
+    // --- Lógica de activación de interacciones (sin cambios) ---
+    if (!messageDiv.classList.contains('pending')) {
+        addSwipeToReplyHandlers(messageDiv);
+    }
+    
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
+// NUEVA FUNCIÓN para copiar el texto de un mensaje
+function copyMessageText(messageElement) {
+    const textToCopy = messageElement.querySelector('p').textContent;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        if (Toast) Toast.show({ text: 'Texto copiado' });
+    }).catch(err => {
+        console.error('Error al copiar texto:', err);
+        alert('No se pudo copiar el texto.');
+    });
+}
+
+// NUEVA FUNCIÓN para eliminar un mensaje
+async function deleteMessage(messageId) {
+    if (!confirm('¿Eliminar este mensaje? Esta acción no se puede deshacer.')) return;
+
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/chat/messages/${messageId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            alert(`Error: ${data.message}`);
+        }
+        // No necesitamos hacer nada en el 'success' aquí, porque el evento de socket se encargará.
+    } catch (error) {
+        console.error('Error de red al eliminar mensaje:', error);
+    }
+}
+
+function openContextMenu(messageElement) {
+    const overlay = document.getElementById('context-menu-overlay');
+    const menu = document.getElementById('context-menu');
+    const replyBtn = document.getElementById('reply-from-menu-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const deleteBtn = document.getElementById('delete-from-menu-btn');
+
+    window.currentChatState.contextMenuTarget = messageElement;
+
+    deleteBtn.style.display = messageElement.classList.contains('sent') ? 'flex' : 'none';
+    
+    const messageColor = getComputedStyle(messageElement).backgroundColor;
+    messageElement.style.setProperty('--message-color', messageColor);
+    
+    overlay.classList.add('visible');
+    messageElement.classList.add('context-active');
+
+    // Hacemos visible el menú TEMPORALMENTE para medir su tamaño real
+    menu.classList.add('visible');
+    const menuRect = menu.getBoundingClientRect();
+    menu.classList.remove('visible'); // Lo volvemos a ocultar para la animación
+    
+    const bubbleRect = messageElement.getBoundingClientRect();
+    const margin = 10; // Margen de seguridad desde los bordes de la pantalla
+
+    // --- LÓGICA DE POSICIONAMIENTO VERTICAL (SIN CAMBIOS) ---
+    let menuTop = bubbleRect.bottom + margin;
+    if (menuTop + menuRect.height > window.innerHeight) {
+        menuTop = bubbleRect.top - menuRect.height - margin;
+    }
+
+    // --- LÓGICA DE POSICIONAMIENTO HORIZONTAL (CORREGIDA) ---
+    let menuLeft = bubbleRect.left + (bubbleRect.width / 2) - (menuRect.width / 2); // Posición centrada ideal
+
+    // Comprobación de límites: si se sale por la izquierda, lo pegamos al margen
+    if (menuLeft < margin) {
+        menuLeft = margin;
+    }
+    // Comprobación de límites: si se sale por la derecha, lo pegamos al margen
+    if (menuLeft + menuRect.width > window.innerWidth - margin) {
+        menuLeft = window.innerWidth - menuRect.width - margin;
+    }
+
+    // Aplicamos las posiciones calculadas
+    menu.style.top = `${menuTop}px`;
+    menu.style.left = `${menuLeft}px`;
+    menu.style.transform = 'none'; // Ya no necesitamos el truco de 'translateX(-50%)'
+
+    // Ahora sí, hacemos visible el menú para que se anime
+    setTimeout(() => menu.classList.add('visible'), 0);
+
+    // --- ASIGNACIÓN DE EVENTOS ---
+    replyBtn.onclick = () => {
+        const messageId = messageElement.id.replace('msg-', '');
+        const username = messageElement.classList.contains('sent') ? 'Tú' : document.getElementById('chat-user-username').textContent;
+        const content = messageElement.querySelector('p').textContent;
+        enterReplyMode(messageId, username, content);
+        closeContextMenu();
+    };
+
+    copyBtn.onclick = () => {
+        copyMessageText(messageElement);
+        closeContextMenu();
+    };
+
+    deleteBtn.onclick = () => {
+        const messageId = messageElement.id.replace('msg-', '');
+        deleteMessage(messageId);
+        closeContextMenu();
+    };
+
+    overlay.onclick = closeContextMenu;
+}
+
+function closeContextMenu() {
+    const overlay = document.getElementById('context-menu-overlay');
+    const menu = document.getElementById('context-menu');
+    const target = window.currentChatState.contextMenuTarget;
+
+    if (target) {
+        target.classList.remove('context-active');
+        // Quitamos la animación para que vuelva a su estado normal
+        target.style.animation = 'none'; 
+    }
+    overlay.classList.remove('visible');
+    menu.classList.remove('visible');
+    
+    // Reseteamos la animación para la próxima vez
+    if(target) {
+        setTimeout(() => {
+            target.style.animation = '';
+        }, 300);
+    }
+
+    window.currentChatState.contextMenuTarget = null;
+}
+
+
+/**
+ * Se desplaza hasta un mensaje específico en el chat y lo resalta temporalmente.
+ * @param {string} messageId - El ID del elemento del mensaje al que se debe saltar.
+ */
+function scrollToMessage(messageId) {
+    const targetMessage = document.getElementById(messageId);
+    
+    if (targetMessage) {
+        // Hacemos scroll suave hasta el elemento
+        targetMessage.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center' // Intenta centrar el mensaje en la pantalla
+        });
+
+        // Añadimos la clase para la animación de remarcado
+        targetMessage.classList.add('highlighted');
+
+        // Eliminamos la clase después de un tiempo para que el efecto sea temporal
+        setTimeout(() => {
+            targetMessage.classList.remove('highlighted');
+        }, 1500); // La animación durará 1.5 segundos
+    }
+}
+// Hacemos la función accesible globalmente si es necesario (aunque el onclick ya la llama)
+window.scrollToMessage = scrollToMessage;
 
 // ====================================================
 // === NUEVAS FUNCIONES PARA EL HISTORIAL DE BÚSQUEDA ===
@@ -1167,6 +1594,31 @@ function setupSideMenu() {
         }
     });
 }
+
+// NUEVA FUNCIÓN para formatear los separadores de fecha del chat
+function formatDateSeparator(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Normalizamos las fechas al inicio del día para compararlas fácilmente
+    const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const diffDays = Math.round((nowStart - dateStart) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+        return 'Hoy';
+    } else if (diffDays === 1) {
+        return 'Ayer';
+    } else if (diffDays > 1 && diffDays < 7) {
+        // Devuelve el nombre del día de la semana (Lunes, Martes, etc.)
+        return new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(date);
+    } else {
+        // Devuelve la fecha completa (ej: 10 de octubre)
+        return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(date);
+    }
+}
+
 function formatMessageTime(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
