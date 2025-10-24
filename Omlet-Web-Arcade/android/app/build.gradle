@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services' // <-- AÑADE ESTA LÍNEA
 
 android {
     namespace "com.omletwebfinal"
@@ -41,6 +42,15 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
     // implementation 'com.github.capacitor-community:usage-stats:1.0.0'
+    // AÑADE ESTAS LÍNEAS DENTRO DEL BLOQUE 'dependencies'
+    // Importa la Firebase BoM (Bill of Materials) - ¡MUY IMPORTANTE!
+    implementation platform('com.google.firebase:firebase-bom:34.1.0') // Usa la versión que te recomienda Firebase en la captura
+
+    // Dependencia para Notificaciones Push (FCM)
+    implementation 'com.google.firebase:firebase-messaging'
+
+    // Dependencia para Analytics (recomendado por Firebase)
+    implementation 'com.google.firebase:firebase-analytics'
 }
 
 apply from: 'capacitor.build.gradle'

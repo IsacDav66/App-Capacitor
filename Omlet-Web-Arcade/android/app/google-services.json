@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "148350863289",
+    "project_id": "appomlet",
+    "storage_bucket": "appomlet.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:148350863289:android:d1f58404401e6a2b795868",
+        "android_client_info": {
+          "package_name": "com.omletwebfinal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKoYGpcu44F-SMTqT8PPBnw15kAxcWLko"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

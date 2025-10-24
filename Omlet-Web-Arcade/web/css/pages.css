@@ -1535,6 +1535,153 @@ input:checked + .slider:before {
     opacity: 0.7; /* Hacemos la burbuja ligeramente transparente */
     pointer-events: none; /* Desactivamos cualquier interacción (long press, etc.) */
 }
+
+
+/* ========================================
+   --- COMPONENTE: Panel de Notificaciones ---
+   ======================================== */
+
+/* Contenedor del icono de la campana */
+#notification-bell-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Insignia roja de notificación no leída */
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background-color: #ef4444; /* Rojo brillante */
+    border-radius: 50%;
+    border: 1.5px solid var(--color-ui); /* Borde del color de la UI para separarlo del icono */
+    display: none; /* Oculto por defecto */
+}
+
+/* El panel desplegable principal */
+.notification-panel {
+    position: absolute;
+    top: calc(100% + 10px); /* Justo debajo de la barra superior, con un pequeño margen */
+    right: 0;
+    width: 320px; /* Ancho fijo */
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 50;
+    overflow: hidden; /* Para que el contenido respete los bordes redondeados */
+    
+    /* Animación de aparición */
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+/* Estilo cuando el panel está visible */
+.notification-panel.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+}
+
+/* Encabezado dentro del panel */
+.notification-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.notification-header h3 {
+    font-weight: bold;
+    color: var(--color-text);
+    font-size: 1rem;
+}
+
+/* La lista de notificaciones con scroll */
+.notification-list {
+    max-height: 70vh; /* Altura máxima para evitar que sea demasiado largo */
+    overflow-y: auto;
+}
+
+/* Cada elemento individual de la lista */
+.notification-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-ui);
+    transition: background-color 0.2s ease;
+    text-decoration: none; /* Asegurarse de que no esté subrayado */
+}
+
+.notification-item:hover {
+    background-color: var(--color-ui);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0; /* Evita que la imagen se encoja */
+}
+
+.notification-content {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    flex-grow: 1;
+}
+
+.notification-content strong {
+    font-weight: bold;
+    color: var(--color-text);
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+    margin-top: 2px;
+}
+
+/* El punto azul para notificaciones no leídas */
+.notification-unread-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #3b82f6; /* Azul brillante */
+    border-radius: 50%;
+    margin-left: auto; /* Lo empuja a la derecha */
+    flex-shrink: 0;
+}
+
+/* Mensajes de estado (cargando, vacío, error) */
+.notification-list-status {
+    color: var(--color-text-secondary);
+    text-align: center;
+    padding: 24px;
+    font-size: 0.9rem;
+}
+
+.notification-list-status.error {
+    color: #ef4444; /* Rojo */
+}
+
+
+
+
+
+
+
+
+
+
+
 /* ========================================
    --- PÁGINA: Temas (themes.html) ---
 ======================================== */

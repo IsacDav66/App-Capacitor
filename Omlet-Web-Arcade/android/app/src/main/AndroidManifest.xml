@@ -1,13 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.omletwebfinal">
 
-    <!-- Permissions -->
+    <!-- =================================================================== -->
+    <!-- === PERMISOS DE LA APLICACIÓN === -->
+    <!-- =================================================================== -->
+
+    <!-- Permiso estándar para acceder a internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Permiso para dibujar la burbuja flotante sobre otras apps -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Permiso para que el servicio de la burbuja se ejecute en primer plano -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Permiso para leer las estadísticas de uso y detectar qué app está abierta -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
 
+    <!-- Permiso para hacer vibrar el dispositivo con las notificaciones -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Permiso para mostrar notificaciones en Android 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -16,26 +33,44 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        
+
+        <!-- Declaración del Servicio de la Burbuja Flotante -->
         <service
             android:name=".plugins.gamedetector.OverlayService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection"></service>
+            android:foregroundServiceType="mediaProjection" />
 
+        <!-- Actividad Principal de la App (Entry Point) -->
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/AppTheme.NoActionBar">
+            
+            <!-- Este intent-filter hace que la app aparezca en el lanzador de aplicaciones -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- ========================================================== -->
+            <!-- === ¡ESTE ES EL BLOQUE AÑADIDO PARA EL DEEP LINKING! === -->
+            <!-- ========================================================== -->
+            <!-- Este intent-filter le dice a Android que nuestra app puede manejar URLs -->
+            <!-- con el esquema personalizado "com.omletwebfinal://open". -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.omletwebfinal" android:host="open" />
+            </intent-filter>
+            <!-- ========================================================== -->
+
         </activity>
 
+        <!-- Proveedor de archivos estándar de Capacitor -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -45,6 +80,36 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- =================================================================== -->
+        <!-- === CONFIGURACIÓN PARA NOTIFICACIONES PUSH (FIREBASE) === -->
+        <!-- =================================================================== -->
+        
+        <!-- Servicio para recibir mensajes de Firebase en segundo plano -->
+        <service
+            android:name=".MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        
+        <!-- Define el canal por defecto que usará Firebase si no se especifica uno -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id" />
+            
+        <!-- Define el icono por defecto para las notificaciones push -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
+        <!-- Opcional: Define el color del icono y del texto de la notificación -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@android:color/holo_purple" />
+        <!-- =================================================================== -->
+
     </application>
 
 </manifest>

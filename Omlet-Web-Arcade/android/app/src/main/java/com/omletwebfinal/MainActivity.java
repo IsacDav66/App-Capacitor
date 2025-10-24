@@ -1,27 +1,34 @@
 package com.omletwebfinal;
 
-import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.Plugin;
-import java.util.ArrayList;
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 
-// Importar el plugin GameDetector
+import com.getcapacitor.BridgeActivity;
+// ¡YA NO NECESITAMOS JSObject!
+
+// Importaciones para tus plugins Java personalizados
 import com.omletwebfinal.plugins.gamedetector.GameDetector;
-// ¡AÑADE LA IMPORTACIÓN DE TU NUEVO PLUGIN!
 import com.omletwebfinal.plugins.navigationbar.NavigationBarPlugin;
 
 public class MainActivity extends BridgeActivity {
 
+    public static final String TAG = "MainActivity";
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "🟢 Actividad Principal (onCreate) iniciada.");
+        // Ya no necesitamos llamar a handleIntent aquí, el plugin lo hace por nosotros.
+    }
+
+    // El constructor se mantiene igual
     public MainActivity() {
-        // Ejecuta el registro explícito de los plugins
         registerPlugin(GameDetector.class);
-        // ¡AÑADE EL REGISTRO DE TU NUEVO PLUGIN!
         registerPlugin(NavigationBarPlugin.class);
     }
 
-   @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        // Recuerda mantener este método vacío de cambios de color.
-    }
+    // ¡ELIMINAMOS POR COMPLETO EL MÉTODO `handleIntent` Y `onNewIntent`!
+    // El plugin @capacitor/app se encarga de esto automáticamente
+    // cuando está configurado correctamente.
 }

@@ -21,8 +21,12 @@
       ],
       "serverClientId": "T917126689157-ngl5kda1rc4s7g6v85nue90ojo2sasj3.apps.googleusercontent.com",
       "forceCodeForRefreshToken": true
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound"
+      ]
     }
-  },
-  "bundledWebRuntime": true,
-  "npmClient": "npm"
+  }
 }

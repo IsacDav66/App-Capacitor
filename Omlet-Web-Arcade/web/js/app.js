@@ -4,6 +4,10 @@ import { fetchCurrentUser, getCurrentUser } from './modules/state.js';
 import { initializeCapacitorPlugins, attachBackButtonHandler, configureStatusBar, updateNativeUIColors } from './modules/ui/nativeBridge.js';
 // <-- 1. IMPORTAMOS LAS NUEVAS ACCIONES
 import { deletePost, toggleLike, toggleSave } from './modules/ui/postActions.js';
+// --- AÑADE ESTA IMPORTACIÓN ---
+import { initNotifications } from './modules/ui/notifications.js';
+
+import { registerForPushNotifications } from './modules/ui/push.js';
 
 
 // <-- 2. ASIGNAMOS LAS FUNCIONES AL OBJETO GLOBAL `window`
@@ -20,7 +24,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateNativeUIColors();
 
     attachBackButtonHandler();
+    // ==========================================================
+    // === ¡AQUÍ ESTÁ EL LISTENER PARA LA ACCIÓN DE CLIC! ===
+    // ==========================================================
+    if (window.Capacitor && Capacitor.Plugins.App) {
+        Capacitor.Plugins.App.addListener('appUrlOpen', (event) => {
+            console.log('App abierta por URL (Deep Link):', event.url);
+            // La URL ahora será algo como: com.omletwebfinal://open/chat.html?userId=30
+            // Necesitamos extraer la parte que nos interesa
+            const path = event.url.split('://open/')[1];
+            if (path) {
+                console.log(`Navegando a la ruta interna: ${path}`);
+                // Usamos `location.replace` para una mejor experiencia de "atrás"
+                window.location.replace(path);
+            }
+        });
+    }
+
+    // ==========================================================
+
     await fetchCurrentUser();
+    // --- CAMBIO AQUÍ ---
+    // La llamada ya no necesita el argumento `io`
+     if (getCurrentUser()) {
+        initNotifications();
+        // El import de push.js ya no es necesario aquí si solo se llama desde notifications.js
+        const { registerForPushNotifications } = await import('./modules/ui/push.js');
+        registerForPushNotifications().catch(err => console.warn(err.message));
+    }
     routePage();
 });
 
