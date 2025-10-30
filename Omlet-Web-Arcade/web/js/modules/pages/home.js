@@ -3,6 +3,8 @@
 import { apiFetch } from '../api.js';
 import { renderPosts } from '../components/postCard.js';
 import { setupSideMenu, loadSideMenuData } from '../ui/sideMenu.js';
+import { initFriendsSidebar } from '../ui/friendsSidebar.js'; // <-- 1. Importa la nueva función
+import { socket } from '../ui/notifications.js'; // <-- 2. Importa el socket de las notificaciones
 
 export function initHomePage() {
     const logOutput = document.getElementById('log-output');
@@ -11,7 +13,8 @@ export function initHomePage() {
     // Configurar el menú lateral
     setupSideMenu();
     loadSideMenuData();
-
+    initFriendsSidebar(socket); // <-- 3. Llama a la inicialización
+    
     // Función para cargar el feed
     async function loadFeed() {
         if (!logOutput || !postsContainer) return;

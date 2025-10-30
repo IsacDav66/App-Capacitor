@@ -19,6 +19,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "autoprefixer": "^10.0.0",
     "http-server": "^14.1.1",
     "postcss": "^8.0.0",

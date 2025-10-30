@@ -6,6 +6,11 @@ import { getFullImageUrl } from '../utils.js';
 import { setupSideMenu, loadSideMenuData } from '../ui/sideMenu.js';
 import { renderPosts } from '../components/postCard.js';
 
+
+// --- 1. AÑADE ESTAS DOS IMPORTACIONES AL PRINCIPIO DEL ARCHIVO ---
+import { initFriendsSidebar } from '../ui/friendsSidebar.js';
+import { socket } from '../ui/notifications.js';
+
 /**
  * Módulo completo para la página de Perfil de Usuario.
  */
@@ -15,7 +20,8 @@ export async function initUserProfilePage() {
     // ----------------------------------------------------------------
     setupSideMenu();
     loadSideMenuData();
-
+    initFriendsSidebar(socket); // <-- ¡ESTA ES LA LÍNEA CLAVE!
+    
     const params = new URLSearchParams(window.location.search);
     const loggedInUserId = getCurrentUserId();
     const targetUserId = params.get('id') || loggedInUserId;

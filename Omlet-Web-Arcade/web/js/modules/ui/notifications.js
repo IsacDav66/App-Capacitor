@@ -5,7 +5,7 @@ import { getFullImageUrl, formatTimeAgo } from '../utils.js';
 import { Toast } from './nativeBridge.js';
 
 const API_BASE_URL = 'https://davcenter.servequake.com/app';
-let socket = null;
+export let socket = null; // <-- Cambia `let socket = null` a `export let socket = null`
 
 const renderNotification = (notif) => {
     let message = '';

@@ -311,3 +311,106 @@
 
 
 
+
+
+/* ========================================
+   --- COMPONENTE: Barra Lateral de Amigos ---
+   ======================================== */
+.friends-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 260px;
+    height: 100%;
+    background-color: var(--color-bg);
+    z-index: 1000;
+    transform: translateX(100%); /* Oculto a la derecha por defecto */
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--color-ui);
+}
+
+.friends-sidebar.open {
+    transform: translateX(0); /* Lo hace visible */
+}
+
+.friends-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-ui);
+    flex-shrink: 0;
+}
+
+.friends-header svg {
+    fill: var(--color-text);
+}
+
+.friends-list {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.friend-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.friend-item:hover {
+    background-color: var(--color-surface);
+}
+
+.friend-avatar-container {
+    position: relative;
+    margin-right: 12px;
+}
+
+.friend-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.status-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--color-bg);
+}
+
+.status-dot.online {
+    background-color: #2ecc71; /* Verde */
+}
+
+.status-dot.offline {
+    background-color: #95a5a6; /* Gris */
+}
+
+.friend-info {
+    overflow: hidden;
+}
+
+.friend-username {
+    font-weight: bold;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.friend-status {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}

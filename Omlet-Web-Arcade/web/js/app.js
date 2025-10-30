@@ -114,6 +114,9 @@ async function routePage() {
         } else if (path.includes('chat.html')) {
             const { initChatPage } = await import('./modules/pages/chat.js');
             initChatPage();
+        } else if (path.includes('chat_list.html')) { // <-- AÑADE ESTA LÍNEA
+            const { initChatListPage } = await import('./modules/pages/chatList.js');
+            initChatListPage();
         }
     } catch (error) {
         console.error(`Error al cargar el módulo de la página para: ${path}`, error);
