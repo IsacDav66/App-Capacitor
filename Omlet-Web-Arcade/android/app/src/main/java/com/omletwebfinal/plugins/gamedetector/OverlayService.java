@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import android.app.ActivityManager;
+import android.util.TypedValue;
 
 public class OverlayService extends Service {
     private static final String CHANNEL_ID = "OverlayServiceChannel";
@@ -161,11 +162,36 @@ public class OverlayService extends Service {
 
     private void showBubbleView() {
         bubbleView = LayoutInflater.from(this).inflate(R.layout.floating_bubble, null);
+
+        // ==========================================================
+        // === ¡AQUÍ ESTÁ LA SOLUCIÓN DEFINITIVA PARA EL TAMAÑO! ===
+        // ==========================================================
+        
+        // 1. Define el tamaño deseado en unidades DP (density-independent pixels).
+        //    Esto asegura que la burbuja se vea del mismo tamaño en diferentes densidades de pantalla.
+        final int BUBBLE_SIZE_DP = 50; // <-- ¡CAMBIA ESTE VALOR AL TAMAÑO QUE QUIERAS!
+
+        // 2. Convierte los DP a píxeles físicos.
+        int bubbleSizePx = (int) TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            BUBBLE_SIZE_DP,
+            getResources().getDisplayMetrics()
+        );
+
+        // 3. Establece el tamaño de la ventana explícitamente en píxeles.
+        //    En lugar de WRAP_CONTENT, le damos un tamaño fijo.
         int layoutType = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
+
         bubbleParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
-                layoutType, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
+                bubbleSizePx, // Ancho en píxeles
+                bubbleSizePx, // Alto en píxeles
+                layoutType,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+        );
+        // ==========================================================
+
         bubbleParams.gravity = Gravity.TOP | Gravity.START;
         bubbleParams.x = 20;
         bubbleParams.y = 200;
