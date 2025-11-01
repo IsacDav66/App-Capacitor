@@ -3,17 +3,18 @@
 import { apiFetch } from '../api.js';
 import { renderPosts } from '../components/postCard.js';
 import { setupSideMenu, loadSideMenuData } from '../ui/sideMenu.js';
-import { initFriendsSidebar } from '../ui/friendsSidebar.js'; // <-- 1. Importa la nueva función
-import { socket } from '../ui/notifications.js'; // <-- 2. Importa el socket de las notificaciones
+// <-- 1. CAMBIAMOS LA IMPORTACIÓN
+import { initFriendsSidebarUI } from '../ui/friendsSidebar.js'; 
+// <-- 2. ELIMINAMOS LA IMPORTACIÓN DEL SOCKET
 
 export function initHomePage() {
-    const logOutput = document.getElementById('log-output');
-    const postsContainer = document.getElementById('posts-container');
-    
-    // Configurar el menú lateral
+    // Inicializa todos los componentes de UI de la página
     setupSideMenu();
     loadSideMenuData();
-    initFriendsSidebar(socket); // <-- 3. Llama a la inicialización
+    initFriendsSidebarUI(); // <-- 3. LLAMAMOS A LA FUNCIÓN DE UI, QUE NO NECESITA SOCKET
+
+    const logOutput = document.getElementById('log-output');
+    const postsContainer = document.getElementById('posts-container');
     
     // Función para cargar el feed
     async function loadFeed() {
@@ -30,9 +31,5 @@ export function initHomePage() {
         }
     }
 
-    // Cargar el feed al inicializar la página
     loadFeed();
-
-    // ¡¡¡YA NO NECESITAMOS DEFINIR window.toggleLike, etc., AQUÍ!!!
-    // Se definirán globalmente en app.js
 }

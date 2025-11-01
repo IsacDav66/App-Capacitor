@@ -3,28 +3,29 @@
 import { apiFetch } from '../api.js';
 import { getCurrentUserId } from '../state.js';
 import { getFullImageUrl } from '../utils.js';
-import { setupSideMenu, loadSideMenuData } from '../ui/sideMenu.js';
 import { renderPosts } from '../components/postCard.js';
-
-
-// --- 1. AÑADE ESTAS DOS IMPORTACIONES AL PRINCIPIO DEL ARCHIVO ---
-import { initFriendsSidebar } from '../ui/friendsSidebar.js';
-import { socket } from '../ui/notifications.js';
-
+import { setupSideMenu, loadSideMenuData } from '../ui/sideMenu.js';
+// <-- 1. CAMBIAMOS LA IMPORTACIÓN
+import { initFriendsSidebarUI } from '../ui/friendsSidebar.js';
+// <-- 2. YA NO NECESITAMOS IMPORTAR EL SOCKET AQUÍ
 /**
  * Módulo completo para la página de Perfil de Usuario.
  */
 export async function initUserProfilePage() {
-    // ----------------------------------------------------------------
-    // 1. CONFIGURACIÓN INICIAL Y REFERENCIAS AL DOM
-    // ----------------------------------------------------------------
+    // --- 3. LLAMAMOS A LA FUNCIÓN DE UI CORRECTA ---
+    // Estas funciones preparan los componentes de la página que no dependen de datos.
     setupSideMenu();
-    loadSideMenuData();
-    initFriendsSidebar(socket); // <-- ¡ESTA ES LA LÍNEA CLAVE!
+    initFriendsSidebarUI(); 
+
+    // El resto de la función se encarga de cargar los datos del perfil y las pestañas
+    // y no necesita cambiar.
     
+    // Cargamos los datos del menú lateral (avatar, nombre, etc.)
+    loadSideMenuData();
+
     const params = new URLSearchParams(window.location.search);
+    let targetUserId = params.get('id') || getCurrentUserId();
     const loggedInUserId = getCurrentUserId();
-    const targetUserId = params.get('id') || loggedInUserId;
     
     if (!targetUserId) {
         window.location.href = 'index.html';

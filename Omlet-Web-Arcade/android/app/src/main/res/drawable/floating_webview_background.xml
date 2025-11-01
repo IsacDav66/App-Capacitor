@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-  
+
+    <!-- Define el color de fondo de la ventana -->
+    <!-- Usamos negro, ya que el fondo del HTML es negro -->
+    <solid android:color="#000000" />
+
+    <!-- ¡LA PARTE MÁS IMPORTANTE! Define el radio de los bordes -->
+    <!-- Un valor más alto significa bordes más redondeados. 28dp es un buen punto de partida. -->
+    <corners android:radius="28dp" />
+
 </shape>

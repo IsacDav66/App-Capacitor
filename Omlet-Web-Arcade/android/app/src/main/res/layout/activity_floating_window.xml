@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:id="@+id/floating_content_background"
+    android:layout_width="300dp"
+    android:layout_height="wrap_content"
+    android:minHeight="200dp"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="@android:color/transparent">
+    android:padding="24dp"
+    android:background="@drawable/floating_window_background">
 
-    <!-- CAMBIO: Añadimos un ID a este LinearLayout -->
+    <!-- ESTADO 1: VISTA DE DETECCIÓN (Visible por defecto) -->
     <LinearLayout
-        android:id="@+id/floating_content_background"
-        android:layout_width="300dp"
+        android:id="@+id/detection_view"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="200dp"
-        android:orientation="vertical"
         android:gravity="center"
-        android:padding="24dp"
-        android:background="@drawable/floating_window_background">
+        android:orientation="vertical"
+        android:visibility="visible">
 
-        <!-- CAMBIO: Añadimos un ID -->
         <TextView
             android:id="@+id/title_textview"
             android:layout_width="wrap_content"
@@ -35,6 +35,51 @@
             android:textSize="24sp"
             android:textStyle="bold"
             android:layout_marginTop="16dp" />
+    </LinearLayout>
+
+    <!-- ESTADO 2: VISTA DE DEFINICIÓN DE APP (Oculto por defecto) -->
+    <LinearLayout
+        android:id="@+id/define_app_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="¡App Desconocida!"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="20sp"/>
+
+        <TextView
+            android:id="@+id/package_name_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="com.example.app"
+            android:textColor="#AAAAAA"
+            android:layout_marginBottom="16dp"/>
+            
+        <EditText
+            android:id="@+id/app_name_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Dale un nombre (ej. Minecraft)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:backgroundTint="#8A2BE2"
+            android:inputType="textCapWords"/>
+            
+        <Button
+            android:id="@+id/save_app_name_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Guardar Nombre"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#8A2BE2"
+            android:textColor="#FFFFFF"/>
     </LinearLayout>
 
 </LinearLayout>

@@ -10,7 +10,8 @@
     "watch:css": "tailwindcss -i ./web/css/main.css -o ./web/css/tailwind.css --watch",
     "cap:add": "npx cap add android",
     "cap:open": "npx cap open android",
-    "cap:copy": "npm run build:css && npx cap copy android",
+    "cap:copy": "npm run build:css && npm run build:overlay && npx cap copy android",
+    "build:overlay": "esbuild web/js/floating_content.js --bundle --outfile=web/js/floating_content.bundle.js",
     "build:apk": "npm run cap:copy && cd android && .\\gradlew.bat assembleDebug",
     "install:device": "adb install ./android/app/build/outputs/apk/debug/app-debug.apk",
     "log:start": "adb logcat -s Capacitor WebView App System.err"
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "autoprefixer": "^10.0.0",
+    "esbuild": "^0.25.11",
     "http-server": "^14.1.1",
     "postcss": "^8.0.0",
     "tailwindcss": "^3.0.0"

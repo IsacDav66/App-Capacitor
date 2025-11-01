@@ -4,8 +4,8 @@ import { apiFetch } from '../api.js';
 import { getFullImageUrl, formatTimeAgo } from '../utils.js';
 import { Toast } from './nativeBridge.js';
 
-const API_BASE_URL = 'https://davcenter.servequake.com/app';
-export let socket = null; // <-- Cambia `let socket = null` a `export let socket = null`
+// No exportamos el socket desde aquí. Lo recibimos como parámetro.
+let localSocket = null;
 
 const renderNotification = (notif) => {
     let message = '';
@@ -34,13 +34,20 @@ const updateNotificationBadge = (notifications) => {
     badge.style.display = hasUnread ? 'block' : 'none';
 };
 
-export async function initNotifications() {
+/**
+ * Inicializa la UI del panel de notificaciones y configura el listener de Socket.IO.
+ * @param {object} socket - La instancia activa y conectada de Socket.IO.
+ */
+export async function initNotifications(socket) {
     const bellBtn = document.getElementById('notification-bell-btn');
     const panel = document.getElementById('notification-panel');
     const list = document.getElementById('notification-list');
     
     if (!bellBtn || !panel) return;
     
+    // Asignamos el socket recibido a nuestra variable local.
+    localSocket = socket;
+
     let allNotifications = [];
     let isPanelOpen = false;
 
@@ -78,7 +85,7 @@ export async function initNotifications() {
         panel.classList.toggle('visible', isPanelOpen);
         if (isPanelOpen) {
             fetchNotifications();
-            setTimeout(markAsRead, 2500); // Marca como leídas después de 2.5 segundos
+            setTimeout(markAsRead, 2500);
         }
     });
     
@@ -91,26 +98,25 @@ export async function initNotifications() {
 
     panel.addEventListener('click', (e) => e.stopPropagation());
 
-    try {
-        const { default: io } = await import('https://cdn.socket.io/4.7.5/socket.io.esm.min.js');
-        const token = localStorage.getItem('authToken');
-        if (token) {
-            socket = io(API_BASE_URL.replace('/app', ''), { path: "/app/socket.io/" });
-            
-            socket.on('connect', () => socket.emit('authenticate', token));
+    // Configurar el listener de Socket.IO
+    if (localSocket) {
+        localSocket.on('new_notification', (notification) => {
+            console.log('🔔 NOTIFICATIONS: Evento "new_notification" RECIBIDO:', notification);
+            // Añade la nueva notificación a la lista en memoria.
+            allNotifications.unshift(notification);
 
-            socket.on('new_notification', (notification) => {
-                allNotifications.unshift(notification);
-                if (isPanelOpen) {
-                    list.innerHTML = allNotifications.map(renderNotification).join('');
-                }
-                updateNotificationBadge(allNotifications);
-                //if (Toast) Toast.show({ text: `Nuevo seguidor: ${notification.sender_username}` });
-            });
-        }
-        fetchNotifications();
-    } catch (error) {
-        console.error("No se pudo cargar Socket.IO. Notificaciones en tiempo real desactivadas.", error);
-        fetchNotifications(); // Carga las notificaciones estáticas de todas formas
+            // Si el panel está abierto, lo re-renderiza para mostrar la nueva notificación al instante.
+            if (isPanelOpen) {
+                list.innerHTML = allNotifications.map(renderNotification).join('');
+            }
+            // Actualiza la insignia (el punto rojo).
+            updateNotificationBadge(allNotifications);
+        });
+        console.log("🟢 NOTIFICATIONS: Listener de notificaciones en tiempo real inicializado.");
+    } else {
+        console.warn("🟡 NOTIFICATIONS: No se recibió una instancia de socket. Las notificaciones en tiempo real no funcionarán.");
     }
+    
+    // Carga inicial de notificaciones desde la API.
+    fetchNotifications();
 }

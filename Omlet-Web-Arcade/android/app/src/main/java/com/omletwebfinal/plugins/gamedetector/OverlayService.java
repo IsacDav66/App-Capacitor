@@ -1,7 +1,6 @@
 package com.omletwebfinal.plugins.gamedetector;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -12,11 +11,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,44 +26,87 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+
+import com.getcapacitor.Bridge;
+import com.getcapacitor.JSObject;
+import com.omletwebfinal.MainActivity;
 import com.omletwebfinal.R;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import android.app.ActivityManager;
 
 public class OverlayService extends Service {
     private static final String CHANNEL_ID = "OverlayServiceChannel";
     private static final String TAG = "GameDetectorService";
 
+    // Variables de UI
     private WindowManager windowManager;
     private View bubbleView;
-    private View windowView;
+    private View floatingViewContainer;
+    private WebView floatingWebView;
     private View dismissView;
 
+    // Variables de estado
     private WindowManager.LayoutParams bubbleParams;
     private boolean isWindowOpen = false;
     private boolean isBubbleOverDismiss = false;
-
     private final Handler handler = new Handler();
     private Runnable appCheckRunnable;
-    private TextView gameNameTextView;
+    private JSObject lastReceivedTheme = null;
 
-    private String currentSurfaceColor = "#1a1a1a";
-    private String currentTextColor = "#FFFFFF";
-    private String currentTextSecondaryColor = "#AAAAAA";
-
+    // --- PUENTE DE COMUNICACIÓN A LA WEBVIEW PRINCIPAL ---
+    private Bridge getBridge() {
+        if (MainActivity.getInstance() != null) {
+            return MainActivity.getInstance().getBridge();
+        }
+        return null;
+    }
+    
+    // --- DEFINICIÓN DE LOS RECEIVERS ---
     private final BroadcastReceiver themeUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if ("com.omletwebfinal.THEME_UPDATED".equals(intent.getAction())) {
-                currentSurfaceColor = intent.getStringExtra("surfaceColor");
-                currentTextColor = intent.getStringExtra("textColor");
-                currentTextSecondaryColor = intent.getStringExtra("textSecondaryColor");
-                if (isWindowOpen && windowView != null) {
-                    updateWindowTheme();
+                JSObject themeData = new JSObject();
+                themeData.put("bgColor", intent.getStringExtra("bgColor"));
+                themeData.put("textColor", intent.getStringExtra("textColor"));
+                themeData.put("secondaryTextColor", intent.getStringExtra("secondaryTextColor"));
+                themeData.put("surfaceColor", intent.getStringExtra("surfaceColor"));
+                themeData.put("accentColor", intent.getStringExtra("accentColor"));
+                lastReceivedTheme = themeData;
+                Log.d(TAG, "Tema actualizado y guardado en el servicio.");
+                if (isWindowOpen && floatingWebView != null) {
+                    applyThemeToWebView(lastReceivedTheme);
+                }
+            }
+        }
+    };
+
+    private final BroadcastReceiver serviceCommandReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("com.omletwebfinal.SHOW_DEFINE_FORM".equals(intent.getAction())) {
+                String packageName = intent.getStringExtra("packageName");
+                if (isWindowOpen && floatingViewContainer != null && packageName != null) {
+                    showDefineFormInWindow(packageName);
                 }
             }
         }
@@ -73,30 +115,25 @@ public class OverlayService extends Service {
     @Override
     public IBinder onBind(Intent intent) { return null; }
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Omlet Web Arcade Activo")
                 .setContentText("Burbuja flotante activa.")
-                .setSmallIcon(R.mipmap.ic_launcher_round)
-                .build();
+                .setSmallIcon(R.mipmap.ic_launcher_round).build();
         startForeground(1, notification);
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         showDismissView();
         showBubbleView();
 
-        // --- CORRECCIÓN DEFINITIVA PARA EL FLAG DE EXPORTACIÓN ---
-        IntentFilter filter = new IntentFilter("com.omletwebfinal.THEME_UPDATED");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(themeUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(themeUpdateReceiver, filter);
-        }
-        // --- FIN DE LA CORRECCIÓN ---
-
+        IntentFilter themeFilter = new IntentFilter("com.omletwebfinal.THEME_UPDATED");
+        IntentFilter commandFilter = new IntentFilter("com.omletwebfinal.SHOW_DEFINE_FORM");
+        ContextCompat.registerReceiver(this, themeUpdateReceiver, themeFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(this, serviceCommandReceiver, commandFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
+        
+        startAppDetection();
         return START_STICKY;
     }
 
@@ -104,11 +141,22 @@ public class OverlayService extends Service {
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(themeUpdateReceiver);
-        if (appCheckRunnable != null) handler.removeCallbacks(appCheckRunnable);
+        unregisterReceiver(serviceCommandReceiver);
+        stopAppDetection();
         if (bubbleView != null && bubbleView.isAttachedToWindow()) windowManager.removeView(bubbleView);
-        if (windowView != null && windowView.isAttachedToWindow()) windowManager.removeView(windowView);
+        if (floatingViewContainer != null && floatingViewContainer.isAttachedToWindow()) windowManager.removeView(floatingViewContainer);
         if (dismissView != null && dismissView.isAttachedToWindow()) windowManager.removeView(dismissView);
         stopForeground(true);
+    }
+    
+    private String readAssetFileAsString(Context context, String filePath) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        try (InputStream is = context.getAssets().open(filePath);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) { builder.append(line).append("\n"); }
+        }
+        return builder.toString();
     }
 
     private void showBubbleView() {
@@ -117,26 +165,21 @@ public class OverlayService extends Service {
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
         bubbleParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
-                layoutType, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT
-        );
+                layoutType, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         bubbleParams.gravity = Gravity.TOP | Gravity.START;
         bubbleParams.x = 20;
         bubbleParams.y = 200;
-
         bubbleView.setOnTouchListener(new View.OnTouchListener() {
             private float initialX, initialY, initialTouchX, initialTouchY;
             private long startClickTime;
             private static final int MAX_CLICK_DURATION = 200;
             private static final int MAX_CLICK_DISTANCE = 15;
-
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        initialX = bubbleParams.x;
-                        initialY = bubbleParams.y;
-                        initialTouchX = event.getRawX();
-                        initialTouchY = event.getRawY();
+                        initialX = bubbleParams.x; initialY = bubbleParams.y;
+                        initialTouchX = event.getRawX(); initialTouchY = event.getRawY();
                         startClickTime = System.currentTimeMillis();
                         showDismissViewWithAnimation(true);
                         return true;
@@ -163,114 +206,126 @@ public class OverlayService extends Service {
                 return false;
             }
         });
-
         bubbleView.setOnClickListener(v -> {
             if (!isWindowOpen) {
                 showFloatingWindow();
             }
         });
-
         windowManager.addView(bubbleView, bubbleParams);
     }
 
+    @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     private void showFloatingWindow() {
         isWindowOpen = true;
-        windowView = LayoutInflater.from(this).inflate(R.layout.activity_floating_window, null);
-        int layoutType = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        floatingViewContainer = inflater.inflate(R.layout.floating_webview_container, null);
+        floatingWebView = floatingViewContainer.findViewById(R.id.floating_webview);
 
+        WebSettings webSettings = floatingWebView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        floatingWebView.addJavascriptInterface(new WebAppInterface(this), "Android");
+        floatingWebView.setBackgroundColor(Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            floatingWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        } else {
+            floatingWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+
+        floatingWebView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                Log.d(TAG, "WebView flotante finalizó la carga (onPageFinished).");
+                if (lastReceivedTheme != null) {
+                    Log.d(TAG, "-> Se encontró un tema guardado. Aplicando...");
+                    applyThemeToWebView(lastReceivedTheme);
+                } else {
+                    Log.w(TAG, "-> No se encontró tema guardado. La ventana podría tener el tema por defecto.");
+                }
+            }
+        });
+
+        try {
+            String htmlContent = readAssetFileAsString(this, "public/floating_content.html");
+            String cssContent = readAssetFileAsString(this, "public/css/floating_styles.css");
+            String jsContent = readAssetFileAsString(this, "public/js/floating_content.bundle.js");
+            htmlContent = htmlContent.replace("<link href=\"./css/floating_styles.css\" rel=\"stylesheet\">", "<style>" + cssContent + "</style>");
+            htmlContent = htmlContent.replace("<script src=\"./js/floating_content.js\" type=\"module\"></script>", "<script type=\"module\">" + jsContent + "</script>");
+            floatingWebView.loadDataWithBaseURL("file:///android_asset/public/", htmlContent, "text/html", "UTF-8", null);
+        } catch (IOException e) {
+            Log.e(TAG, "Error crítico al leer archivos de assets", e);
+            floatingWebView.loadData("<html><body><h1>Error al cargar la interfaz</h1></body></html>", "text/html", "UTF-8");
+        }
+
+        int layoutType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
         final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
-                layoutType, WindowManager.LayoutParams.FLAG_DIM_BEHIND, PixelFormat.TRANSLUCENT
-        );
-        params.dimAmount = 0.6f;
-        windowManager.addView(windowView, params);
+            (int) (getResources().getDisplayMetrics().widthPixels * 0.85),
+            (int) (getResources().getDisplayMetrics().heightPixels * 0.75),
+            layoutType, 0, PixelFormat.TRANSLUCENT);
+        params.dimAmount = 0.8f;
+        params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        params.gravity = Gravity.CENTER;
+        windowManager.addView(floatingViewContainer, params);
         bubbleView.setVisibility(View.GONE);
 
-        updateWindowTheme();
-
-        windowView.setFocusableInTouchMode(true);
-        windowView.requestFocus();
-        windowView.setOnKeyListener((v, keyCode, event) -> {
+        floatingViewContainer.setFocusableInTouchMode(true);
+        floatingViewContainer.requestFocus();
+        floatingViewContainer.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP) {
                 closeFloatingWindow();
                 return true;
             }
             return false;
         });
-
-        startAppDetection();
     }
 
     private void closeFloatingWindow() {
-        if (isWindowOpen && windowView != null) {
-            stopAppDetection();
-            windowManager.removeView(windowView);
-            windowView = null;
+        if (isWindowOpen && floatingViewContainer != null) {
+            windowManager.removeView(floatingViewContainer);
+            floatingViewContainer = null;
+            floatingWebView = null;
             isWindowOpen = false;
             bubbleView.setVisibility(View.VISIBLE);
         }
     }
-
-    private void updateWindowTheme() {
-        if (windowView == null) return;
-
-        View backgroundView = windowView.findViewById(R.id.floating_content_background);
-        TextView titleText = windowView.findViewById(R.id.title_textview);
-        gameNameTextView = windowView.findViewById(R.id.game_name_textview); // Asegúrate de que gameNameTextView se asigne aquí
-        
-        try {
-            if (backgroundView != null && backgroundView.getBackground() != null) {
-                android.graphics.drawable.Drawable bgDrawable = backgroundView.getBackground().mutate();
-                if (currentSurfaceColor != null && !currentSurfaceColor.isEmpty()) {
-                    bgDrawable.setColorFilter(Color.parseColor(currentSurfaceColor), android.graphics.PorterDuff.Mode.SRC_IN);
-                }
-            }
-            
-            // --- INICIO DE LA CORRECCIÓN ---
-            // Ahora, AMBOS textos usan el color de texto principal, a menos que uno sea nulo.
-            if (titleText != null && currentTextColor != null && !currentTextColor.isEmpty()) {
-                titleText.setTextColor(Color.parseColor(currentTextColor));
-            }
-            if (gameNameTextView != null && currentTextColor != null && !currentTextColor.isEmpty()) {
-                gameNameTextView.setTextColor(Color.parseColor(currentTextColor));
-            }
-            // --- FIN DE LA CORRECCIÓN ---
-
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Error al parsear el color del tema: " + e.getMessage());
-        }
+    
+    private void showDefineFormInWindow(String packageName) {
+        if (floatingViewContainer == null) return;
+        // La lógica para mostrar el formulario ahora se hace en JS. Aquí solo llamamos a una función JS.
+        String script = "if (window.showRegistrationForm) { window.showRegistrationForm('" + packageName + "'); }";
+        floatingWebView.post(() -> floatingWebView.evaluateJavascript(script, null));
+        Log.d(TAG, "Script para mostrar formulario inyectado en la WebView flotante.");
     }
 
-
-
+    private void applyThemeToWebView(JSObject theme) {
+        if (theme == null || floatingWebView == null) return;
+        String script = "if (window.applyThemeUpdate) { window.applyThemeUpdate(" + theme.toString() + "); }";
+        floatingWebView.post(() -> floatingWebView.evaluateJavascript(script, null));
+    }
 
     private void showDismissView() {
         dismissView = LayoutInflater.from(this).inflate(R.layout.floating_dismiss_view, null);
-        int layoutType = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
-                layoutType, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT
-        );
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
         params.y = 50;
         dismissView.setVisibility(View.GONE);
         windowManager.addView(dismissView, params);
     }
-
+    
     private void showDismissViewWithAnimation(boolean show) {
         if (dismissView != null) {
             dismissView.setVisibility(show ? View.VISIBLE : View.GONE);
             dismissView.animate().scaleX(show ? 1.0f : 0.0f).scaleY(show ? 1.0f : 0.0f).setDuration(200).start();
         }
     }
-
+    
     private void checkIfBubbleIsOverDismiss() {
         if (bubbleView == null || dismissView == null || dismissView.getVisibility() == View.GONE) return;
-        int[] bubbleLocation = new int[2];
-        bubbleView.getLocationOnScreen(bubbleLocation);
-        Rect bubbleRect = new Rect(bubbleLocation[0], bubbleLocation[1], bubbleLocation[0] + bubbleView.getWidth(), bubbleLocation[1] + bubbleView.getHeight());
+        Rect bubbleRect = new Rect(bubbleParams.x, bubbleParams.y, bubbleParams.x + bubbleView.getWidth(), bubbleParams.y + bubbleView.getHeight());
         int[] dismissLocation = new int[2];
         dismissView.getLocationOnScreen(dismissLocation);
         Rect dismissRect = new Rect(dismissLocation[0], dismissLocation[1], dismissLocation[0] + dismissView.getWidth(), dismissLocation[1] + dismissView.getHeight());
@@ -288,26 +343,42 @@ public class OverlayService extends Service {
     }
 
     private void startAppDetection() {
+        if (appCheckRunnable != null) return;
         appCheckRunnable = new Runnable() {
+            private String lastAppPackage = null;
             @Override
             public void run() {
-                String foregroundApp = getForegroundAppPackage(getApplicationContext());
-                String appName = getApplicationName(getApplicationContext(), foregroundApp);
-                if (gameNameTextView != null) {
-                    if (foregroundApp != null && !foregroundApp.equals(getPackageName())) {
-                        gameNameTextView.setText(appName);
-                    } else {
-                        gameNameTextView.setText("Ningún juego detectado");
+                String foregroundAppPackage = getForegroundAppPackage(getApplicationContext());
+                String appName = getApplicationName(getApplicationContext(), foregroundAppPackage);
+
+                if (foregroundAppPackage != null && !foregroundAppPackage.equals(lastAppPackage)) {
+                    lastAppPackage = foregroundAppPackage;
+                    Log.d(TAG, "Nueva app detectada: " + foregroundAppPackage);
+                    MainActivity mainActivity = MainActivity.getInstance();
+                    if (mainActivity != null) {
+                        mainActivity.sendAppStatusToWebview(foregroundAppPackage, appName);
                     }
                 }
-                handler.postDelayed(this, 1000);
+                
+                if (isWindowOpen && floatingWebView != null) {
+                    JSObject data = new JSObject();
+                    data.put("packageName", lastAppPackage);
+                    data.put("appName", appName);
+                    String script = "if (window.updateGameInfo) { window.updateGameInfo(" + data.toString() + "); }";
+                    floatingWebView.post(() -> floatingWebView.evaluateJavascript(script, null));
+                }
+                
+                handler.postDelayed(this, 3000);
             }
         };
         handler.post(appCheckRunnable);
     }
-
+    
     private void stopAppDetection() {
-        handler.removeCallbacks(appCheckRunnable);
+        if (appCheckRunnable != null) {
+            handler.removeCallbacks(appCheckRunnable);
+            appCheckRunnable = null;
+        }
     }
 
     private String getForegroundAppPackage(Context context) {
@@ -318,21 +389,8 @@ public class OverlayService extends Service {
             List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 5000, time);
             if (appList != null && !appList.isEmpty()) {
                 SortedMap<Long, UsageStats> sortedMap = new TreeMap<>();
-                for (UsageStats usageStats : appList) {
-                    sortedMap.put(usageStats.getLastTimeUsed(), usageStats);
-                }
-                if (!sortedMap.isEmpty()) {
-                    pkg = sortedMap.get(sortedMap.lastKey()).getPackageName();
-                }
-            }
-        }
-        if (pkg == null && Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-            if (am != null) {
-                List<ActivityManager.RunningTaskInfo> taskInfo = am.getRunningTasks(1);
-                if (taskInfo != null && !taskInfo.isEmpty() && taskInfo.get(0).topActivity != null) {
-                    pkg = taskInfo.get(0).topActivity.getPackageName();
-                }
+                for (UsageStats usageStats : appList) { sortedMap.put(usageStats.getLastTimeUsed(), usageStats); }
+                if (!sortedMap.isEmpty()) { pkg = sortedMap.get(sortedMap.lastKey()).getPackageName(); }
             }
         }
         return pkg;
@@ -351,13 +409,41 @@ public class OverlayService extends Service {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Servicio de Superposición",
-                    NotificationManager.IMPORTANCE_LOW
-            );
+                    CHANNEL_ID, "Servicio de Superposición", NotificationManager.IMPORTANCE_LOW);
             NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(serviceChannel);
+            if (manager != null) { manager.createNotificationChannel(serviceChannel); }
+        }
+    }
+
+    public class WebAppInterface {
+        Context mContext;
+        WebAppInterface(Context c) { mContext = c; }
+
+        @JavascriptInterface
+        public void closeWindow() {
+            new Handler(mContext.getMainLooper()).post(OverlayService.this::closeFloatingWindow);
+        }
+
+        @JavascriptInterface
+        public void reopenWindow() {
+            new Handler(mContext.getMainLooper()).post(() -> {
+                closeFloatingWindow();
+                new Handler().postDelayed(OverlayService.this::showFloatingWindow, 100); 
+            });
+        }
+
+        @JavascriptInterface
+        public String getAuthToken() {
+            SharedPreferences sharedPref = mContext.getSharedPreferences("OMLET_APP_PREFS", Context.MODE_PRIVATE);
+            String token = sharedPref.getString("authToken", "");
+            return token;
+        }
+    
+        @JavascriptInterface
+        public void jsReady() {
+            Log.d(TAG, "El JavaScript de la WebView flotante está listo.");
+            if (appCheckRunnable != null) {
+                handler.post(appCheckRunnable);
             }
         }
     }

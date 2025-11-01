@@ -387,11 +387,29 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    border: 2px solid var(--color-bg);
+    border: 2px solid var(--color-bg);  
+    background-color: #95a5a6; /* Gris por defecto */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
+
 
 .status-dot.online {
     background-color: #2ecc71; /* Verde */
+}
+
+/* Opcional: un color diferente para cuando está jugando */
+.status-dot.playing {
+    background-color: var(--color-accent); /* Usa el color de acento del tema */
+}
+
+/* Estilo para el pequeño icono de la app */
+.status-app-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .status-dot.offline {

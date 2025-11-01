@@ -51,6 +51,8 @@ dependencies {
 
     // Dependencia para Analytics (recomendado por Firebase)
     implementation 'com.google.firebase:firebase-analytics'
+
+    implementation 'androidx.cardview:cardview:1.0.0' 
 }
 
 apply from: 'capacitor.build.gradle'

@@ -1,57 +1,77 @@
-// /js/app.js (El nuevo punto de entrada principal)
-
+// --- MÓDULOS PRINCIPALES ---
 import { fetchCurrentUser, getCurrentUser } from './modules/state.js';
-import { initializeCapacitorPlugins, attachBackButtonHandler, configureStatusBar, updateNativeUIColors } from './modules/ui/nativeBridge.js';
-// <-- 1. IMPORTAMOS LAS NUEVAS ACCIONES
-import { deletePost, toggleLike, toggleSave } from './modules/ui/postActions.js';
-// --- AÑADE ESTA IMPORTACIÓN ---
-import { initNotifications } from './modules/ui/notifications.js';
+// <-- 1. ¡CORRECCIÓN AQUÍ! AÑADIMOS GameDetectorPlugin A LA IMPORTACIÓN
+import { initializeCapacitorPlugins, GameDetectorPlugin, attachBackButtonHandler, configureStatusBar, updateNativeUIColors } from './modules/ui/nativeBridge.js';
 
+// Módulo del Socket
+import { getSocket } from './modules/socket.js';
+
+// Módulos que dependen del Socket
+import { initNotifications } from './modules/ui/notifications.js';
+import { initializeNativeAppDetectionListener } from './modules/ui/appDetector.js';
+import { initFriendsSidebarListener } from './modules/ui/friendsSidebar.js';
+
+// Otros módulos
+import { deletePost, toggleLike, toggleSave } from './modules/ui/postActions.js';
 import { registerForPushNotifications } from './modules/ui/push.js';
 
-
-// <-- 2. ASIGNAMOS LAS FUNCIONES AL OBJETO GLOBAL `window`
-// Esto hace que estén disponibles para los atributos `onclick="..."` en el HTML de cualquier página.
+// Asignaciones globales
 window.deletePost = deletePost;
 window.toggleLike = toggleLike;
 window.toggleSave = toggleSave;
 
-
-// --- PUNTO DE ENTRADA PRINCIPAL DE LA APP ---
+// PUNTO DE ENTRADA
 document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Inicialización síncrona
     initializeCapacitorPlugins();
     configureStatusBar();
     updateNativeUIColors();
 
+    // --- 2. ¡AHORA ESTA LLAMADA FUNCIONARÁ! ---
+    // Sincroniza el tema actual con la capa nativa al arrancar la app.
+    if (GameDetectorPlugin) {
+        const styles = getComputedStyle(document.documentElement);
+        const theme = {
+            bgColor: styles.getPropertyValue('--color-bg').trim(),
+            textColor: styles.getPropertyValue('--color-text').trim(),
+            secondaryTextColor: styles.getPropertyValue('--color-text-secondary').trim(),
+            surfaceColor: styles.getPropertyValue('--color-surface').trim(),
+            accentColor: styles.getPropertyValue('--color-accent').trim(),
+        };
+         // --- LOG AÑADIDO ---
+        console.log("➡️ APP.JS: Sincronizando tema inicial con la capa nativa:", theme);
+        GameDetectorPlugin.syncThemeToNative({ theme: theme });
+    }
+
     attachBackButtonHandler();
-    // ==========================================================
-    // === ¡AQUÍ ESTÁ EL LISTENER PARA LA ACCIÓN DE CLIC! ===
-    // ==========================================================
+
+    // 2. Listener de Deep Linking
     if (window.Capacitor && Capacitor.Plugins.App) {
         Capacitor.Plugins.App.addListener('appUrlOpen', (event) => {
-            console.log('App abierta por URL (Deep Link):', event.url);
-            // La URL ahora será algo como: com.omletwebfinal://open/chat.html?userId=30
-            // Necesitamos extraer la parte que nos interesa
             const path = event.url.split('://open/')[1];
-            if (path) {
-                console.log(`Navegando a la ruta interna: ${path}`);
-                // Usamos `location.replace` para una mejor experiencia de "atrás"
-                window.location.replace(path);
-            }
+            if (path) window.location.replace(path);
         });
     }
 
-    // ==========================================================
-
+    // 3. Autenticación
     await fetchCurrentUser();
-    // --- CAMBIO AQUÍ ---
-    // La llamada ya no necesita el argumento `io`
-     if (getCurrentUser()) {
-        initNotifications();
-        // El import de push.js ya no es necesario aquí si solo se llama desde notifications.js
-        const { registerForPushNotifications } = await import('./modules/ui/push.js');
-        registerForPushNotifications().catch(err => console.warn(err.message));
+    
+    // 4. Si el usuario está logueado, inicia todos los sistemas asíncronos
+    if (getCurrentUser()) {
+        try {
+            const socket = await getSocket();
+            if (socket) {
+                initNotifications(socket);
+                initFriendsSidebarListener(socket);
+                initializeNativeAppDetectionListener(socket);
+                registerForPushNotifications().catch(err => console.warn(err.message));
+            }
+        } catch (error) {
+            console.error("❌ APP: Error durante la inicialización de módulos en tiempo real:", error);
+        }
     }
+    
+    // 5. Enrutamiento
     routePage();
 });
 
@@ -114,7 +134,7 @@ async function routePage() {
         } else if (path.includes('chat.html')) {
             const { initChatPage } = await import('./modules/pages/chat.js');
             initChatPage();
-        } else if (path.includes('chat_list.html')) { // <-- AÑADE ESTA LÍNEA
+        } else if (path.includes('chat_list.html')) {
             const { initChatListPage } = await import('./modules/pages/chatList.js');
             initChatListPage();
         }

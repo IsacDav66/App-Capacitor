@@ -1,7 +1,8 @@
 // /js/modules/pages/auth.js
 
 import { apiFetch } from '../api.js';
-import { GoogleAuth, Toast } from '../ui/nativeBridge.js';
+// Importamos el GameDetectorPlugin junto a los demás
+import { GoogleAuth, GameDetectorPlugin } from '../ui/nativeBridge.js';
 
 export function initAuthPage() {
     const loginForm = document.getElementById('login-form');
@@ -10,6 +11,9 @@ export function initAuthPage() {
     if (loginForm) loginForm.addEventListener('submit', (e) => { e.preventDefault(); handleAuth(false); });
     if (registerForm) registerForm.addEventListener('submit', (e) => { e.preventDefault(); handleAuth(true); });
 
+    /**
+     * Función unificada para manejar el login y el registro.
+     */
     async function handleAuth(isRegister = false) {
         const email = document.getElementById(isRegister ? 'register-email' : 'login-email').value;
         const password = document.getElementById(isRegister ? 'register-password' : 'login-password').value;
@@ -34,7 +38,16 @@ export function initAuthPage() {
             if (data.success && data.token) {
                 output.textContent = `✅ ¡Éxito! Redirigiendo...`;
                 localStorage.setItem('authToken', data.token);
-                // Si es un registro nuevo, lo mandamos a completar el perfil
+
+                // ==========================================================
+                // === ¡AQUÍ ESTÁ LA NUEVA LÍNEA! ===
+                // ==========================================================
+                // Después de guardar el token, se lo pasamos al lado nativo.
+                if (GameDetectorPlugin) {
+                    GameDetectorPlugin.setAuthToken({ token: data.token });
+                }
+                // ==========================================================
+
                 const destination = isRegister ? 'profile.html' : 'home.html';
                 setTimeout(() => { window.location.href = destination; }, 500);
             }
@@ -43,6 +56,9 @@ export function initAuthPage() {
         }
     }
 
+    /**
+     * Función para manejar el inicio de sesión con Google.
+     */
     window.signInWithGoogle = async () => {
         const output = document.getElementById('output');
         if (!GoogleAuth) {
@@ -63,6 +79,15 @@ export function initAuthPage() {
                 if (data.success && data.token) {
                     output.textContent = `✅ ${data.message} ¡Redirigiendo!`;
                     localStorage.setItem('authToken', data.token);
+
+                    // ==========================================================
+                    // === ¡TAMBIÉN LA AÑADIMOS AQUÍ! ===
+                    // ==========================================================
+                    if (GameDetectorPlugin) {
+                        GameDetectorPlugin.setAuthToken({ token: data.token });
+                    }
+                    // ==========================================================
+
                     setTimeout(() => { window.location.href = 'home.html'; }, 500);
                 }
             } else {
