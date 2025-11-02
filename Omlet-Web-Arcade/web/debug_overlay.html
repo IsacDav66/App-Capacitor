@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Floating Overlay</title>
+    <style>
+        /* Define las variables del tema púrpura oscuro por defecto para la página contenedora */
+        :root {
+            --color-bg: #000000;
+            --color-surface: #111111;
+            --color-ui: #222222;
+            --color-accent: #8A2BE2;
+            --color-text: #FFFFFF;
+            --color-text-secondary: #aaaaaa;
+            --color-border: #333333;
+        }
+
+        /* Estilo del fondo para simular el efecto de la app */
+        body {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Tarjeta de información para el desarrollador */
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--color-text-secondary);
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .info p {
+            margin: 0 0 5px 0;
+        }
+
+        .info code {
+            background: var(--color-ui);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: var(--color-accent);
+        }
+
+        /* Estilos del iframe que simula la ventana flotante */
+        #overlay-frame {
+            width: 360px;
+            /* Ancho típico de un móvil */
+            height: 640px;
+            /* Alto típico de un móvil */
+            border: 1px solid #444;
+            border-radius: 28px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            background-color: var(--color-bg);
+            /* Fondo negro mientras carga el contenido */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="info">
+        <p>Simulación de la ventana flotante.</p>
+        <p>Presiona <code>F12</code> para depurar el <code>iframe</code>.</p>
+    </div>
+
+    <iframe id="overlay-frame" src="./floating_content.html"></iframe>
+
+    <script>
+        // Este script simula el puente de comunicación "Android" (WebAppInterface.java)
+        window.addEventListener('message', (event) => {
+            const iframe = document.getElementById('overlay-frame');
+
+            // Ignorar mensajes que no vengan del iframe
+            if (event.source !== iframe.contentWindow) {
+                return;
+            }
+
+            // Cuando el JS del iframe avisa que está listo...
+            if (event.data === 'jsReady') {
+                console.log("DEBUG-HOST: floating_content.js está listo. Enviando datos iniciales...");
+
+                // 1. Definimos el objeto del tema por defecto (púrpura oscuro)
+                const defaultTheme = {
+                    bgColor: '#000000',
+                    surfaceColor: '#111111',
+                    uiColor: '#222222',
+                    accentColor: '#8A2BE2',
+                    textColor: '#FFFFFF',
+                    secondaryTextColor: '#AAAAAA',
+                    border: '#333333'
+                };
+
+                // 2. Enviamos el tema al iframe para que se aplique
+                iframe.contentWindow.postMessage({ type: 'applyThemeUpdate', data: defaultTheme }, '*');
+                console.log("DEBUG-HOST: Enviando tema por defecto al iframe.");
+
+                // 3. Simulamos el envío de datos de un juego detectado
+                const gameData = {
+                    packageName: 'com.mojang.minecraftpe',
+                    appName: 'Minecraft' // Nombre que vendría del lado nativo
+                };
+                iframe.contentWindow.postMessage({ type: 'updateGameInfo', data: gameData }, '*');
+                console.log("DEBUG-HOST: Enviando datos de juego simulados al iframe.");
+
+            } else if (event.data === 'closeWindow') {
+                console.log("DEBUG-HOST: El iframe ha solicitado cerrar la ventana.");
+                alert("La ventana flotante se cerraría ahora.");
+            }
+        });
+    </script>
+
+</body>
+
+</html>

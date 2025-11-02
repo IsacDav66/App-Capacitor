@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Overlay</title>
-    <!-- El CSS será inyectado aquí por Java -->
+    <!-- El CSS será inyectado por Java -->
     <link href="./css/floating_styles.css" rel="stylesheet">
 </head>
 
@@ -13,11 +13,16 @@
     <button id="close-button" class="close-btn">&times;</button>
 
     <header class="header-nav">
-        <div class="nav-tab active" id="profile-tab">
-            <!-- El JS pondrá el avatar y nombre aquí -->
+        <!-- Pestaña de Perfil / Juego -->
+        <div class="nav-tab active" id="profile-tab" data-tab="profile">
+            <!-- ¡LOS ELEMENTOS VUELVEN A TENER SUS IDs CORRECTOS! -->
+            <img id="user-avatar" src="">
+            <span id="user-username"></span>
         </div>
-        <div class="nav-tab" id="chat-tab"><svg width="17" height="15" viewBox="0 0 17 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
+        <!-- Pestaña de Chats -->
+        <div class="nav-tab" id="chat-tab" data-tab="chats">
+            <svg width="17" height="15" viewBox="0 0 17 15" fill="currentColor">
+                <path
                 d="M15.5833 0.0625H1.41663C1.13483 0.0625 0.864582 0.174442 0.665325 0.373699C0.466068 0.572957 0.354126 0.843208 0.354126 1.125V10.7229C0.355017 10.8605 0.383371 10.9966 0.437525 11.1231C0.49168 11.2497 0.570547 11.3641 0.669502 11.4598C0.768458 11.5554 0.885512 11.6304 1.0138 11.6802C1.1421 11.73 1.27905 11.7538 1.41663 11.75H3.54163V14.5833C3.5405 14.6481 3.5579 14.7119 3.59178 14.7671C3.62567 14.8223 3.67462 14.8667 3.73288 14.895C3.7867 14.9298 3.84942 14.9483 3.9135 14.9483C3.97758 14.9483 4.0403 14.9298 4.09413 14.895L8.61329 11.75H15.5833C15.8651 11.75 16.1353 11.6381 16.3346 11.4388C16.5338 11.2395 16.6458 10.9693 16.6458 10.6875V1.125C16.6458 0.843208 16.5338 0.572957 16.3346 0.373699C16.1353 0.174442 15.8651 0.0625 15.5833 0.0625ZM13.4583 6.08333C13.4583 6.29348 13.396 6.4989 13.2792 6.67363C13.1625 6.84835 12.9965 6.98454 12.8024 7.06496C12.6082 7.14537 12.3946 7.16642 12.1885 7.12542C11.9824 7.08442 11.7931 6.98323 11.6445 6.83463C11.4959 6.68604 11.3947 6.49672 11.3537 6.29062C11.3127 6.08451 11.3338 5.87088 11.4142 5.67673C11.4946 5.48259 11.6308 5.31665 11.8055 5.1999C11.9802 5.08315 12.1856 5.02083 12.3958 5.02083C12.6776 5.02083 12.9478 5.13278 13.1471 5.33203C13.3463 5.53129 13.4583 5.80154 13.4583 6.08333ZM3.54163 6.08333C3.54163 5.87319 3.60394 5.66777 3.72069 5.49304C3.83744 5.31831 4.00338 5.18213 4.19752 5.10171C4.39167 5.02129 4.6053 5.00025 4.81141 5.04125C5.01751 5.08225 5.20683 5.18344 5.35543 5.33203C5.50402 5.48063 5.60521 5.66995 5.64621 5.87605C5.68721 6.08215 5.66617 6.29579 5.58575 6.48993C5.50533 6.68408 5.36915 6.85002 5.19442 6.96677C5.01969 7.08352 4.81427 7.14583 4.60413 7.14583C4.32233 7.14583 4.05208 7.03389 3.85282 6.83463C3.65357 6.63538 3.54163 6.36513 3.54163 6.08333ZM7.43746 6.08333C7.43746 5.87319 7.49977 5.66777 7.61652 5.49304C7.73327 5.31831 7.89921 5.18213 8.09336 5.10171C8.2875 5.02129 8.50114 5.00025 8.70724 5.04125C8.91335 5.08225 9.10267 5.18344 9.25126 5.33203C9.39985 5.48063 9.50105 5.66995 9.54204 5.87605C9.58304 6.08215 9.562 6.29579 9.48158 6.48993C9.40116 6.68408 9.26498 6.85002 9.09025 6.96677C8.91552 7.08352 8.7101 7.14583 8.49996 7.14583C8.21817 7.14583 7.94792 7.03389 7.74866 6.83463C7.5494 6.63538 7.43746 6.36513 7.43746 6.08333Z"
                 fill="currentColor" />
         </svg></div>
@@ -34,7 +39,9 @@
     </header>
 
     <main>
-        <section id="game-info" class="content-section">
+        <!-- CONTENIDO DE LA PESTAÑA PERFIL/JUEGO (Visible por defecto) -->
+        <div class="page-content active" id="profile-content">
+            <section id="game-info" class="content-section">
             <div class="section-title">Jugando ahora:</div>
             <div class="game-display">
                 <img id="game-icon" class="game-icon" src="">
@@ -44,22 +51,127 @@
                 <p class="registration-prompt">Este juego no está registrado</p>
                 <button id="register-btn" class="register-btn">Registrar</button>
             </div>
-        </section>
+            </section>
+            <section id="friends-list" class="content-section">
+                <div class="section-title"><svg width="22" height="18" viewBox="0 0 22 18">
+                        <path
+                            d="M2 4C2 3.54037 2.09053 3.08525 2.26642 2.66061C2.44231 2.23597 2.70012 1.85013 3.02513 1.52513C3.35013 1.20012 3.73597 0.942313 4.16061 0.766422C4.58525 0.59053 5.04037 0.5 5.5 0.5C5.95963 0.5 6.41475 0.59053 6.83939 0.766422C7.26403 0.942313 7.64987 1.20012 7.97487 1.52513C8.29988 1.85013 8.55769 2.23597 8.73358 2.66061C8.90947 3.08525 9 3.54037 9 4C9 4.45963 8.90947 4.91475 8.73358 5.33939C8.55769 5.76403 8.29988 6.14987 7.97487 6.47487C7.64987 6.79988 7.26403 7.05769 6.83939 7.23358C6.41475 7.40947 5.95963 7.5 5.5 7.5C5.04037 7.5 4.58525 7.40947 4.16061 7.23358C3.73597 7.05769 3.35013 6.79988 3.02513 6.47487C2.70012 6.14987 2.44231 5.76403 2.26642 5.33939C2.09053 4.91475 2 4.45963 2 4ZM0 14.5C0 11.4625 2.4625 9 5.5 9C8.5375 9 11 11.4625 11 14.5V14.6875C11 15.4125 10.4125 16 9.6875 16H1.3125C0.5875 16 0 15.4125 0 14.6875V14.5ZM13.5 2C14.2956 2 15.0587 2.31607 15.6213 2.87868C16.1839 3.44129 16.5 4.20435 16.5 5C16.5 5.79565 16.1839 6.55871 15.6213 7.12132C15.0587 7.68393 14.2956 8 13.5 8C12.7044 8 11.9413 7.68393 11.3787 7.12132C10.8161 6.55871 10.5 5.79565 10.5 5C10.5 4.20435 10.8161 3.44129 11.3787 2.87868C11.9413 2.31607 12.7044 2 13.5 2ZM13.5 9.5C15.9844 9.5 18 11.5156 18 14V14.7C18 15.4187 17.4188 16 16.7 16H12.175C12.3813 15.6094 12.5 15.1625 12.5 14.6875V14.5C12.5 12.8906 11.9563 11.4094 11.0469 10.2281C11.7531 9.76875 12.5969 9.5 13.5 9.5Z"
+                            fill="white" />
+                    </svg> Amigos</div>
+                <div id="friends-container">
+                    <!-- El JS llenará esta lista -->
+                </div>
+            </section>
+        </div>
 
-        <section id="friends-list" class="content-section">
-            <div class="section-title"><svg width="22" height="18" viewBox="0 0 22 18">
-                <path
-                    d="M2 4C2 3.54037 2.09053 3.08525 2.26642 2.66061C2.44231 2.23597 2.70012 1.85013 3.02513 1.52513C3.35013 1.20012 3.73597 0.942313 4.16061 0.766422C4.58525 0.59053 5.04037 0.5 5.5 0.5C5.95963 0.5 6.41475 0.59053 6.83939 0.766422C7.26403 0.942313 7.64987 1.20012 7.97487 1.52513C8.29988 1.85013 8.55769 2.23597 8.73358 2.66061C8.90947 3.08525 9 3.54037 9 4C9 4.45963 8.90947 4.91475 8.73358 5.33939C8.55769 5.76403 8.29988 6.14987 7.97487 6.47487C7.64987 6.79988 7.26403 7.05769 6.83939 7.23358C6.41475 7.40947 5.95963 7.5 5.5 7.5C5.04037 7.5 4.58525 7.40947 4.16061 7.23358C3.73597 7.05769 3.35013 6.79988 3.02513 6.47487C2.70012 6.14987 2.44231 5.76403 2.26642 5.33939C2.09053 4.91475 2 4.45963 2 4ZM0 14.5C0 11.4625 2.4625 9 5.5 9C8.5375 9 11 11.4625 11 14.5V14.6875C11 15.4125 10.4125 16 9.6875 16H1.3125C0.5875 16 0 15.4125 0 14.6875V14.5ZM13.5 2C14.2956 2 15.0587 2.31607 15.6213 2.87868C16.1839 3.44129 16.5 4.20435 16.5 5C16.5 5.79565 16.1839 6.55871 15.6213 7.12132C15.0587 7.68393 14.2956 8 13.5 8C12.7044 8 11.9413 7.68393 11.3787 7.12132C10.8161 6.55871 10.5 5.79565 10.5 5C10.5 4.20435 10.8161 3.44129 11.3787 2.87868C11.9413 2.31607 12.7044 2 13.5 2ZM13.5 9.5C15.9844 9.5 18 11.5156 18 14V14.7C18 15.4187 17.4188 16 16.7 16H12.175C12.3813 15.6094 12.5 15.1625 12.5 14.6875V14.5C12.5 12.8906 11.9563 11.4094 11.0469 10.2281C11.7531 9.76875 12.5969 9.5 13.5 9.5Z"
-                    fill="white" />
-            </svg> Amigos</div>
-            <div id="friends-container">
-                <!-- El JS llenará esta lista -->
+        <!-- CONTENIDO DE LA PESTAÑA DE CHATS (Oculto por defecto) -->
+        <div class="page-content" id="chats-content" style="display: none;">
+            <div class="section-title">Chats Recientes</div>
+            <div id="chat-list-container">
+                <!-- El JS llenará la lista de conversaciones aquí -->
             </div>
-        </section>
+        </div>
     </main>
 
-    <!-- El JS será inyectado aquí por Java -->
+    <!-- ============================================= -->
+    <!-- === NUEVA VISTA PARA LA PANTALLA DE CHAT === -->
+    <!-- ============================================= -->
+    <div id="chat-view" class="chat-view-container" style="display: none;">
+        <header class="chat-header">
+            <button id="back-to-main-view-btn" class="chat-back-btn">←</button>
+            <div class="chat-header-info">
+                <img id="chat-partner-avatar" src="">
+                <span id="chat-partner-username"></span>
+            </div>
+        </header>
+
+
+        <!-- ============================================= -->
+        <!-- === ¡NUEVO! ENCABEZADO DE FECHA PEGAJOSO === -->
+        <!-- ============================================= -->
+        <div id="sticky-date-header" class="sticky-date-header">
+            <span></span>
+        </div>
+        <!-- ============================================= -->
+
+        <main id="chat-messages-container" class="chat-messages"></main>
+        <!-- ¡NUEVO BLOQUE PARA LA BARRA DE RESPUESTA! -->
+        <div id="reply-context-bar" class="reply-context">
+            <div class="reply-preview">
+                Respondiendo a <strong id="reply-to-user"></strong>
+                <span id="reply-snippet"></span>
+            </div>
+            <button id="cancel-reply-btn" class="cancel-reply-btn">&times;</button>
+        </div>
+
+        <form id="chat-form" class="chat-input-bar">
+            <textarea id="chat-message-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
+            <button type="submit" id="send-chat-btn" class="chat-send-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" fill-rule="evenodd"
+                    d="M3.402 6.673c-.26-2.334 2.143-4.048 4.266-3.042l11.944 5.658c2.288 1.083 2.288 4.339 0 5.422L7.668 20.37c-2.123 1.006-4.525-.708-4.266-3.042L3.882 13H12a1 1 0 1 0 0-2H3.883z"
+                    clip-rule="evenodd" />
+            </svg></button>
+        </form>
+    </div>
+    <!-- ============================================= -->
+    <!-- ==================================================== -->
+    <!-- === ¡NUEVO! ESTRUCTURA DEL MENÚ CONTEXTUAL === -->
+    <!-- ==================================================== -->
+    <div id="context-menu-overlay" class="context-overlay"></div>
+    
+    <div id="context-menu" class="context-menu">
+        <div id="context-menu-options" class="context-menu-options">
+            <button id="reply-from-menu-btn" class="context-menu-button">
+                <span class="context-menu-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M6.40625 1.08752C6.76562 1.24689 7 1.60627 7 2.00002V4.00002H10.5C13.5375 4.00002 16 6.46252 16 9.50002C16 13.0406 13.4531 14.6219 12.8687 14.9406C12.7906 14.9844 12.7031 15 12.6156 15C12.275 15 12 14.7219 12 14.3844C12 14.15 12.1344 13.9344 12.3062 13.775C12.6 13.5 13 12.95 13 12.0031C13 10.3469 11.6562 9.00314 10 9.00314H7V11.0031C7 11.3969 6.76875 11.7563 6.40625 11.9156C6.04375 12.075 5.625 12.0094 5.33125 11.7469L0.33125 7.24689C0.121875 7.05314 0 6.78439 0 6.50002C0 6.21564 0.121875 5.94689 0.33125 5.75627L5.33125 1.25627C5.625 0.990644 6.04688 0.925019 6.40625 1.08752Z" />
+                    </svg>
+                </span>
+                <span class="context-menu-text">Responder</span>
+            </button>
+            <button id="copy-btn" class="context-menu-button">
+                <span class="context-menu-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+                        <path
+                            d="M14.3438 16.875H6.46875C5.79742 16.875 5.15359 16.6083 4.67889 16.1336C4.20418 15.6589 3.9375 15.0151 3.9375 14.3438V6.46875C3.9375 5.79742 4.20418 5.15359 4.67889 4.67889C5.15359 4.20418 5.79742 3.9375 6.46875 3.9375H14.3438C15.0151 3.9375 15.6589 4.20418 16.1336 4.67889C16.6083 5.15359 16.875 5.79742 16.875 6.46875V14.3438C16.875 15.0151 16.6083 15.6589 16.1336 16.1336C15.6589 16.6083 15.0151 16.875 14.3438 16.875Z" />
+                        <path
+                            d="M5.625 2.8125H13.9177C13.7426 2.31934 13.4193 1.89242 12.9921 1.59029C12.5648 1.28816 12.0545 1.12563 11.5312 1.125H3.65625C2.98492 1.125 2.34109 1.39168 1.86639 1.86639C1.39168 2.34109 1.125 2.98492 1.125 3.65625V11.5312C1.12563 12.0545 1.28816 12.5648 1.59029 12.9921C1.89242 13.4193 2.31934 13.7426 2.8125 13.9177V5.625C2.8125 4.87908 3.10882 4.16371 3.63626 3.63626C4.16371 3.10882 4.87908 2.8125 5.625 2.8125Z" />
+                    </svg>
+                </span>
+                <span class="context-menu-text">Copiar</span>
+            </button>
+            <button id="delete-from-menu-btn" class="context-menu-button destructive" style="display: none;">
+                <span class="context-menu-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="18" viewBox="0 0 14 18" fill="#D33F49">
+                        <path
+                            d="M1 16C1 17.1 1.9 18 3 18H11C12.1 18 13 17.1 13 16V6C13 4.9 12.1 4 11 4H3C1.9 4 1 4.9 1 6V16ZM13 1H10.5L9.79 0.29C9.61 0.11 9.35 0 9.09 0H4.91C4.65 0 4.39 0.11 4.21 0.29L3.5 1H1C0.45 1 0 1.45 0 2C0 2.55 0.45 3 1 3H13C13.55 3 14 2.55 14 2C14 1.45 13.55 1 13 1Z"fill="#D33F49" />
+                    </svg>
+                </span>
+                <span class="context-menu-text">Eliminar</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- === NUEVO MODAL DE CONFIRMACIÓN DE BORRADO === -->
+    <!-- ============================================= -->
+    <div id="delete-confirm-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h4>Confirmar Eliminación</h4>
+            <p>¿Estás seguro de que quieres eliminar este mensaje? Esta acción no se puede deshacer.</p>
+            <div class="modal-actions">
+                <button id="cancel-delete-btn" class="modal-btn secondary">Cancelar</button>
+                <button id="confirm-delete-btn" class="modal-btn danger">Eliminar</button>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================= -->
+
+    
+    <!-- ==================================================== -->
+    
     <script src="./js/floating_content.js" type="module"></script>
-</body>
+    </body>
 
 </html>

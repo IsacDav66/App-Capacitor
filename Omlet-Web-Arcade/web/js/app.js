@@ -37,9 +37,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             secondaryTextColor: styles.getPropertyValue('--color-text-secondary').trim(),
             surfaceColor: styles.getPropertyValue('--color-surface').trim(),
             accentColor: styles.getPropertyValue('--color-accent').trim(),
+            
+            // --- ¡AÑADE ESTAS DOS LÍNEAS QUE FALTABAN! ---
+            uiColor: styles.getPropertyValue('--color-ui').trim(),
+            borderColor: styles.getPropertyValue('--color-border').trim() // Usamos 'borderColor'
         };
-         // --- LOG AÑADIDO ---
-        console.log("➡️ APP.JS: Sincronizando tema inicial con la capa nativa:", theme);
+        
+        console.log("Sincronizando tema completo con la capa nativa:", theme);
         GameDetectorPlugin.syncThemeToNative({ theme: theme });
     }
 

@@ -166,3 +166,536 @@ main {
   font-size: 14px;
   margin-bottom: 12px;
 }
+
+
+
+
+
+/* Estilo general para las páginas de contenido */
+.page-content {
+    display: block; /* Por defecto se muestran */
+}
+.page-content.active {
+    display: block; /* La activa se muestra */
+}
+
+/* Reutilizamos los estilos de la lista de chats de la app principal */
+.chat-list-item { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--surface-color); cursor: pointer; }
+.chat-list-item:hover { background-color: var(--surface-color); }
+.chat-list-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-right: 12px; }
+.chat-list-content { flex-grow: 1; overflow: hidden; }
+.chat-list-header { display: flex; justify-content: space-between; align-items: baseline; }
+.chat-list-username { font-weight: bold; font-size: 0.9rem; color: var(--text-color); }
+.chat-list-time { font-size: 0.7rem; color: var(--text-secondary-color); flex-shrink: 0; }
+.chat-list-snippet { font-size: 0.85rem; color: var(--text-secondary-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+
+
+
+
+/* ========================================================== */
+/* === ¡NUEVOS ESTILOS DE CHAT COPIADOS Y ADAPTADOS! === */
+/* ========================================================== */
+
+/* --- ESTILOS PARA LA VISTA DE CHAT --- */
+.chat-view-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: var(--color-bg);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    border-radius: 28px; /* Para que coincida con el borde del body */
+    overflow: hidden;
+}
+.chat-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    background-color: var(--color-surface);
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-ui);
+}
+.chat-back-btn { background: none; border: none; color: var(--color-text); font-size: 24px; cursor: pointer; padding-right: 16px; }
+.chat-header-info { display: flex; align-items: center; gap: 10px; }
+.chat-header-info img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.chat-header-info span { font-weight: bold; }
+
+/* Contenedor de mensajes (copiado de .chat-messages) */
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+
+    /* ========================================================== */
+    /* === ¡AQUÍ ESTÁ LA LÍNEA MÁGICA QUE SOLUCIONA EL BUG! === */
+    /* ========================================================== */
+    /* 
+     * Le decimos a este elemento que solo reaccione a gestos de paneo (scroll)
+     * en el eje Y (vertical). Ignorará los gestos en el eje X (horizontal),
+     * permitiendo que nuestro listener de 'touchmove' en JavaScript los capture.
+     */
+    touch-action: pan-y;
+    /* ========================================================== */
+}
+
+/* Barra de input (copiada de .comment-input-bar y adaptada) */
+.chat-input-bar {
+    display: flex;
+    align-items: center; /* Alinear verticalmente */
+    padding: 8px;
+    background-color: var(--color-surface);
+    border-top: 1px solid var(--color-ui);
+    flex-shrink: 0;
+}
+#chat-message-input {
+    flex-grow: 1;
+    resize: none;
+    background: var(--color-ui);
+    border: none;
+    border-radius: 18px;
+    padding: 8px 15px;
+    color: var(--color-text);
+    font-size: 1rem;
+    max-height: 100px; /* Evita que crezca indefinidamente */
+    outline: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.chat-send-btn {
+    background: var(--color-accent);
+    color: var(--color-text);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-left: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- BURBUJAS DE MENSAJE (ESTILOS COMPLETOS COPIADOS DE pages.css) --- */
+.message-bubble {
+    max-width: 80%;
+    padding: 8px 12px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    transition: border-radius 0.2s ease-in-out, margin-bottom 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column; 
+    gap: 5px;
+}
+.message-main-content {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+.message-bubble p {
+    margin: 0; padding: 0; flex-grow: 1; word-break: break-word; 
+}
+.message-timestamp {
+    font-size: 0.7rem;
+    color: var(--color-text);
+    opacity: 0.6;
+    white-space: nowrap;
+    align-self: flex-end;
+    margin-bottom: -2px;
+}
+.message-bubble.received {
+    background-color: var(--color-surface);
+    align-self: flex-start;
+}
+.message-bubble.sent {
+    background-color: var(--color-accent);
+    align-self: flex-end;
+}
+
+/* ESTILOS PARA BURBUJAS AGRUPADAS (COPIADO DIRECTAMENTE) */
+.message-bubble.single, .message-bubble.end-group {
+    margin-bottom: 10px;
+}
+.message-bubble.start-group, .message-bubble.middle-group {
+    margin-bottom: 3px;
+}
+.received.single, .received.start-group { border-top-left-radius: 20px; }
+.received.single, .received.end-group { border-bottom-left-radius: 20px; }
+.received.single, .received.start-group, .received.middle-group, .received.end-group { border-top-right-radius: 20px; border-bottom-right-radius: 20px; }
+.received.middle-group, .received.end-group { border-top-left-radius: 4px; }
+.received.start-group, .received.middle-group { border-bottom-left-radius: 4px; }
+.sent.single, .sent.start-group { border-top-right-radius: 20px; }
+.sent.single, .sent.end-group { border-bottom-right-radius: 20px; }
+.sent.single, .sent.start-group, .sent.middle-group, .sent.end-group { border-top-left-radius: 20px; border-bottom-left-radius: 20px; }
+.sent.middle-group, .sent.end-group { border-top-right-radius: 4px; }
+.sent.start-group, .sent.middle-group { border-bottom-right-radius: 4px; }
+
+
+
+
+
+/* --- ESTILOS PARA LA FUNCIÓN DE RESPONDER (COPIADOS Y ADAPTADOS) --- */
+
+.reply-context {
+    background-color: var(--color-surface);
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--color-ui);
+    display: none; /* Oculto por defecto, JS lo mostrará */
+}
+
+.reply-preview {
+    border-left: 3px solid var(--color-accent);
+    padding-left: 10px;
+    overflow: hidden;
+    min-width: 0;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.reply-preview strong {
+    color: var(--color-accent);
+    font-weight: bold;
+}
+
+.reply-snippet {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cancel-reply-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary-color);
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 0 10px;
+}
+
+/* Contenedor para el mensaje respondido DENTRO de una burbuja */
+.replied-to-snippet {
+    background-color: rgba(0,0,0,0.2);
+    padding: 6px 10px;
+    border-radius: 12px;
+    margin-bottom: 5px;
+    border-left: 3px solid var(--color-accent);
+}
+.replied-to-snippet .replied-user {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--color-accent);
+}
+.replied-to-snippet .replied-text {
+    display: block;
+    color: var(--color-text);
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+
+
+
+/* --- ESTILOS PARA SALTAR A MENSAJE (HIGHLIGHT) --- */
+
+/* Hacemos que el snippet de respuesta parezca clicable */
+.replied-to-snippet {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.replied-to-snippet:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Animación de resaltado para el mensaje original */
+@keyframes highlight-animation {
+    0% {
+        /* El color de fondo se hereda de la clase .sent o .received */
+        background-color: var(--color-accent);
+        opacity: 0.7;
+    }
+    100% {
+        /* Vuelve al color de fondo original de la burbuja */
+        background-color: inherit;
+        opacity: 1;
+    }
+}
+
+.message-bubble.highlighted {
+    /* Aplicamos la animación */
+    animation: highlight-animation 1.5s ease-out;
+}
+
+
+
+
+/* ========================================================== */
+/* === ¡AQUÍ ESTÁ LA CORRECCIÓN PARA EL SUBRAYADO! === */
+/* ========================================================== */
+/* 
+ * Seleccionamos todas las etiquetas <a> que tengan la clase .replied-to-snippet
+ * y les quitamos la decoración de texto (el subrayado).
+ */
+a.replied-to-snippet {
+    text-decoration: none;
+}
+/* ========================================================== */
+
+
+
+
+/* ========================================
+   --- ESTILOS PARA MENÚ CONTEXTUAL (VERSIÓN FINAL CORREGIDA) ---
+======================================== */
+
+/* 1. El overlay vuelve a tener el filtro backdrop-filter. */
+.context-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    /* Un fondo muy sutil para mejorar el efecto de desenfoque */
+    background-color: rgba(0, 0, 0, 0.1); 
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    z-index: 20; /* Nivel base */
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.2s ease;
+}
+.context-overlay.visible { opacity: 1; visibility: visible; }
+/* Nueva regla para ocultar la burbuja original temporalmente */
+.message-bubble.context-hidden {
+    visibility: hidden;
+    
+}
+/* 2. Burbuja activa: La clave es que NO TENGA `position: relative`. */
+.message-bubble.context-active {
+    /* Ya NO NECESITAMOS z-index ni position aquí. */
+    /* Mantenemos solo los estilos visuales */
+    z-index: 20;
+    box-shadow: 0 0 25px 8px var(--message-color, rgba(255,255,255,0.5));
+    transform: scale(1.03);
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+/* 3. El menú va por encima de todo. No cambia. */
+.context-menu {
+    position: fixed;
+    z-index: 22; /* El nivel más alto */
+    visibility: hidden;
+}
+.context-menu.visible { visibility: visible; }
+
+/* 4. Las opciones del menú */
+/* Opciones del menú (REDISEÑADO) */
+.context-menu-options {
+    display: flex;
+    flex-direction: column; /* Apilamos los botones verticalmente */
+    background-color: var(--color-ui);
+    border-radius: 14px;
+    padding: 6px;
+    min-width: 200px; /* Ancho mínimo para el menú */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+    
+    transform-origin: top center;
+    transform: scale(0.9) translateY(-10px);
+    opacity: 0;
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease;
+}
+
+.context-menu-options svg{
+    fill: var(--color-text);
+}
+
+.context-menu.visible .context-menu-options {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+
+/* 5. Botones individuales del menú */
+.context-menu-button {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: none;
+    border: none;
+    color: var(--color-text);
+    padding: 12px 15px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    border-radius: 8px;
+}
+
+.context-menu-button:hover {
+    background-color: var(--color-surface);
+}
+
+/* Separador entre botones */
+.context-menu-button:not(:last-child) {
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Iconos del menú */
+.context-menu-icon {
+    font-size: 1.2rem;
+    width: 24px; /* Alineación vertical */
+    text-align: center;
+}
+
+/* Estilo para el botón de acción destructiva */
+.context-menu-button.destructive {
+    color: #ef4444; /* Rojo */
+}
+.context-menu-button.destructive .context-menu-icon {
+    color: #ef4444; /* Aseguramos que el emoji/icono también se tiña si es posible */
+}
+
+.message-bubble.pending {
+    opacity: 0.7; /* Hacemos la burbuja ligeramente transparente */
+    pointer-events: none; /* Desactivamos cualquier interacción (long press, etc.) */
+}
+
+
+
+
+
+
+/* --- ESTILOS PARA EL MODAL DE CONFIRMACIÓN --- */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30; /* Por encima de todo, incluso del menú contextual */
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.modal-content {
+    background-color: var(--color-surface);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    max-width: 80%;
+    text-align: center;
+}
+
+.modal-content h4 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: var(--color-text);
+}
+
+.modal-content p {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin: 10px 0 20px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.modal-btn.secondary {
+    background-color: var(--color-ui);
+    color: var(--color-text);
+}
+
+.modal-btn.danger {
+    background-color: #ef4444; /* Rojo peligro */
+    color: white;
+}
+
+
+
+
+/* --- ESTILOS PARA EL SEPARADOR DE FECHA (COPIADO DE pages.css) --- */
+
+.date-separator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0 10px 0;
+}
+
+.date-separator span {
+    background-color: var(--color-ui);
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+
+
+
+/* --- ESTILOS PARA EL HEADER DE FECHA ANCLADO (COPIADO DE pages.css) --- */
+
+.sticky-date-header {
+    /* Lo posicionamos absolutamente relativo al `.chat-view-container` */
+    position: absolute;
+    /* Justo debajo del header principal del chat */
+    top: 56px; /* Ajusta este valor si la altura de tu .chat-header es diferente */
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 10px;
+    z-index: 5; /* Por encima de los mensajes, pero debajo de otros menús */
+    pointer-events: none; /* Para poder hacer clic a través de él */
+
+    /* Animación de entrada/salida */
+    transform: translateY(-150%);
+    opacity: 0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.sticky-date-header.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Reutilizamos el estilo de la píldora de fecha que ya tenemos */
+.sticky-date-header span {
+    background-color: var(--color-ui);
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}

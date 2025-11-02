@@ -65,6 +65,7 @@ export function initThemesPage() {
                 secondaryTextColor: styles.getPropertyValue('--color-text-secondary').trim(),
                 surfaceColor: styles.getPropertyValue('--color-surface').trim(),
                 accentColor: styles.getPropertyValue('--color-accent').trim(),
+                uiColor: styles.getPropertyValue('--color-ui').trim(), // <-- Añade esta
             };
             GameDetectorPlugin.syncThemeToNative({ theme: theme });
         }

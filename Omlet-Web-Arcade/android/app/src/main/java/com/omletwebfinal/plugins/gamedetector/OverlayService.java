@@ -92,8 +92,14 @@ public class OverlayService extends Service {
                 themeData.put("secondaryTextColor", intent.getStringExtra("secondaryTextColor"));
                 themeData.put("surfaceColor", intent.getStringExtra("surfaceColor"));
                 themeData.put("accentColor", intent.getStringExtra("accentColor"));
+
+                // --- ¡AÑADE ESTAS DOS LÍNEAS QUE FALTABAN! ---
+                themeData.put("uiColor", intent.getStringExtra("uiColor"));
+                themeData.put("borderColor", intent.getStringExtra("borderColor"));
+
                 lastReceivedTheme = themeData;
-                Log.d(TAG, "Tema actualizado y guardado en el servicio.");
+                Log.d(TAG, "Tema actualizado y guardado en el servicio: " + themeData.toString());
+
                 if (isWindowOpen && floatingWebView != null) {
                     applyThemeToWebView(lastReceivedTheme);
                 }
@@ -240,6 +246,9 @@ public class OverlayService extends Service {
         windowManager.addView(bubbleView, bubbleParams);
     }
 
+    // --- ACTUALIZA LOS PARAMS DE LA VENTANA ---
+    // Añadimos una variable a nivel de clase para los parámetros
+    private WindowManager.LayoutParams floatingWindowParams;
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     private void showFloatingWindow() {
         isWindowOpen = true;
@@ -284,15 +293,22 @@ public class OverlayService extends Service {
             floatingWebView.loadData("<html><body><h1>Error al cargar la interfaz</h1></body></html>", "text/html", "UTF-8");
         }
 
-        int layoutType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
-        final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+        int layoutType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
+
+        // Usamos la variable de clase
+        floatingWindowParams = new WindowManager.LayoutParams(
             (int) (getResources().getDisplayMetrics().widthPixels * 0.85),
             (int) (getResources().getDisplayMetrics().heightPixels * 0.75),
-            layoutType, 0, PixelFormat.TRANSLUCENT);
-        params.dimAmount = 0.8f;
-        params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
-        params.gravity = Gravity.CENTER;
-        windowManager.addView(floatingViewContainer, params);
+            layoutType,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, // Inicia SIN foco
+            PixelFormat.TRANSLUCENT);
+        
+        floatingWindowParams.dimAmount = 0.8f;
+        floatingWindowParams.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        floatingWindowParams.gravity = Gravity.CENTER;
+
+        windowManager.addView(floatingViewContainer, floatingWindowParams);
         bubbleView.setVisibility(View.GONE);
 
         floatingViewContainer.setFocusableInTouchMode(true);
@@ -471,6 +487,33 @@ public class OverlayService extends Service {
             if (appCheckRunnable != null) {
                 handler.post(appCheckRunnable);
             }
+        }
+
+         // ==========================================================
+        // === ¡NUEVOS MÉTODOS PARA GESTIONAR EL FOCO DEL TECLADO! ===
+        // ==========================================================
+        @JavascriptInterface
+        public void requestWindowFocus() {
+            new Handler(mContext.getMainLooper()).post(() -> {
+                if (floatingViewContainer != null) {
+                    // Quitamos el flag NOT_FOCUSABLE
+                    floatingWindowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                    windowManager.updateViewLayout(floatingViewContainer, floatingWindowParams);
+                    Log.d(TAG, "Foco solicitado para la ventana flotante.");
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void releaseWindowFocus() {
+            new Handler(mContext.getMainLooper()).post(() -> {
+                if (floatingViewContainer != null) {
+                    // Volvemos a añadir el flag NOT_FOCUSABLE
+                    floatingWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                    windowManager.updateViewLayout(floatingViewContainer, floatingWindowParams);
+                    Log.d(TAG, "Foco liberado de la ventana flotante.");
+                }
+            });
         }
     }
 }

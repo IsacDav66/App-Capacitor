@@ -315,8 +315,19 @@ export async function initChatPage() {
         });
 
         chatState.socket.on('receive_message', (message) => {
+            // ==========================================================
+            // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
+            // ==========================================================
+            // Si el ID del remitente del mensaje es el nuestro, lo ignoramos,
+            // porque ya lo hemos renderizado de forma optimista al enviarlo.
+            if (message.sender_id === loggedInUserId) {
+                console.log('CHAT: Ignorando eco del mensaje propio.');
+                return;
+            }
+            // ==========================================================
+            
             if (!document.getElementById(`msg-${message.message_id}`)) {
-                appendMessage(message, false);
+                appendMessage(message, false); // El `false` aquí ya no importa tanto, pero lo dejamos
             }
         });
 

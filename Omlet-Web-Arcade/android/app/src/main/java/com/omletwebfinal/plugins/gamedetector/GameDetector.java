@@ -164,17 +164,18 @@ public class GameDetector extends Plugin {
             call.reject("El objeto 'theme' es nulo.");
             return;
         }
-
-        // --- LOG AÑADIDO ---
-        Log.d("GameDetectorPlugin", "➡️ syncThemeToNative: Recibido. Transmitiendo broadcast THEME_UPDATED...");
-
-        // Enviamos la transmisión para que el servicio la escuche
         Intent intent = new Intent("com.omletwebfinal.THEME_UPDATED");
+
+        // Pasamos todos los colores que JS nos envía
         intent.putExtra("bgColor", theme.getString("bgColor"));
         intent.putExtra("textColor", theme.getString("textColor"));
         intent.putExtra("secondaryTextColor", theme.getString("secondaryTextColor"));
         intent.putExtra("surfaceColor", theme.getString("surfaceColor"));
         intent.putExtra("accentColor", theme.getString("accentColor"));
+        
+        // --- ¡AÑADE ESTAS DOS LÍNEAS QUE FALTABAN! ---
+        intent.putExtra("uiColor", theme.getString("uiColor"));
+        intent.putExtra("borderColor", theme.getString("borderColor")); // Usaremos 'borderColor' para ser claros
         
         getContext().sendBroadcast(intent);
         call.resolve();
