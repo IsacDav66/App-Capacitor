@@ -7,6 +7,13 @@ import { getFullImageUrl, formatMessageTime, formatDateSeparator } from '../util
 let elements = {}; // Guardará las referencias a los elementos del DOM
 let chatState = {}; // Guardará el estado específico de esta instancia del chat
 let loggedInUserId, otherUserId; // IDs de los participantes
+let activeClone = null; // NUEVA variable para guardar la referencia al clon
+
+
+// ¡VARIABLES QUE FALTABAN, AHORA DECLARADAS!
+let originalParent = null;
+let nextSibling = null;
+
 
 // ==========================================================
 // === FUNCIONES DE LÓGICA Y RENDERIZADO (AHORA REUTILIZABLES)
@@ -15,7 +22,7 @@ let loggedInUserId, otherUserId; // IDs de los participantes
 // Todas las funciones internas ahora usarán `elements.nombreDelElemento`
 // en lugar de `document.getElementById('nombre-del-elemento')`.
 
-const appendMessage = (message) => { // <-- CAMBIO: Ya no necesita `isOwnMessage`
+const appendMessage = (message) => {
     const isOwnMessage = message.sender_id === loggedInUserId;
     const lastMessageEl = elements.messagesContainer.querySelector('.message-bubble:last-child');
     const messageDiv = document.createElement('div');
@@ -27,16 +34,13 @@ const appendMessage = (message) => { // <-- CAMBIO: Ya no necesita `isOwnMessage
     if (String(message.message_id).startsWith('temp-')) {
         messageDiv.classList.add('pending');
     }
-
     if (message.parent_message_id) {
         let parentUsername = message.parent_username;
         let parentContent = message.parent_content;
         if (isOwnMessage && !parentContent) {
-            // <-- CAMBIO: Usa `elements.messagesContainer`
             const parentMessageEl = elements.messagesContainer.querySelector(`#msg-${message.parent_message_id}`); 
             if (parentMessageEl) {
                 parentContent = parentMessageEl.querySelector('p').textContent;
-                 // <-- CAMBIO: Usa `elements.userUsername`
                 parentUsername = parentMessageEl.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
             }
         }
@@ -49,7 +53,6 @@ const appendMessage = (message) => { // <-- CAMBIO: Ya no necesita `isOwnMessage
             messageDiv.appendChild(repliedSnippetLink);
         }
     }
-
     const mainContentWrapper = document.createElement('div');
     mainContentWrapper.className = 'message-main-content';
     const contentP = document.createElement('p');
@@ -60,18 +63,15 @@ const appendMessage = (message) => { // <-- CAMBIO: Ya no necesita `isOwnMessage
     mainContentWrapper.appendChild(contentP);
     mainContentWrapper.appendChild(timestampSpan);
     messageDiv.appendChild(mainContentWrapper);
-    elements.messagesContainer.appendChild(messageDiv); // <-- CAMBIO: Usa `elements`
-    
+    elements.messagesContainer.appendChild(messageDiv);
     if (lastMessageEl) {
         lastMessageEl.className = lastMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(lastMessageEl);
     }
     messageDiv.classList.add(getGroupClassFor(messageDiv));
-    
     if (!messageDiv.classList.contains('pending')) {
         addInteractionHandlers(messageDiv);
     }
-    
-    elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight; // <-- CAMBIO: Usa `elements`
+    elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
 };
 
 const removeMessageFromDOM = (messageId) => {
@@ -156,90 +156,186 @@ const scrollToMessage = (messageId) => {
             navigator.clipboard.writeText(textToCopy).catch(err => console.error('Error copying:', err));
         };
 
-        const deleteMessage = async (messageId) => {
-            if (!confirm('Delete this message? This cannot be undone.')) return;
-            try {
+        /**
+ * Muestra un modal de confirmación y llama a la API para eliminar un mensaje.
+ * @param {string} messageId - El ID del mensaje a eliminar.
+ */
+async function deleteMessage(messageId) {
+    // 1. Usamos el objeto `elements` para encontrar los elementos del modal
+    const modal = elements.deleteConfirmModal;
+    const cancelBtn = elements.cancelDeleteBtn;
+    const confirmBtn = elements.confirmDeleteBtn;
+
+    if (!modal || !cancelBtn || !confirmBtn) {
+        console.error("Elementos del modal de eliminación no encontrados en el DOM. Usando confirm() como fallback.");
+        // Fallback al confirm nativo si los elementos no existen
+        if (confirm('¿Seguro que quieres eliminar este mensaje?')) {
+             try {
                 await apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' });
             } catch (error) {
-                alert(`Error deleting: ${error.message}`);
+                alert(`Error al eliminar: ${error.message}`);
             }
-        };
+        }
+        return;
+    }
 
-const openContextMenu = (messageElement) => {
-    // <-- CAMBIO: Usa `elements`
-    elements.deleteBtn.style.display = messageElement.classList.contains('sent') ? 'flex' : 'none';
-    elements.contextMenuOverlay.classList.add('visible');
-    messageElement.classList.add('context-active');
+    // 2. Mostrar el modal
+    modal.style.display = 'flex';
 
-            const menuRect = contextMenu.getBoundingClientRect();
-            const bubbleRect = messageElement.getBoundingClientRect();
-            const margin = 10;
-            let menuTop = bubbleRect.bottom + margin;
-            if (menuTop + menuRect.height > window.innerHeight) {
-                menuTop = bubbleRect.top - menuRect.height - margin;
-            }
-            let menuLeft = bubbleRect.left + (bubbleRect.width / 2) - (menuRect.width / 2);
-            if (menuLeft < margin) menuLeft = margin;
-            if (menuLeft + menuRect.width > window.innerWidth - margin) menuLeft = window.innerWidth - menuRect.width - margin;
+    // 3. Crear una promesa que se resolverá cuando el usuario haga clic en un botón
+    const waitForUserInput = new Promise((resolve) => {
+        cancelBtn.onclick = () => resolve(false);
+        confirmBtn.onclick = () => resolve(true);
+    });
 
-            contextMenu.style.top = `${menuTop}px`;
-            contextMenu.style.left = `${menuLeft}px`;
-            
-            setTimeout(() => contextMenu.classList.add('visible'), 0);
+    // 4. Esperar a que el usuario decida
+    const shouldDelete = await waitForUserInput;
 
-            replyBtn.onclick = () => {
-                const username = messageElement.classList.contains('sent') ? 'Tú' : userUsernameEl.textContent;
-                const content = messageElement.querySelector('p').textContent;
-                enterReplyMode(messageElement.id.replace('msg-', ''), username, content);
-                closeContextMenu();
-            };
-            copyBtn.onclick = () => { copyMessageText(messageElement); closeContextMenu(); };
-            deleteBtn.onclick = () => { deleteMessage(messageElement.id.replace('msg-', '')); closeContextMenu(); };
-            contextMenuOverlay.onclick = closeContextMenu;
-        };
+    // 5. Ocultar el modal
+    modal.style.display = 'none';
 
- const closeContextMenu = () => {
-            if (chatState.contextMenuTarget) {
-                chatState.contextMenuTarget.classList.remove('context-active');
-            }
-            contextMenuOverlay.classList.remove('visible');
-            contextMenu.classList.remove('visible');
-            chatState.contextMenuTarget = null;
-        };
+    // 6. Si el usuario confirmó, proceder con la eliminación
+    if (shouldDelete) {
+        try {
+            await apiFetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' });
+            console.log(`Solicitud de eliminación enviada para el mensaje ID: ${messageId}`);
+        } catch (error) {
+            alert(`Error al eliminar el mensaje: ${error.message}`);
+        }
+    }
+}
+
+// ==========================================================
+// === FUNCIONES DEL MENÚ CONTEXTUAL (VERSIÓN CON CLONACIÓN) ===
+// ==========================================================
+
+function openContextMenu(messageElement) {
+    if (!messageElement) return;
+
+    activeClone = messageElement.cloneNode(true);
+    const rect = messageElement.getBoundingClientRect();
+    
+    // Guardamos la posición original
+    originalParent = messageElement.parentElement;
+    nextSibling = messageElement.nextElementSibling;
+    
+    const isFloatingWindow = (window.self !== window.top);
+
+    if (isFloatingWindow) {
+        activeClone.style.position = 'fixed';
+        activeClone.style.top = `${rect.top}px`;
+    } else {
+        activeClone.style.position = 'fixed';
+        activeClone.style.top = `${rect.top}px`;
+        activeClone.style.left = `${rect.left}px`;
+
+    }
+    
+    activeClone.style.zIndex = '100';
+    activeClone.classList.add('context-active');
+    messageElement.classList.add('context-hidden');
+    document.body.appendChild(activeClone);
+
+    const overlay = elements.contextMenuOverlay;
+    const menu = elements.contextMenu;
+    const replyBtn = elements.replyFromMenuBtn;
+    const copyBtn = elements.copyBtn;
+    const deleteBtn = elements.deleteBtn;
+
+    if (!overlay || !menu) return;
+    
+    chatState.contextMenuTarget = messageElement;
+    
+    deleteBtn.style.display = messageElement.classList.contains('sent') ? 'flex' : 'none';
+    overlay.classList.add('visible');
+
+    const menuRect = menu.getBoundingClientRect();
+    let menuTop = rect.bottom + 10;
+    if (menuTop + menuRect.height > window.innerHeight) {
+        menuTop = rect.top - menuRect.height - 10;
+    }
+    let menuLeft = rect.left + (rect.width / 2) - (menuRect.width / 2);
+    if (menuLeft < 10) menuLeft = 10;
+    if (menuLeft + menuRect.width > window.innerWidth - 10) {
+        menuLeft = window.innerWidth - menuRect.width - 10;
+    }
+    menu.style.top = `${menuTop}px`;
+    menu.style.left = `${menuLeft}px`;
+    setTimeout(() => menu.classList.add('visible'), 0);
+
+    replyBtn.onclick = () => {
+        const username = messageElement.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
+        const content = messageElement.querySelector('p').textContent;
+        enterReplyMode(messageElement.id.replace('msg-', ''), username, content);
+        closeContextMenu();
+    };
+    copyBtn.onclick = () => { copyMessageText(messageElement); closeContextMenu(); };
+    deleteBtn.onclick = () => { deleteMessage(messageElement.id.replace('msg-', '')); closeContextMenu(); };
+    overlay.onclick = closeContextMenu;
+}
+
+function closeContextMenu() {
+    const overlay = elements.contextMenuOverlay;
+    const menu = elements.contextMenu;
+    if (!overlay || !menu) return;
+
+    if (activeClone) {
+        activeClone.remove();
+        activeClone = null;
+    }
+    
+    if (chatState.contextMenuTarget) {
+        chatState.contextMenuTarget.classList.remove('context-hidden');
+    }
+    
+    overlay.classList.remove('visible');
+    menu.classList.remove('visible');
+    chatState.contextMenuTarget = null;
+    originalParent = null;
+    nextSibling = null;
+}
 const addInteractionHandlers = (messageElement) => {
-            let startX = 0, deltaX = 0, longPressTimer;
-            const swipeThreshold = 80;
+    let startX = 0, deltaX = 0, longPressTimer;
+    const swipeThreshold = 80;
 
-            messageElement.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-                deltaX = 0;
-                messageElement.style.transition = 'transform 0.1s ease-out';
-                longPressTimer = setTimeout(() => openContextMenu(messageElement), 500);
-            }, { passive: true });
+    messageElement.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        deltaX = 0;
+        messageElement.style.transition = 'transform 0.1s ease-out';
+        longPressTimer = setTimeout(() => {
+            e.preventDefault();
+            openContextMenu(messageElement)
+        }, 500);
+    }, { passive: false });
 
-            messageElement.addEventListener('touchmove', (e) => {
-                clearTimeout(longPressTimer);
-                deltaX = e.touches[0].clientX - startX;
-                if (deltaX > 0) {
-                    const pullDistance = Math.min(deltaX, swipeThreshold + 40);
-                    messageElement.style.transform = `translateX(${pullDistance}px)`;
-                }
-            }, { passive: true });
+    messageElement.addEventListener('touchmove', (e) => {
+        clearTimeout(longPressTimer);
+        deltaX = e.touches[0].clientX - startX;
+        if (deltaX > 0) {
+            const pullDistance = Math.min(deltaX, swipeThreshold + 40);
+            messageElement.style.transform = `translateX(${pullDistance}px)`;
+        }
+    }, { passive: true });
 
-            messageElement.addEventListener('touchend', () => {
-                clearTimeout(longPressTimer);
-                messageElement.style.transition = 'transform 0.3s ease-out';
-                if (deltaX > swipeThreshold) {
-                    const username = messageElement.classList.contains('sent') ? 'Tú' : userUsernameEl.textContent;
-                    const content = messageElement.querySelector('p').textContent;
-                    enterReplyMode(messageElement.id.replace('msg-', ''), username, content);
-                    messageElement.style.transform = `translateX(60px)`;
-                    setTimeout(() => { messageElement.style.transform = 'translateX(0)'; }, 150);
-                } else {
-                    messageElement.style.transform = 'translateX(0)';
-                }
-            });
-        };
+    messageElement.addEventListener('touchend', () => {
+        clearTimeout(longPressTimer);
+        messageElement.style.transition = 'transform 0.3s ease-out';
+        if (deltaX > swipeThreshold) {
+            // ==========================================================
+            // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
+            // ==========================================================
+            // Usamos `elements.userUsername` en lugar de `userUsernameEl`
+            const username = messageElement.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
+            // ==========================================================
+            const content = messageElement.querySelector('p').textContent;
+            enterReplyMode(messageElement.id.replace('msg-', ''), username, content);
+            messageElement.style.transform = `translateX(60px)`;
+            setTimeout(() => { messageElement.style.transform = 'translateX(0)'; }, 150);
+        } else {
+            messageElement.style.transform = 'translateX(0)';
+        }
+    });
+};
         
         // ----------------------------------------------------------------
         // 4. MESSAGE GROUPING LOGIC & OTHER HELPERS
@@ -272,6 +368,11 @@ export async function initChatController(domElements, partnerId, currentUserId) 
     elements = domElements;
     otherUserId = partnerId;
     loggedInUserId = currentUserId;
+
+    if (!otherUserId || !loggedInUserId || !elements.messagesContainer) {
+        console.error("Faltan datos o elementos del DOM para inicializar el chat.");
+        return;
+    }
 
     chatState = {
         currentReplyToId: null,
@@ -310,49 +411,84 @@ export async function initChatController(domElements, partnerId, currentUserId) 
         chatState.socket.on('message_deleted', ({ messageId }) => removeMessageFromDOM(messageId));
 
         // 4. Configurar listeners del DOM
-        elements.cancelReplyBtn.addEventListener('click', cancelReplyMode);
-        elements.chatForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const content = elements.chatInput.value.trim();
-            if (content) {
-                const tempId = `temp-${Date.now()}`;
-                const messageData = {
-                    message_id: tempId, sender_id: loggedInUserId, receiver_id: parseInt(otherUserId),
-                    content: content, roomName: chatState.roomName, created_at: new Date().toISOString(),
-                    parent_message_id: chatState.currentReplyToId,
-                };
-                chatState.socket.emit('send_message', messageData);
-                appendMessage(messageData); 
-                elements.chatInput.value = '';
-                cancelReplyMode();
-            }
-        });
-        // ... (Listener de scroll para el sticky header, usando `elements.messagesContainer`)
-        let hideHeaderTimeout;
-        chatMessagesContainer.addEventListener('scroll', () => {
-            const dateSeparators = Array.from(chatMessagesContainer.querySelectorAll('.date-separator'));
-            if (dateSeparators.length === 0) return;
-            let activeSeparatorText = null;
-            const containerTop = chatMessagesContainer.getBoundingClientRect().top;
-            for (let i = dateSeparators.length - 1; i >= 0; i--) {
-                if (dateSeparators[i].getBoundingClientRect().top < containerTop) {
-                    activeSeparatorText = dateSeparators[i].querySelector('span').textContent;
-                    break;
+        // --- LISTENERS DEL DOM ---
+        
+        // Listener del botón Cancelar Respuesta (si existe)
+        if (elements.cancelReplyBtn) {
+            elements.cancelReplyBtn.addEventListener('click', cancelReplyMode);
+        }
+        
+        // Listener del formulario de envío (si existe)
+        if (elements.chatForm) {
+            // ==========================================================
+            // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
+            // ==========================================================
+            elements.chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Usamos `elements.chatInput` en lugar de `chatInput`
+                const content = elements.chatInput.value.trim();
+                if (content) {
+                    const tempId = `temp-${Date.now()}`;
+                    const messageData = {
+                        message_id: tempId, sender_id: loggedInUserId, receiver_id: parseInt(otherUserId),
+                        content: content, roomName: chatState.roomName, created_at: new Date().toISOString(),
+                        parent_message_id: chatState.currentReplyToId,
+                    };
+                    chatState.socket.emit('send_message', messageData);
+                    appendMessage(messageData); 
+                    // Usamos `elements.chatInput` para limpiar el campo
+                    elements.chatInput.value = '';
+                    cancelReplyMode();
                 }
-            }
-            if (activeSeparatorText) {
-                stickyHeaderText.textContent = activeSeparatorText;
-                stickyHeader.classList.add('visible');
-            } else {
-                stickyHeader.classList.remove('visible');
-            }
-            clearTimeout(hideHeaderTimeout);
-            hideHeaderTimeout = setTimeout(() => stickyHeader.classList.remove('visible'), 1500);
-        });
-        // 5. Cargar datos iniciales
+            });
+            // ==========================================================
+        }
+
+
+        // ==========================================================
+        // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
+        // ==========================================================
+        // Listener de scroll para el header de fecha pegajoso (si existe)
+        if (elements.messagesContainer && elements.stickyHeader) {
+            let hideHeaderTimeout;
+            elements.messagesContainer.addEventListener('scroll', () => {
+                // Usamos `elements.messagesContainer` en lugar de la variable antigua
+                const dateSeparators = Array.from(elements.messagesContainer.querySelectorAll('.date-separator'));
+                if (dateSeparators.length === 0) return;
+
+                let activeSeparatorText = null;
+                const containerTop = elements.messagesContainer.getBoundingClientRect().top;
+
+                for (let i = dateSeparators.length - 1; i >= 0; i--) {
+                    const separator = dateSeparators[i];
+                    if (separator.getBoundingClientRect().top < containerTop) {
+                        activeSeparatorText = separator.querySelector('span').textContent;
+                        break;
+                    }
+                }
+                
+                // Usamos `elements.stickyHeaderText` y `elements.stickyHeader`
+                if (activeSeparatorText) {
+                    elements.stickyHeaderText.textContent = activeSeparatorText;
+                    elements.stickyHeader.classList.add('visible');
+                } else {
+                    elements.stickyHeader.classList.remove('visible');
+                }
+                
+                clearTimeout(hideHeaderTimeout);
+                hideHeaderTimeout = setTimeout(() => {
+                    elements.stickyHeader.classList.remove('visible');
+                }, 1500);
+            });
+        }
+        // ==========================================================
+
         await fetchChatHistory();
 
     } catch (error) {
         console.error("Could not load Socket.IO library for chat.", error);
+        if (elements.messagesContainer) {
+            elements.messagesContainer.innerHTML = `<p class="search-placeholder">Chat connection error.</p>`;
+        }
     }
 }

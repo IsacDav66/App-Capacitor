@@ -349,7 +349,7 @@ main {
     border-top: 1px solid var(--color-ui);
     display: none; /* Oculto por defecto, JS lo mostrará */
 }
-
+.reply-context.visible { display: flex; }
 .reply-preview {
     border-left: 3px solid var(--color-accent);
     padding-left: 10px;
