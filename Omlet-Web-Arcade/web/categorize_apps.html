@@ -1,0 +1,91 @@
+<!-- Archivo: /web/categorize_apps.html (Ahora es Historial de Apps) -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Historial de Apps</title>
+    <!-- Tus scripts de tema y CSS links -->
+    <script>
+        (function () {
+            const theme = localStorage.getItem('app-theme') || 'purple';
+            const mode = localStorage.getItem('app-mode') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-mode', mode);
+        })();
+    </script>
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link href="./css/global.css" rel="stylesheet">
+    <link href="./css/components.css" rel="stylesheet">
+    <link href="./css/pages.css" rel="stylesheet">
+    <style>
+        /* Estilos específicos para la página de historial */
+        .app-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--color-ui);
+        }
+
+        .app-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            margin-right: 16px;
+            background-color: var(--color-ui);
+        }
+
+        .app-info {
+            flex-grow: 1;
+            color: var(--color-text);
+        }
+
+        .app-status {
+            font-weight: bold;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        .status-game {
+            color: #28a745;
+            background-color: rgba(40, 167, 69, 0.15);
+        }
+
+        .status-not-game {
+            color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.15);
+        }
+
+        .status-pending {
+            color: #ffc107;
+            background-color: rgba(255, 193, 7, 0.15);
+        }
+    </style>
+</head>
+
+<body class="layout-with-bars">
+    <!-- Barra Superior -->
+    <div class="top-bar">
+        <div class="top-left">
+            <a href="home.html" class="header-back-btn">←</a>
+        </div>
+        <span class="text-lg font-bold">Historial de Apps</span>
+        <div class="top-right"></div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <main>
+        <div id="apps-list-container">
+            <p class="search-placeholder">Cargando historial...</p>
+        </div>
+    </main>
+
+    <!-- Barra Inferior -->
+    <div class="bottom-bar"> <!-- ... (Copia y pega el contenido de tu bottom-bar aquí) ... --> </div>
+    <script src="./js/app.js" type="module"></script>
+</body>
+
+</html>

@@ -2,7 +2,7 @@
 
 import { apiFetch } from '../api.js';
 import { getCurrentUserId } from '../state.js';
-import { getFullImageUrl } from '../utils.js';
+import { getFullImageUrl,formatTimeAgo  } from '../utils.js';
 import { renderPosts } from '../components/postCard.js';
 import { setupSideMenu, loadSideMenuData } from '../ui/sideMenu.js';
 // <-- 1. CAMBIAMOS LA IMPORTACIÓN
@@ -11,6 +11,34 @@ import { initFriendsSidebarUI } from '../ui/friendsSidebar.js';
 /**
  * Módulo completo para la página de Perfil de Usuario.
  */
+
+
+// ==========================================================
+// === ¡NUEVA FUNCIÓN PARA RENDERIZAR LA LISTA DE JUEGOS! ===
+// ==========================================================
+function renderPlayedGames(games, container, placeholder) {
+    console.log("[FE LOG - renderPlayedGames] La función recibió los siguientes datos de juegos:", games);
+
+    if (!games || games.length === 0) {
+        container.innerHTML = '';
+        if (placeholder) {
+            // Mostramos el placeholder que estaba oculto por defecto
+            placeholder.style.display = 'block';
+            placeholder.textContent = 'Este usuario aún no ha jugado a ningún juego.';
+        }
+        return;
+    }
+
+    if (placeholder) placeholder.style.display = 'none';
+
+    container.innerHTML = games.map(game => `
+        <a href="#" class="game-item" data-package="${game.package_name}">
+            <img src="${getFullImageUrl(game.icon_url)}" class="game-icon" alt="${game.app_name}" onerror="this.onerror=null; this.src='./assets/img/default-avatar.png';"/>
+        </a>
+    `).join('');
+}
+
+
 export async function initUserProfilePage() {
     // --- 3. LLAMAMOS A LA FUNCIÓN DE UI CORRECTA ---
     // Estas funciones preparan los componentes de la página que no dependen de datos.
@@ -59,6 +87,8 @@ export async function initUserProfilePage() {
     const editBioBgBtn = document.getElementById('edit-bio-bg-btn');
     const bioBgInput = document.getElementById('bio-bg-input');
 
+    const lastPlayedEl = document.getElementById('last-played'); // <-- Nueva referencia
+
     // ----------------------------------------------------------------
     // 2. LÓGICA DE PESTAÑAS Y SWIPE
     // ----------------------------------------------------------------
@@ -67,25 +97,33 @@ export async function initUserProfilePage() {
     const tabContentContainer = document.getElementById('tab-content-container');
     let currentTabIndex = 0;
 
+    // --- FUNCIÓN PRINCIPAL PARA CAMBIAR DE PESTAÑA (CORREGIDA) ---
     async function goToTab(index) {
         if (index < 0 || index >= tabs.length || index === currentTabIndex) return;
 
         const prevIndex = currentTabIndex;
+        const newTab = tabs[index];
         const newContent = tabContents[index];
         const prevContent = tabContents[prevIndex];
         const direction = index > prevIndex ? 'right' : 'left';
         
         tabs[prevIndex].classList.remove('active');
-        tabs[index].classList.add('active');
+        newTab.classList.add('active');
 
-        // Carga de contenido bajo demanda
-        const tabId = tabs[index].dataset.tab;
-        const container = newContent.querySelector(`#${tabId}-container`);
-        if (container && container.innerHTML.trim() === '') {
-            await loadTabData(tabId, container);
-        }
+        // ==========================================================
+        // === ¡AQUÍ ESTÁ LA LÓGICA CORREGIDA! ===
+        // ==========================================================
+        const tabId = newTab.dataset.tab;
         
-        // Animación de deslizamiento
+        // Comprobamos si el panel de contenido ya tiene la marca de "cargado".
+        if (!newContent.dataset.loaded) {
+            // Si no está cargado, llamamos a la función para que busque los datos.
+            await loadTabData(tabId);
+            // Marcamos el panel como "cargado" para no volver a pedir los datos.
+            newContent.dataset.loaded = 'true';
+        }
+        // ==========================================================
+        
         prevContent.style.display = 'block';
         newContent.style.display = 'block';
         newContent.classList.add(direction === 'right' ? 'slide-in-right' : 'slide-in-left');
@@ -108,24 +146,44 @@ export async function initUserProfilePage() {
         
         currentTabIndex = index;
     }
-    
-    async function loadTabData(tabId, container) {
+
+
+    // --- LÓGICA DE CARGA DE DATOS PARA CADA PESTAÑA ---
+    async function loadTabData(tabId) {
+        const container = document.querySelector(`#${tabId}-content #${tabId}-container`);
+        if (!container) return; // Si la pestaña no tiene un contenedor de datos (como 'Acerca de')
+
         let endpoint = '';
-        if (tabId === 'posts') endpoint = `/api/posts/user/${targetUserId}`;
-        else if (tabId === 'saved' && isOwnProfile) endpoint = `/api/posts/saved`;
+        if (tabId === 'posts') {
+            endpoint = `/api/posts/user/${targetUserId}`;
+        } else if (tabId === 'saved' && isOwnProfile) {
+            endpoint = `/api/posts/saved`;
+        } else if (tabId === 'games') {
+            endpoint = `/api/user/${targetUserId}/played-games`;
+        }
         
         if (!endpoint) return;
         
         container.innerHTML = `<p class='text-center text-gray-400 p-8'>Cargando...</p>`;
         try {
+            console.log(`[FE LOG] Iniciando fetch a: ${endpoint}`);
             const data = await apiFetch(endpoint);
-            renderPosts(data.posts, container);
+            console.log(`[FE LOG] Respuesta de la API para la pestaña '${tabId}':`, data);
+            
+            if (tabId === 'posts' || tabId === 'saved') {
+                renderPosts(data.posts, container);
+            } else if (tabId === 'games') {
+                const placeholder = document.querySelector('#games-content .games-placeholder');
+                renderPlayedGames(data.games, container, placeholder);
+            }
         } catch (error) {
             container.innerHTML = `<p class='text-center text-red-500 p-8'>${error.message}</p>`;
         }
     }
     
-    tabs.forEach((tab, index) => tab.addEventListener('click', () => goToTab(index)));
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => goToTab(index));
+    });
 
     let touchStartX = 0;
     if (tabContentContainer) {
@@ -240,7 +298,18 @@ export async function initUserProfilePage() {
         if (document.getElementById('about-content') && user.bio_bg_url) {
             document.getElementById('about-content').style.backgroundImage = `url(${getFullImageUrl(user.bio_bg_url)})`;
         }
-
+         // ==========================================================
+        // === ¡NUEVA LÓGICA PARA "ÚLTIMO JUEGO JUGADO"! ===
+        // ==========================================================
+        if (lastPlayedEl) {
+            if (user.last_played_game && user.last_played_at) {
+                lastPlayedEl.textContent = `🎮 Jugó a ${user.last_played_game} ${formatTimeAgo(user.last_played_at)}`;
+                lastPlayedEl.style.display = 'block';
+            } else {
+                lastPlayedEl.style.display = 'none'; // Ocultar si no ha jugado a nada
+            }
+        }
+        // ==========================================================
         // Lógica condicional (dueño vs. visitante)
         if (isOwnProfile) {
             editProfileBtn.style.display = 'inline';

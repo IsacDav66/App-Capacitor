@@ -699,3 +699,60 @@ a.replied-to-snippet {
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
+
+
+
+
+
+/* ========================================================== */
+/* === ¡NUEVOS ESTILOS PARA LA SECCIÓN DE CLASIFICACIÓN! === */
+/* ========================================================== */
+
+#classification-section {
+  margin-top: 12px;
+}
+.classification-prompt {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.classification-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+.classify-btn {
+  border: 2px solid var(--color-ui);
+  background-color: transparent;
+  color: var(--color-text);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.classify-btn:hover {
+  transform: scale(1.1);
+}
+.classify-no {
+  color: #D33F49; /* Rojo */
+  border-color: #D33F49;
+}
+.classify-no:hover {
+  background-color: #D33F49;
+  color: white;
+}
+.classify-yes {
+  color: #34C759; /* Verde */
+  border-color: #34C759;
+}
+.classify-yes:hover {
+  background-color: #34C759;
+  color: white;
+}

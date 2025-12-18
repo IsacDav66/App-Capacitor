@@ -32,16 +32,23 @@
   var API_BASE_URL = "https://davcenter.servequake.com/app";
   async function apiFetch(endpoint, options = {}) {
     const token = localStorage.getItem("authToken");
+    console.log(`[API Fetch LOG] Token recuperado de localStorage para la petici\xF3n a ${endpoint}:`, token);
     const headers = { ...options.headers };
+    const finalOptions = { ...options };
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
     if (!(options.body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
     }
+    if (!finalOptions.method || finalOptions.method.toUpperCase() === "GET") {
+      finalOptions.cache = "no-store";
+    }
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
+      const finalUrl = `${API_BASE_URL}${endpoint}`;
+      console.log(`[API Fetch LOG] Enviando petici\xF3n a: ${finalUrl}`);
+      const response = await fetch(finalUrl, {
+        ...finalOptions,
         headers
       });
       const responseData = await response.json().catch(() => ({}));
@@ -490,8 +497,9 @@
     if (appDataCache.has(packageName)) return appDataCache.get(packageName);
     try {
       const data = await apiFetch(`/api/apps/${packageName}`);
+      console.log("Respuesta de la API para " + packageName + ":", data);
       if (data.found) {
-        const appData = { name: data.app.app_name, icon: data.app.icon_url };
+        const appData = { name: data.app.app_name, icon: data.app.icon_url, is_game: data.app.is_game };
         appDataCache.set(packageName, appData);
         return appData;
       } else {
@@ -499,7 +507,7 @@
         return null;
       }
     } catch (error) {
-      console.error(`Error al obtener datos de la app desde nuestra API para ${packageName}:`, error);
+      console.error(`Error al obtener datos de la app para ${packageName}:`, error);
       return null;
     }
   }
@@ -511,132 +519,8 @@
       usernameEl.textContent = user.username;
     }
   }
-  var renderFriends = async (friends, container) => {
-    if (!friends || friends.length === 0) {
-      container.innerHTML = '<p class="friend-status" style="padding: 1rem; text-align: center;">A\xFAn no tienes amigos.</p>';
-      return;
-    }
-    const friendItemsHTML = await Promise.all(friends.map(async (friend) => {
-      let statusText = "Desconectado";
-      let statusClass = "offline";
-      let statusIconHTML = "";
-      if (friend.is_online) {
-        if (friend.current_app && friend.current_app_package) {
-          const appData = await getAppData(friend.current_app_package);
-          if (appData) {
-            statusText = `Jugando a ${appData.name}`;
-            statusClass = "playing";
-            statusIconHTML = `<img src="${appData.icon}" class="status-app-icon" alt="${appData.name}">`;
-          } else {
-            statusText = `En ${friend.current_app}`;
-            statusClass = "playing";
-          }
-        } else {
-          statusText = "En l\xEDnea";
-          statusClass = "online";
-        }
-      }
-      return `
-            <div class="friend-item" data-user-id="${friend.id}">
-                <div class="friend-avatar-container">
-                    <img src="${getFullImageUrl(friend.profile_pic_url)}" class="friend-avatar" alt="Avatar de ${friend.username}">
-                    <div class="status-dot ${statusClass}">${statusIconHTML}</div>
-                </div>
-                <div class="friend-info">
-                    <div class="friend-username">${friend.username}</div>
-                    <div class="friend-status">${statusText}</div>
-                </div>
-            </div>`;
-    }));
-    container.innerHTML = friendItemsHTML.join("");
-  };
-  var updateFriendStatusInUI = async (data) => {
-    const { userId, isOnline, currentApp, currentAppPackage, currentAppIcon } = data;
-    const friendItem = document.querySelector(`.friend-item[data-user-id="${userId}"]`);
-    if (!friendItem) return;
-    const statusDot = friendItem.querySelector(".status-dot");
-    const statusText = friendItem.querySelector(".friend-status");
-    let newStatusText = "Desconectado";
-    let newStatusClass = "offline";
-    let newStatusIconHTML = "";
-    if (isOnline) {
-      if (currentApp && currentAppPackage) {
-        const appName = currentApp;
-        const appIcon = currentAppIcon ? getFullImageUrl(currentAppIcon) : (await getAppData(currentAppPackage))?.icon;
-        newStatusText = `Jugando a ${appName}`;
-        newStatusClass = "playing";
-        if (appIcon) {
-          newStatusIconHTML = `<img src="${appIcon}" class="status-app-icon" alt="${appName}">`;
-        }
-      } else {
-        newStatusText = "En l\xEDnea";
-        newStatusClass = "online";
-      }
-    }
-    statusDot.className = `status-dot ${newStatusClass}`;
-    statusDot.innerHTML = newStatusIconHTML;
-    statusText.textContent = newStatusText;
-  };
-  async function updateGameStatus({ appName, packageName }) {
-    const gameInfoSection = document.getElementById("game-info");
-    const gameNameEl = document.getElementById("game-name");
-    const gameIconEl = document.getElementById("game-icon");
-    const registerSection = document.getElementById("registration-section");
-    const titleEl = gameInfoSection.querySelector(".section-title");
-    if (!gameNameEl || !gameIconEl || !registerSection || !titleEl) return;
-    currentPackageName = packageName;
-    const appData = await getAppData(packageName);
-    if (appData && appData.name) {
-      titleEl.textContent = "Jugando ahora:";
-      gameNameEl.textContent = appData.name;
-      gameIconEl.src = getFullImageUrl(appData.icon) || "";
-      gameIconEl.style.display = "block";
-      registerSection.style.display = "none";
-      gameInfoSection.style.display = "block";
-    } else if (packageName) {
-      titleEl.textContent = "Juego no registrado:";
-      gameNameEl.textContent = packageName;
-      gameIconEl.style.display = "none";
-      registerSection.style.display = "block";
-      gameInfoSection.style.display = "block";
-    } else {
-      gameInfoSection.style.display = "none";
-    }
-  }
-  var renderChatList = (conversations, container) => {
-    if (!conversations || conversations.length === 0) {
-      container.innerHTML = '<p class="friend-status" style="padding: 1rem; text-align: center;">No tienes chats recientes.</p>';
-      return;
-    }
-    container.innerHTML = conversations.map((convo) => {
-      const snippet = convo.last_message_content.length > 25 ? convo.last_message_content.substring(0, 25) + "..." : convo.last_message_content;
-      return `
-            <div class="chat-list-item" data-user-id="${convo.user_id}">
-                <img src="${getFullImageUrl(convo.profile_pic_url)}" class="chat-list-avatar">
-                <div class="chat-list-content">
-                    <div class="chat-list-header">
-                        <span class="chat-list-username">${convo.username}</span>
-                        <span class="chat-list-time">${formatTimeAgo(convo.last_message_at)}</span>
-                    </div>
-                    <p class="chat-list-snippet">${snippet}</p>
-                </div>
-            </div>`;
-    }).join("");
-  };
-  function applyThemeUpdate(theme) {
-    console.log("FLOATING: Aplicando actualizaci\xF3n de tema completa:", theme);
-    const root = document.documentElement;
-    if (theme.bgColor) root.style.setProperty("--color-bg", theme.bgColor);
-    if (theme.textColor) root.style.setProperty("--color-text", theme.textColor);
-    if (theme.secondaryTextColor) root.style.setProperty("--text-secondary-color", theme.secondaryTextColor);
-    if (theme.surfaceColor) root.style.setProperty("--color-surface", theme.surfaceColor);
-    if (theme.accentColor) root.style.setProperty("--color-accent", theme.accentColor);
-    if (theme.uiColor) root.style.setProperty("--color-ui", theme.uiColor);
-    if (theme.borderColor) root.style.setProperty("--color-border", theme.borderColor);
-  }
   document.addEventListener("DOMContentLoaded", async () => {
     const closeBtn = document.getElementById("close-button");
-    const registerBtn = document.getElementById("register-btn");
     const mainViewHeader = document.querySelector("body > header");
     const mainViewContent = document.querySelector("body > main");
     const chatView = document.getElementById("chat-view");
@@ -644,7 +528,142 @@
     const tabs = document.querySelectorAll(".nav-tab");
     const pages = document.querySelectorAll(".page-content");
     const chatListContainer = document.getElementById("chat-list-container");
+    const registerSection = document.getElementById("registration-section");
+    const registerInitialView = document.getElementById("register-initial-view");
+    const registerFormView = document.getElementById("register-form-view");
+    const registerBtn = document.getElementById("register-btn");
+    const appNameInput = document.getElementById("register-app-name-input");
+    const saveAppBtn = document.getElementById("save-app-btn");
     let socket;
+    let isInteractingWithForm = false;
+    function resetRegistrationForm() {
+      if (!registerInitialView || !registerFormView || !appNameInput || !saveAppBtn) return;
+      registerFormView.style.display = "none";
+      registerInitialView.style.display = "block";
+      appNameInput.value = "";
+      saveAppBtn.disabled = false;
+      saveAppBtn.textContent = "Guardar";
+      isInteractingWithForm = false;
+    }
+    async function updateGameStatus({ appName, packageName }) {
+      console.log(`[JS LOG] updateGameStatus llamado con: ${packageName}`);
+      if (socket && socket.connected && packageName) {
+        console.log(`[JS LOG] Emitiendo 'update_current_app' al backend con paquete: ${packageName}`);
+        socket.emit("update_current_app", { package: packageName, name: appName });
+      }
+      if (isInteractingWithForm) {
+        console.log("[JS LOG] UI Bloqueada: Interacci\xF3n en progreso. Se ignora la actualizaci\xF3n de UI.");
+        return;
+      }
+      const gameInfoSection = document.getElementById("game-info");
+      if (!gameInfoSection) return;
+      const gameNameEl = document.getElementById("game-name");
+      const gameIconEl = document.getElementById("game-icon");
+      const classificationSection = document.getElementById("classification-section");
+      const titleEl = gameInfoSection.querySelector(".section-title");
+      if (!gameNameEl || !gameIconEl || !registerSection || !classificationSection || !titleEl) return;
+      registerSection.style.display = "none";
+      classificationSection.style.display = "none";
+      currentPackageName = packageName;
+      const appData = await getAppData(packageName);
+      console.log("Datos de la App recibidos en updateGameStatus:", appData);
+      if (appData) {
+        titleEl.textContent = "Jugando ahora:";
+        gameNameEl.textContent = appData.name;
+        gameIconEl.src = getFullImageUrl(appData.icon) || "";
+        gameIconEl.style.display = "block";
+        gameInfoSection.style.display = "block";
+        if (appData.is_game === null) {
+          classificationSection.style.display = "block";
+        }
+      } else if (packageName) {
+        titleEl.textContent = "Juego no registrado:";
+        gameNameEl.textContent = packageName;
+        gameIconEl.style.display = "none";
+        resetRegistrationForm();
+        registerSection.style.display = "block";
+        gameInfoSection.style.display = "block";
+      } else {
+        gameInfoSection.style.display = "none";
+      }
+    }
+    function applyThemeUpdate(theme) {
+      console.log("FLOATING: Aplicando actualizaci\xF3n de tema completa:", theme);
+      const root = document.documentElement;
+      if (theme.bgColor) root.style.setProperty("--color-bg", theme.bgColor);
+      if (theme.textColor) root.style.setProperty("--color-text", theme.textColor);
+      if (theme.secondaryTextColor) root.style.setProperty("--text-secondary-color", theme.secondaryTextColor);
+      if (theme.surfaceColor) root.style.setProperty("--color-surface", theme.surfaceColor);
+      if (theme.accentColor) root.style.setProperty("--color-accent", theme.accentColor);
+      if (theme.uiColor) root.style.setProperty("--color-ui", theme.uiColor);
+      if (theme.borderColor) root.style.setProperty("--color-border", theme.borderColor);
+    }
+    const updateFriendStatusInUI = async (data) => {
+      const { userId, isOnline, currentApp, currentAppPackage, currentAppIcon } = data;
+      const friendItem = document.querySelector(`.friend-item[data-user-id="${userId}"]`);
+      if (!friendItem) return;
+      const statusDot = friendItem.querySelector(".status-dot");
+      const statusText = friendItem.querySelector(".friend-status");
+      let newStatusText = "Desconectado";
+      let newStatusClass = "offline";
+      let newStatusIconHTML = "";
+      if (isOnline) {
+        if (currentApp && currentAppPackage) {
+          const appName = currentApp;
+          const appIcon = currentAppIcon ? getFullImageUrl(currentAppIcon) : (await getAppData(currentAppPackage))?.icon;
+          newStatusText = `Jugando a ${appName}`;
+          newStatusClass = "playing";
+          if (appIcon) {
+            newStatusIconHTML = `<img src="${appIcon}" class="status-app-icon" alt="${appName}">`;
+          }
+        } else {
+          newStatusText = "En l\xEDnea";
+          newStatusClass = "online";
+        }
+      }
+      statusDot.className = `status-dot ${newStatusClass}`;
+      statusDot.innerHTML = newStatusIconHTML;
+      statusText.textContent = newStatusText;
+    };
+    const renderChatList = (conversations, container) => {
+      if (!conversations || conversations.length === 0) {
+        container.innerHTML = '<p class="friend-status" style="padding: 1rem; text-align: center;">No tienes chats recientes.</p>';
+        return;
+      }
+      container.innerHTML = conversations.map((convo) => {
+        const snippet = convo.last_message_content.length > 25 ? convo.last_message_content.substring(0, 25) + "..." : convo.last_message_content;
+        return `<div class="chat-list-item" data-user-id="${convo.user_id}"><img src="${getFullImageUrl(convo.profile_pic_url)}" class="chat-list-avatar"><div class="chat-list-content"><div class="chat-list-header"><span class="chat-list-username">${convo.username}</span><span class="chat-list-time">${formatTimeAgo(convo.last_message_at)}</span></div><p class="chat-list-snippet">${snippet}</p></div></div>`;
+      }).join("");
+    };
+    const renderFriends = async (friends, container) => {
+      if (!friends || friends.length === 0) {
+        container.innerHTML = '<p class="friend-status" style="padding: 1rem; text-align: center;">A\xFAn no tienes amigos.</p>';
+        return;
+      }
+      const friendItemsHTML = await Promise.all(friends.map(async (friend) => {
+        let statusText = "Desconectado";
+        let statusClass = "offline";
+        let statusIconHTML = "";
+        if (friend.is_online) {
+          if (friend.current_app && friend.current_app_package) {
+            const appData = await getAppData(friend.current_app_package);
+            if (appData) {
+              statusText = `Jugando a ${appData.name}`;
+              statusClass = "playing";
+              statusIconHTML = `<img src="${appData.icon}" class="status-app-icon" alt="${appData.name}">`;
+            } else {
+              statusText = `En ${friend.current_app}`;
+              statusClass = "playing";
+            }
+          } else {
+            statusText = "En l\xEDnea";
+            statusClass = "online";
+          }
+        }
+        return `<div class="friend-item" data-user-id="${friend.id}"><div class="friend-avatar-container"><img src="${getFullImageUrl(friend.profile_pic_url)}" class="friend-avatar" alt="Avatar de ${friend.username}"><div class="status-dot ${statusClass}">${statusIconHTML}</div></div><div class="friend-info"><div class="friend-username">${friend.username}</div><div class="friend-status">${statusText}</div></div></div>`;
+      }));
+      container.innerHTML = friendItemsHTML.join("");
+    };
     const NativeBridge = {
       closeWindow: () => {
         NativeBridge.releaseWindowFocus();
@@ -664,18 +683,12 @@
         else console.log("DEBUG: Liberando foco (simulado).");
       },
       jsReady: () => {
-        if (window.Android) {
-          Android.jsReady();
-        } else {
-          window.parent.postMessage("jsReady", "*");
-        }
+        if (window.Android) Android.jsReady();
+        else window.parent.postMessage("jsReady", "*");
       },
       getAuthToken: async () => {
-        if (window.Android) {
-          return await Android.getAuthToken();
-        } else {
-          return localStorage.getItem("authToken");
-        }
+        if (window.Android) return await Android.getAuthToken();
+        else return localStorage.getItem("authToken");
       }
     };
     window.updateGameInfo = updateGameStatus;
@@ -688,29 +701,22 @@
       chatView.style.display = "flex";
       NativeBridge.requestWindowFocus();
       const domElements = {
-        // Contenedores principales
         messagesContainer: document.getElementById("chat-messages-container"),
-        // Elementos del header
         userAvatar: document.getElementById("chat-partner-avatar"),
         userUsername: document.getElementById("chat-partner-username"),
-        // Formulario de envío
         chatForm: document.getElementById("chat-form"),
         chatInput: document.getElementById("chat-message-input"),
-        // Elementos de la barra de respuesta (¡LOS QUE FALTABAN!)
         replyContextBar: document.getElementById("reply-context-bar"),
         replyToUser: document.getElementById("reply-to-user"),
         replySnippet: document.getElementById("reply-snippet"),
         cancelReplyBtn: document.getElementById("cancel-reply-btn"),
-        // Elementos del menú contextual
         contextMenuOverlay: document.getElementById("context-menu-overlay"),
         contextMenu: document.getElementById("context-menu"),
         replyFromMenuBtn: document.getElementById("reply-from-menu-btn"),
         copyBtn: document.getElementById("copy-btn"),
         deleteBtn: document.getElementById("delete-from-menu-btn"),
-        // Elementos del header de fecha pegajoso
         stickyHeader: document.getElementById("sticky-date-header"),
         stickyHeaderText: document.getElementById("sticky-date-header")?.querySelector("span"),
-        // --- ¡AÑADE ESTAS LÍNEAS! ---
         deleteConfirmModal: document.getElementById("delete-confirm-modal"),
         cancelDeleteBtn: document.getElementById("cancel-delete-btn"),
         confirmDeleteBtn: document.getElementById("confirm-delete-btn")
@@ -720,19 +726,17 @@
       await initChatController(domElements, userId, loggedInUserId2);
     }
     function closeChatView() {
-      chatView.style.display = "none";
       mainViewHeader.style.display = "flex";
       mainViewContent.style.display = "block";
+      chatView.style.display = "none";
       NativeBridge.releaseWindowFocus();
     }
     window.addEventListener("message", (event) => {
       if (event.source !== window.parent) return;
       const { type, data } = event.data;
       if (type === "updateGameInfo" && window.updateGameInfo) {
-        console.log("DEBUG: Recibido 'updateGameInfo' del simulador.", data);
         window.updateGameInfo(data);
       } else if (type === "applyThemeUpdate" && window.applyThemeUpdate) {
-        console.log("DEBUG: Recibido 'applyThemeUpdate' del simulador.", data);
         window.applyThemeUpdate(data);
       }
     });
@@ -749,7 +753,12 @@
       if (friendsResponse.success) await renderFriends(friendsResponse.friends, friendsContainer);
       const { default: io } = await import("https://cdn.socket.io/4.7.5/socket.io.esm.min.js");
       socket = io(API_BASE_URL.replace("/app", ""), { path: "/app/socket.io/" });
-      socket.on("connect", () => socket.emit("authenticate", token));
+      socket.on("connect", () => {
+        console.log("[JS LOG] Socket conectado. Autenticando...");
+        socket.emit("authenticate", token);
+        console.log("[JS LOG] Notificando a la capa nativa que el JS y el Socket est\xE1n listos.");
+        NativeBridge.jsReady();
+      });
       socket.on("friend_status_update", (data) => updateFriendStatusInUI(data));
       tabs.forEach((tab) => {
         tab.addEventListener("click", async () => {
@@ -771,6 +780,7 @@
               chatListContainer.innerHTML = `<p class="friend-status" style="color: red;">${error.message}</p>`;
             }
           }
+          resetRegistrationForm();
         });
       });
       chatListContainer.addEventListener("click", (e) => {
@@ -783,23 +793,23 @@
         }
       });
       backToMainViewBtn.addEventListener("click", closeChatView);
-      registerBtn.addEventListener("click", () => {
-        NativeBridge.requestWindowFocus();
-        const registerSection = document.getElementById("registration-section");
-        if (!registerSection) return;
-        registerSection.innerHTML = "";
-        const appNameInput = document.createElement("input");
-        appNameInput.type = "text";
-        appNameInput.placeholder = "Dale un nombre (ej. Minecraft)";
-        appNameInput.className = "register-input";
-        const saveBtn = document.createElement("button");
-        saveBtn.textContent = "Guardar";
-        saveBtn.className = "register-btn";
-        saveBtn.onclick = () => {
+      if (registerBtn) {
+        registerBtn.addEventListener("click", () => {
+          isInteractingWithForm = true;
+          NativeBridge.requestWindowFocus();
+          if (registerInitialView) registerInitialView.style.display = "none";
+          if (registerFormView) registerFormView.style.display = "block";
+          if (appNameInput) {
+            setTimeout(() => appNameInput.focus(), 100);
+          }
+        });
+      }
+      if (saveAppBtn) {
+        saveAppBtn.addEventListener("click", () => {
           const newAppName = appNameInput.value.trim();
           if (newAppName && currentPackageName) {
-            saveBtn.disabled = true;
-            saveBtn.textContent = "Guardando...";
+            saveAppBtn.disabled = true;
+            saveAppBtn.textContent = "Guardando...";
             const appData = { packageName: currentPackageName, appName: newAppName };
             apiFetch("/api/apps/add", {
               method: "POST",
@@ -807,22 +817,42 @@
             }).then((response) => {
               if (response.success) {
                 NativeBridge.releaseWindowFocus();
-                NativeBridge.reopenWindow();
+                appDataCache.delete(currentPackageName);
+                resetRegistrationForm();
+                updateGameStatus({ packageName: currentPackageName, appName: newAppName });
               }
             }).catch((error) => {
               alert(`Error: ${error.message}`);
-              saveBtn.disabled = false;
-              saveBtn.textContent = "Guardar";
               NativeBridge.releaseWindowFocus();
+              resetRegistrationForm();
             });
           }
-        };
-        registerSection.appendChild(appNameInput);
-        registerSection.appendChild(saveBtn);
-        setTimeout(() => {
-          appNameInput.focus();
-        }, 100);
-      });
+        });
+      }
+      async function classifyApp(isGame) {
+        if (!currentPackageName) return;
+        const yesBtn = document.getElementById("classify-yes-btn");
+        const noBtn = document.getElementById("classify-no-btn");
+        if (yesBtn) yesBtn.disabled = true;
+        if (noBtn) noBtn.disabled = true;
+        try {
+          await apiFetch("/api/apps/classify", {
+            method: "POST",
+            body: JSON.stringify({ packageName: currentPackageName, is_game: isGame })
+          });
+          appDataCache.delete(currentPackageName);
+          await updateGameStatus({ packageName: currentPackageName, appName: "" });
+        } catch (error) {
+          alert(`Error al clasificar: ${error.message}`);
+        } finally {
+          if (yesBtn) yesBtn.disabled = false;
+          if (noBtn) noBtn.disabled = false;
+        }
+      }
+      const classifyYesBtn = document.getElementById("classify-yes-btn");
+      const classifyNoBtn = document.getElementById("classify-no-btn");
+      if (classifyYesBtn) classifyYesBtn.addEventListener("click", () => classifyApp(true));
+      if (classifyNoBtn) classifyNoBtn.addEventListener("click", () => classifyApp(false));
     } catch (error) {
       document.body.innerHTML = `<h1 style="color:white; text-align:center; padding: 20px;">${error.message}</h1>`;
     }

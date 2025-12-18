@@ -19,7 +19,9 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -54,34 +56,29 @@ import java.util.TreeMap;
 import android.app.ActivityManager;
 import android.util.TypedValue;
 
+import android.util.DisplayMetrics; // <-- AÑADE ESTA IMPORTACIÓN
+// ==========================================================
+// === ¡AÑADE ESTA LÍNEA EXACTAMENTE AQUÍ! ===
+// ==========================================================
+import com.omletwebfinal.R;
 public class OverlayService extends Service {
     private static final String CHANNEL_ID = "OverlayServiceChannel";
     private static final String TAG = "GameDetectorService";
 
-    // Variables de UI
+    // Variables de UI y Estado
     private WindowManager windowManager;
     private View bubbleView;
     private View floatingViewContainer;
     private WebView floatingWebView;
     private View dismissView;
-
-    // Variables de estado
     private WindowManager.LayoutParams bubbleParams;
+    private WindowManager.LayoutParams floatingWindowParams;
     private boolean isWindowOpen = false;
     private boolean isBubbleOverDismiss = false;
     private final Handler handler = new Handler();
     private Runnable appCheckRunnable;
     private JSObject lastReceivedTheme = null;
-
-    // --- PUENTE DE COMUNICACIÓN A LA WEBVIEW PRINCIPAL ---
-    private Bridge getBridge() {
-        if (MainActivity.getInstance() != null) {
-            return MainActivity.getInstance().getBridge();
-        }
-        return null;
-    }
-    
-    // --- DEFINICIÓN DE LOS RECEIVERS ---
+    private BroadcastReceiver orientationChangeReceiver;
     private final BroadcastReceiver themeUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -92,11 +89,8 @@ public class OverlayService extends Service {
                 themeData.put("secondaryTextColor", intent.getStringExtra("secondaryTextColor"));
                 themeData.put("surfaceColor", intent.getStringExtra("surfaceColor"));
                 themeData.put("accentColor", intent.getStringExtra("accentColor"));
-
-                // --- ¡AÑADE ESTAS DOS LÍNEAS QUE FALTABAN! ---
                 themeData.put("uiColor", intent.getStringExtra("uiColor"));
                 themeData.put("borderColor", intent.getStringExtra("borderColor"));
-
                 lastReceivedTheme = themeData;
                 Log.d(TAG, "Tema actualizado y guardado en el servicio: " + themeData.toString());
 
@@ -136,11 +130,16 @@ public class OverlayService extends Service {
         showBubbleView();
 
         IntentFilter themeFilter = new IntentFilter("com.omletwebfinal.THEME_UPDATED");
-        IntentFilter commandFilter = new IntentFilter("com.omletwebfinal.SHOW_DEFINE_FORM");
         ContextCompat.registerReceiver(this, themeUpdateReceiver, themeFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
-        ContextCompat.registerReceiver(this, serviceCommandReceiver, commandFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
         
-        startAppDetection();
+        setupOrientationChangeReceiver();
+        IntentFilter orientationFilter = new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED);
+        registerReceiver(orientationChangeReceiver, orientationFilter);
+        
+        // --- ¡CAMBIO IMPORTANTE! ---
+        // Ya NO iniciamos la detección aquí automáticamente.
+        // startAppDetection();  <-- LÍNEA COMENTADA O ELIMINADA
+        
         return START_STICKY;
     }
 
@@ -148,7 +147,9 @@ public class OverlayService extends Service {
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(themeUpdateReceiver);
-        unregisterReceiver(serviceCommandReceiver);
+        if (orientationChangeReceiver != null) {
+            unregisterReceiver(orientationChangeReceiver);
+        }
         stopAppDetection();
         if (bubbleView != null && bubbleView.isAttachedToWindow()) windowManager.removeView(bubbleView);
         if (floatingViewContainer != null && floatingViewContainer.isAttachedToWindow()) windowManager.removeView(floatingViewContainer);
@@ -156,6 +157,37 @@ public class OverlayService extends Service {
         stopForeground(true);
     }
     
+    private void setupOrientationChangeReceiver() {
+        orientationChangeReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_CONFIGURATION_CHANGED.equals(intent.getAction())) {
+                    Log.d(TAG, "¡Cambio de configuración detectado (rotación)!");
+                    handleOrientationChange();
+                }
+            }
+        };
+    }
+
+    private void handleOrientationChange() {
+        if (floatingViewContainer == null || !floatingViewContainer.isAttachedToWindow()) {
+            return;
+        }
+
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        windowManager.getDefaultDisplay().getMetrics(displayMetrics);
+        int newScreenWidth = displayMetrics.widthPixels;
+        int newScreenHeight = displayMetrics.heightPixels;
+
+        Log.d(TAG, "Nuevas dimensiones de pantalla: " + newScreenWidth + "x" + newScreenHeight);
+
+        floatingWindowParams.width = (int) (newScreenWidth * 0.85);
+        floatingWindowParams.height = (int) (newScreenHeight * 0.75);
+
+        windowManager.updateViewLayout(floatingViewContainer, floatingWindowParams);
+        Log.d(TAG, "Ventana flotante redimensionada a: " + floatingWindowParams.width + "x" + floatingWindowParams.height);
+    }
+
     private String readAssetFileAsString(Context context, String filePath) throws IOException {
         StringBuilder builder = new StringBuilder();
         try (InputStream is = context.getAssets().open(filePath);
@@ -168,39 +200,15 @@ public class OverlayService extends Service {
 
     private void showBubbleView() {
         bubbleView = LayoutInflater.from(this).inflate(R.layout.floating_bubble, null);
+        final int BUBBLE_SIZE_DP = 50;
+        int bubbleSizePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BUBBLE_SIZE_DP, getResources().getDisplayMetrics());
+        int layoutType = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
 
-        // ==========================================================
-        // === ¡AQUÍ ESTÁ LA SOLUCIÓN DEFINITIVA PARA EL TAMAÑO! ===
-        // ==========================================================
-        
-        // 1. Define el tamaño deseado en unidades DP (density-independent pixels).
-        //    Esto asegura que la burbuja se vea del mismo tamaño en diferentes densidades de pantalla.
-        final int BUBBLE_SIZE_DP = 50; // <-- ¡CAMBIA ESTE VALOR AL TAMAÑO QUE QUIERAS!
-
-        // 2. Convierte los DP a píxeles físicos.
-        int bubbleSizePx = (int) TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            BUBBLE_SIZE_DP,
-            getResources().getDisplayMetrics()
-        );
-
-        // 3. Establece el tamaño de la ventana explícitamente en píxeles.
-        //    En lugar de WRAP_CONTENT, le damos un tamaño fijo.
-        int layoutType = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
-
-        bubbleParams = new WindowManager.LayoutParams(
-                bubbleSizePx, // Ancho en píxeles
-                bubbleSizePx, // Alto en píxeles
-                layoutType,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
-        );
-        // ==========================================================
-
+        bubbleParams = new WindowManager.LayoutParams(bubbleSizePx, bubbleSizePx, layoutType, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         bubbleParams.gravity = Gravity.TOP | Gravity.START;
         bubbleParams.x = 20;
         bubbleParams.y = 200;
+
         bubbleView.setOnTouchListener(new View.OnTouchListener() {
             private float initialX, initialY, initialTouchX, initialTouchY;
             private long startClickTime;
@@ -245,13 +253,20 @@ public class OverlayService extends Service {
         });
         windowManager.addView(bubbleView, bubbleParams);
     }
-
-    // --- ACTUALIZA LOS PARAMS DE LA VENTANA ---
-    // Añadimos una variable a nivel de clase para los parámetros
-    private WindowManager.LayoutParams floatingWindowParams;
+    
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     private void showFloatingWindow() {
         isWindowOpen = true;
+        bubbleView.setVisibility(View.GONE);
+
+        if (floatingViewContainer != null) {
+            floatingViewContainer.setVisibility(View.VISIBLE);
+            floatingViewContainer.requestFocus();
+            Log.d(TAG, "Ventana flotante reutilizada y mostrada.");
+            return;
+        }
+
+        Log.d(TAG, "Creando la ventana flotante por primera vez...");
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         floatingViewContainer = inflater.inflate(R.layout.floating_webview_container, null);
         floatingWebView = floatingViewContainer.findViewById(R.id.floating_webview);
@@ -261,22 +276,15 @@ public class OverlayService extends Service {
         webSettings.setDomStorageEnabled(true);
         floatingWebView.addJavascriptInterface(new WebAppInterface(this), "Android");
         floatingWebView.setBackgroundColor(Color.TRANSPARENT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            floatingWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        } else {
-            floatingWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-        }
+        floatingWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
         floatingWebView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                Log.d(TAG, "WebView flotante finalizó la carga (onPageFinished).");
+                Log.d(TAG, "WebView flotante finalizó la carga.");
                 if (lastReceivedTheme != null) {
-                    Log.d(TAG, "-> Se encontró un tema guardado. Aplicando...");
                     applyThemeToWebView(lastReceivedTheme);
-                } else {
-                    Log.w(TAG, "-> No se encontró tema guardado. La ventana podría tener el tema por defecto.");
                 }
             }
         });
@@ -286,22 +294,18 @@ public class OverlayService extends Service {
             String cssContent = readAssetFileAsString(this, "public/css/floating_styles.css");
             String jsContent = readAssetFileAsString(this, "public/js/floating_content.bundle.js");
             htmlContent = htmlContent.replace("<link href=\"./css/floating_styles.css\" rel=\"stylesheet\">", "<style>" + cssContent + "</style>");
-            htmlContent = htmlContent.replace("<script src=\"./js/floating_content.js\" type=\"module\"></script>", "<script type=\"module\">" + jsContent + "</script>");
+            htmlContent = htmlContent.replace("<script src=\"./js/floating_content.js\" type=\"module\"></script>", "<script>" + jsContent + "</script>");
             floatingWebView.loadDataWithBaseURL("file:///android_asset/public/", htmlContent, "text/html", "UTF-8", null);
         } catch (IOException e) {
             Log.e(TAG, "Error crítico al leer archivos de assets", e);
-            floatingWebView.loadData("<html><body><h1>Error al cargar la interfaz</h1></body></html>", "text/html", "UTF-8");
         }
 
-        int layoutType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
-
-        // Usamos la variable de clase
+        int layoutType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
         floatingWindowParams = new WindowManager.LayoutParams(
             (int) (getResources().getDisplayMetrics().widthPixels * 0.85),
             (int) (getResources().getDisplayMetrics().heightPixels * 0.75),
             layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, // Inicia SIN foco
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT);
         
         floatingWindowParams.dimAmount = 0.8f;
@@ -309,7 +313,6 @@ public class OverlayService extends Service {
         floatingWindowParams.gravity = Gravity.CENTER;
 
         windowManager.addView(floatingViewContainer, floatingWindowParams);
-        bubbleView.setVisibility(View.GONE);
 
         floatingViewContainer.setFocusableInTouchMode(true);
         floatingViewContainer.requestFocus();
@@ -324,11 +327,11 @@ public class OverlayService extends Service {
 
     private void closeFloatingWindow() {
         if (isWindowOpen && floatingViewContainer != null) {
-            windowManager.removeView(floatingViewContainer);
-            floatingViewContainer = null;
-            floatingWebView = null;
+            floatingViewContainer.setVisibility(View.GONE);
             isWindowOpen = false;
             bubbleView.setVisibility(View.VISIBLE);
+            releaseWindowFocusNow();
+            Log.d(TAG, "Ventana flotante ocultada.");
         }
     }
     
@@ -383,47 +386,7 @@ public class OverlayService extends Service {
             }
         }
     }
-
-    private void startAppDetection() {
-        if (appCheckRunnable != null) return;
-        appCheckRunnable = new Runnable() {
-            private String lastAppPackage = null;
-            @Override
-            public void run() {
-                String foregroundAppPackage = getForegroundAppPackage(getApplicationContext());
-                String appName = getApplicationName(getApplicationContext(), foregroundAppPackage);
-
-                if (foregroundAppPackage != null && !foregroundAppPackage.equals(lastAppPackage)) {
-                    lastAppPackage = foregroundAppPackage;
-                    Log.d(TAG, "Nueva app detectada: " + foregroundAppPackage);
-                    MainActivity mainActivity = MainActivity.getInstance();
-                    if (mainActivity != null) {
-                        mainActivity.sendAppStatusToWebview(foregroundAppPackage, appName);
-                    }
-                }
-                
-                if (isWindowOpen && floatingWebView != null) {
-                    JSObject data = new JSObject();
-                    data.put("packageName", lastAppPackage);
-                    data.put("appName", appName);
-                    String script = "if (window.updateGameInfo) { window.updateGameInfo(" + data.toString() + "); }";
-                    floatingWebView.post(() -> floatingWebView.evaluateJavascript(script, null));
-                }
-                
-                handler.postDelayed(this, 3000);
-            }
-        };
-        handler.post(appCheckRunnable);
-    }
-    
-    private void stopAppDetection() {
-        if (appCheckRunnable != null) {
-            handler.removeCallbacks(appCheckRunnable);
-            appCheckRunnable = null;
-        }
-    }
-
-    private String getForegroundAppPackage(Context context) {
+     private String getForegroundAppPackage(Context context) {
         String pkg = null;
         UsageStatsManager usm = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
         if (usm != null) {
@@ -457,6 +420,78 @@ public class OverlayService extends Service {
         }
     }
 
+    // ==========================================================
+    // === ¡INICIO DE LA SECCIÓN CORREGIDA! ===
+    // ==========================================================
+
+    /**
+     * Método PRIVADO que contiene la lógica para liberar el foco.
+     * Puede ser llamado desde cualquier parte dentro de esta clase.
+     */
+    private void releaseWindowFocusNow() {
+        if (floatingViewContainer != null && floatingWindowParams != null) {
+            floatingWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+            windowManager.updateViewLayout(floatingViewContainer, floatingWindowParams);
+            Log.d(TAG, "Foco liberado de la ventana flotante.");
+        }
+    }
+
+    // ==========================================================
+    // === ¡LÓGICA DE DETECCIÓN ROBUSTA! ===
+    // ==========================================================
+     private void startAppDetection() {
+        if (appCheckRunnable != null) return;
+        
+        appCheckRunnable = new Runnable() {
+            private String lastAppPackage = null;
+            @Override
+            public void run() {
+                try {
+                    // --- LOG 1: Confirmar que el bucle está vivo ---
+                    Log.d(TAG, "--- Bucle de Detección: Ejecutando... ---");
+
+                    String foregroundAppPackage = getForegroundAppPackage(getApplicationContext());
+                    String appName = getApplicationName(getApplicationContext(), foregroundAppPackage);
+
+                    // --- LOG 2: Ver qué app se está detectando en este ciclo ---
+                    Log.d(TAG, "App en primer plano detectada: " + foregroundAppPackage);
+
+                    if (foregroundAppPackage != null && !foregroundAppPackage.equals(lastAppPackage)) {
+                        lastAppPackage = foregroundAppPackage;
+                        Log.i(TAG, "¡CAMBIO DE APP DETECTADO! Nueva app: " + foregroundAppPackage);
+                        MainActivity mainActivity = MainActivity.getInstance();
+                        if (mainActivity != null) {
+                            mainActivity.sendAppStatusToWebview(foregroundAppPackage, appName);
+                        }
+                    }
+                    
+                    if (isWindowOpen && floatingWebView != null) {
+                        JSObject data = new JSObject();
+                        data.put("packageName", foregroundAppPackage);
+                        data.put("appName", appName);
+                        String script = "if (window.updateGameInfo) { window.updateGameInfo(" + data.toString() + "); }";
+                        
+                        // --- LOG 3: Confirmar que se está intentando inyectar el JS ---
+                        Log.d(TAG, "Inyectando script 'updateGameInfo' en WebView flotante con paquete: " + foregroundAppPackage);
+                        floatingWebView.post(() -> floatingWebView.evaluateJavascript(script, null));
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error dentro de appCheckRunnable", e);
+                } finally {
+                    handler.postDelayed(this, 3000);
+                }
+            }
+        };
+        handler.post(appCheckRunnable);
+    }
+    
+    private void stopAppDetection() {
+        if (appCheckRunnable != null) {
+            handler.removeCallbacks(appCheckRunnable);
+            appCheckRunnable = null;
+        }
+    }
+
     public class WebAppInterface {
         Context mContext;
         WebAppInterface(Context c) { mContext = c; }
@@ -477,26 +512,24 @@ public class OverlayService extends Service {
         @JavascriptInterface
         public String getAuthToken() {
             SharedPreferences sharedPref = mContext.getSharedPreferences("OMLET_APP_PREFS", Context.MODE_PRIVATE);
-            String token = sharedPref.getString("authToken", "");
-            return token;
+            return sharedPref.getString("authToken", "");
         }
     
         @JavascriptInterface
         public void jsReady() {
-            Log.d(TAG, "El JavaScript de la WebView flotante está listo.");
-            if (appCheckRunnable != null) {
-                handler.post(appCheckRunnable);
-            }
+            // ==========================================================
+            // === ¡AQUÍ ESTÁ LA LÓGICA CORREGIDA! ===
+            // ==========================================================
+            // Cuando el JS nos avisa que está listo (lo que haremos después de conectar el socket),
+            // nosotros iniciamos el bucle de detección nativo.
+            Log.d(TAG, "El JavaScript de la WebView flotante está listo. Iniciando bucle de detección.");
+            new Handler(mContext.getMainLooper()).post(OverlayService.this::startAppDetection);
         }
 
-         // ==========================================================
-        // === ¡NUEVOS MÉTODOS PARA GESTIONAR EL FOCO DEL TECLADO! ===
-        // ==========================================================
         @JavascriptInterface
         public void requestWindowFocus() {
             new Handler(mContext.getMainLooper()).post(() -> {
                 if (floatingViewContainer != null) {
-                    // Quitamos el flag NOT_FOCUSABLE
                     floatingWindowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
                     windowManager.updateViewLayout(floatingViewContainer, floatingWindowParams);
                     Log.d(TAG, "Foco solicitado para la ventana flotante.");
@@ -506,14 +539,7 @@ public class OverlayService extends Service {
 
         @JavascriptInterface
         public void releaseWindowFocus() {
-            new Handler(mContext.getMainLooper()).post(() -> {
-                if (floatingViewContainer != null) {
-                    // Volvemos a añadir el flag NOT_FOCUSABLE
-                    floatingWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-                    windowManager.updateViewLayout(floatingViewContainer, floatingWindowParams);
-                    Log.d(TAG, "Foco liberado de la ventana flotante.");
-                }
-            });
+            new Handler(mContext.getMainLooper()).post(OverlayService.this::releaseWindowFocusNow);
         }
     }
 }

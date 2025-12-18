@@ -16,6 +16,10 @@ export function initializeNativeAppDetectionListener(socketInstance) {
 
     window.addEventListener('appStatusChanged', async (event) => {
         const eventData = event.detail;
+        
+        // --- ¡AÑADE ESTE LOG! ---
+        console.log("🟢 APP DETECTOR (app.js): Evento 'appStatusChanged' recibido:", eventData);
+        
         if (!eventData || !eventData.packageName) return;
         
         const { packageName, appName } = eventData;

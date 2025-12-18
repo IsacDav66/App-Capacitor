@@ -82,6 +82,10 @@
                 🎨
                 <span>Temas</span>
             </a>
+            <a href="categorize_apps.html" class="menu-nav-item">
+                🏷️
+                <span>Categorizar Apps</span>
+            </a>
             <a href="profile.html" class="menu-nav-item"> <!-- Enlace a la página de perfil -->
                 👤
                 <span>Editar Perfil</span>
@@ -221,8 +225,10 @@
         </header>
 
         <nav class="profile-tabs">
-            <button class="tab-btn active" data-tab="about">Acerca de</button> <!-- <-- AÑADIR .active -->
+            <button class="tab-btn active" data-tab="about">Acerca de</button>
             <button class="tab-btn" data-tab="posts">Publicaciones</button>
+            <!-- ¡NUEVA PESTAÑA! -->
+            <button class="tab-btn" data-tab="games">Juegos</button>
             <button id="saved-tab" class="tab-btn" data-tab="saved">Guardado</button>
         </nav>
 
@@ -255,6 +261,19 @@
     <div id="posts-content" class="tab-content">
         <div id="posts-container"></div>
     </div>
+
+
+    <!-- ========================================================== -->
+    <!-- === ¡NUEVO PANEL PARA LA PESTAÑA DE JUEGOS! === -->
+    <!-- ========================================================== -->
+    <div id="games-content" class="tab-content">
+        <h3 class="games-title">Juegos que juegas</h3>
+        <div id="games-container" class="games-grid">
+            <!-- El JS llenará esta lista de juegos -->
+        </div>
+        <p class="games-placeholder" style="display: none;">Selecciona un juego para agregar tu tarjeta de jugador</p>
+    </div>
+    <!-- ========================================================== -->
 
         <!-- Panel 3: Guardado -->
     <div id="saved-content" class="tab-content">

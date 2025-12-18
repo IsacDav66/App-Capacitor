@@ -141,6 +141,10 @@ async function routePage() {
         } else if (path.includes('chat_list.html')) {
             const { initChatListPage } = await import('./modules/pages/chatList.js');
             initChatListPage();
+        // === ¡AÑADE ESTA NUEVA RUTA! ===
+        } else if (path.includes('categorize_apps.html')) {
+            const { initCategorizeAppsPage } = await import('./modules/pages/categorizeApps.js');
+            initCategorizeAppsPage();
         }
     } catch (error) {
         console.error(`Error al cargar el módulo de la página para: ${path}`, error);

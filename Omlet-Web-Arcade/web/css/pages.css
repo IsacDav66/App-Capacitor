@@ -1807,8 +1807,56 @@ input:checked + .slider:before {
 
 
 
+/* ========================================
+   --- ¡NUEVOS ESTILOS PARA LA PESTAÑA DE JUEGOS EN EL PERFIL! ---
+======================================== */
 
+#games-content {
+    padding: 20px 15px;
+}
 
+.games-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-text);
+    margin-bottom: 16px;
+}
+
+.games-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 24px;
+}
+
+.game-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 64px;
+    text-decoration: none;
+}
+
+.game-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+    background-color: var(--color-ui);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.game-item:hover .game-icon {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px var(--color-accent);
+}
+
+.games-placeholder {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: 40px 0;
+}
 
 /* ========================================
    --- PÁGINA: Temas (themes.html) ---
