@@ -13,31 +13,64 @@ import { initFriendsSidebarUI } from '../ui/friendsSidebar.js';
  */
 
 
-// ==========================================================
-// === ¡NUEVA FUNCIÓN PARA RENDERIZAR LA LISTA DE JUEGOS! ===
-// ==========================================================
-function renderPlayedGames(games, container, placeholder) {
-    console.log("[FE LOG - renderPlayedGames] La función recibió los siguientes datos de juegos:", games);
+// --- NUEVAS FUNCIONES PARA TARJETAS DE JUGADOR ---
 
+function renderPlayedGames(games, container, isOwnProfile) {
     if (!games || games.length === 0) {
-        container.innerHTML = '';
-        if (placeholder) {
-            // Mostramos el placeholder que estaba oculto por defecto
-            placeholder.style.display = 'block';
-            placeholder.textContent = 'Este usuario aún no ha jugado a ningún juego.';
-        }
-        return;
+        container.innerHTML = ''; return;
     }
-
-    if (placeholder) placeholder.style.display = 'none';
-
-    container.innerHTML = games.map(game => `
-        <a href="#" class="game-item" data-package="${game.package_name}">
+    const title = isOwnProfile ? "Juegos que juegas" : "Juegos que juega";
+    container.innerHTML = `<h3 class="games-title">${title}</h3>` + games.map(game => `
+        <a href="#" class="game-item" data-package="${game.package_name}" data-name="${game.app_name}" data-icon="${getFullImageUrl(game.icon_url)}">
             <img src="${getFullImageUrl(game.icon_url)}" class="game-icon" alt="${game.app_name}" onerror="this.onerror=null; this.src='./assets/img/default-avatar.png';"/>
         </a>
     `).join('');
 }
 
+function renderPlayerCards(cards, container, placeholder, isOwnProfile) {
+    console.log("[FINAL CHECK] Datos que llegan a renderPlayerCards:", JSON.stringify(cards, null, 2));
+
+    if (!cards || cards.length === 0) {
+        container.innerHTML = '';
+        if (isOwnProfile && placeholder) {
+            placeholder.style.display = 'block';
+        }
+        return;
+    }
+
+    if (placeholder) {
+        placeholder.style.display = 'none';
+    }
+
+    container.innerHTML = cards.map(card => {
+        const editableClass = isOwnProfile ? 'editable' : '';
+
+        // ==========================================================
+        // === ¡AQUÍ ESTÁ LA CORRECCIÓN DE SINTAXIS! ===
+        // ==========================================================
+        return `
+        <div 
+            class="player-card ${editableClass}" 
+            style="background-image: url('${getFullImageUrl(card.cover_image_url)}')"
+            data-package="${card.package_name}"
+            data-card-id="${card.card_id}"
+        >
+            <div class="player-card-content">
+                <div class="player-card-info">
+                    <img src="${getFullImageUrl(card.icon_url)}" class="player-card-game-icon">
+                    <div class="player-card-details">
+                        <span class="game-name">${card.app_name}</span>
+                        <span>Usuario: ${card.in_game_username || 'N/A'}</span>
+                        <span>ID: ${card.in_game_id || 'N/A'}</span>
+                    </div>
+                </div>
+                ${card.invite_link ? `<div class="player-card-action"><a href="${card.invite_link}" target="_blank" class="invite-btn">Agregar por invitación</a></div>` : ''}
+            </div>
+        </div>
+    `;
+        // ==========================================================
+    }).join('');
+}
 
 export async function initUserProfilePage() {
     // --- 3. LLAMAMOS A LA FUNCIÓN DE UI CORRECTA ---
@@ -147,37 +180,142 @@ export async function initUserProfilePage() {
         currentTabIndex = index;
     }
 
+     // --- NUEVAS REFERENCIAS AL MODAL ---
+    const modal = document.getElementById('player-card-modal');
+    const modalTitle = document.getElementById('player-card-modal-title');
+    const form = document.getElementById('player-card-form');
+    const packageNameInput = document.getElementById('player-card-package-name');
+    const coverImageTrigger = document.getElementById('cover-image-trigger');
+    const coverImageInput = document.getElementById('cover-image-input');
+    const coverImagePreview = document.getElementById('cover-image-preview-img');
+    const coverImagePlaceholder = document.getElementById('cover-image-placeholder');
+    const existingCoverUrlInput = document.getElementById('existing-cover-url');
+    const cancelCardBtn = document.getElementById('cancel-card-btn');
+    const saveCardBtn = document.getElementById('save-card-btn');
+
+    let allPlayedGames = [];
+    let allPlayerCards = [];
+
+    function openPlayerCardModal(game, card = null) {
+        if (!isOwnProfile) return;
+        form.reset();
+        modalTitle.textContent = `Edita tu tarjeta de jugador de ${game.name}`; // Título más genérico
+        packageNameInput.value = game.package;
+        
+        // Resetear la preview de imagen y el input oculto
+        coverImagePreview.src = '';
+        coverImagePreview.style.display = 'none';
+        coverImagePlaceholder.style.display = 'block';
+        existingCoverUrlInput.value = '';
+
+        if (card) {
+            form.elements.inGameUsername.value = card.in_game_username || '';
+            form.elements.inGameId.value = card.in_game_id || '';
+            form.elements.inviteLink.value = card.invite_link || '';
+            if (card.cover_image_url) {
+                // Guardamos la URL existente en el input oculto
+                existingCoverUrlInput.value = card.cover_image_url;
+                coverImagePreview.src = getFullImageUrl(card.cover_image_url);
+                coverImagePreview.style.display = 'block';
+                coverImagePlaceholder.style.display = 'none';
+            }
+        }
+        modal.style.display = 'flex';
+    }
+
+
+    function closePlayerCardModal() { modal.style.display = 'none'; }
+    
+    // --- LÓGICA DE LA PÁGINA ---
+
+    async function refreshPlayerCards() {
+        const container = document.getElementById('player-cards-container');
+        const placeholder = document.querySelector('#games-content .games-placeholder');
+        if (!container) return;
+
+        try {
+            const data = await apiFetch(`/api/user/${targetUserId}/player-cards`);
+            allPlayerCards = data.cards || [];
+            renderPlayerCards(allPlayerCards, container, placeholder, isOwnProfile);
+            
+            // Re-inicializamos SortableJS solo si es el perfil del propio usuario
+            // y las tarjetas ya han sido renderizadas
+            if (isOwnProfile) {
+                initSortable();
+            }
+        } catch (error) { console.error("Error al refrescar las tarjetas de jugador:", error); }
+    }
+    // ==========================================================
+    // === ¡NUEVA FUNCIÓN PARA INICIALIZAR EL ARRASTRE! ===
+    // ==========================================================
+    function initSortable() {
+        const cardsContainer = document.getElementById('player-cards-container');
+        // Usamos una variable para evitar reinicializar si ya existe.
+        if (cardsContainer.sortableInstance) {
+            cardsContainer.sortableInstance.destroy(); // Destruir instancia anterior si existe
+        }
+
+        cardsContainer.sortableInstance = new Sortable(cardsContainer, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: async (evt) => {
+                // ==========================================================
+                // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
+                // ==========================================================
+                // 1. Obtenemos TODOS los hijos del contenedor.
+                const allChildren = Array.from(cardsContainer.children);
+                
+                // 2. FILTRAMOS para quedarnos solo con los elementos que son tarjetas.
+                const cardElements = allChildren.filter(child => child.classList.contains('player-card'));
+
+                // 3. Mapeamos los IDs solo de los elementos filtrados.
+                const orderedCardIds = cardElements.map(card => card.dataset.cardId);
+                // ==========================================================
+                
+                console.log("[SORTABLE LOG] Nuevo orden de IDs a enviar:", orderedCardIds);
+                
+                try {
+                    await apiFetch('/api/user/player-cards/reorder', {
+                        method: 'POST',
+                        body: JSON.stringify({ orderedCardIds })
+                    });
+                    console.log("[SORTABLE LOG] Nuevo orden de tarjetas guardado en el backend.");
+                } catch (error) {
+                    console.error("Error al guardar el nuevo orden:", error);
+                    alert("No se pudo guardar el nuevo orden.");
+                }
+            }
+        });
+    }
 
     // --- LÓGICA DE CARGA DE DATOS PARA CADA PESTAÑA ---
     async function loadTabData(tabId) {
-        const container = document.querySelector(`#${tabId}-content #${tabId}-container`);
-        if (!container) return; // Si la pestaña no tiene un contenedor de datos (como 'Acerca de')
+        const dataContainerId = `${tabId}-container`;
+        const dataContainer = document.getElementById(dataContainerId);
 
         let endpoint = '';
-        if (tabId === 'posts') {
-            endpoint = `/api/posts/user/${targetUserId}`;
-        } else if (tabId === 'saved' && isOwnProfile) {
-            endpoint = `/api/posts/saved`;
-        } else if (tabId === 'games') {
-            endpoint = `/api/user/${targetUserId}/played-games`;
-        }
+        if (tabId === 'posts') endpoint = `/api/posts/user/${targetUserId}`;
+        else if (tabId === 'saved' && isOwnProfile) endpoint = `/api/posts/saved`;
+        else if (tabId === 'games') endpoint = `/api/user/${targetUserId}/played-games`;
         
         if (!endpoint) return;
+
+        if (dataContainer) dataContainer.innerHTML = `<p class='text-center text-gray-400 p-8'>Cargando...</p>`;
         
-        container.innerHTML = `<p class='text-center text-gray-400 p-8'>Cargando...</p>`;
         try {
-            console.log(`[FE LOG] Iniciando fetch a: ${endpoint}`);
             const data = await apiFetch(endpoint);
-            console.log(`[FE LOG] Respuesta de la API para la pestaña '${tabId}':`, data);
             
             if (tabId === 'posts' || tabId === 'saved') {
-                renderPosts(data.posts, container);
+                if(dataContainer) renderPosts(data.posts, dataContainer);
             } else if (tabId === 'games') {
-                const placeholder = document.querySelector('#games-content .games-placeholder');
-                renderPlayedGames(data.games, container, placeholder);
+                allPlayedGames = data.games || [];
+                renderPlayedGames(allPlayedGames, dataContainer, isOwnProfile);
+                // Después de cargar los juegos, cargamos las tarjetas
+                await refreshPlayerCards();
             }
         } catch (error) {
-            container.innerHTML = `<p class='text-center text-red-500 p-8'>${error.message}</p>`;
+            console.error(`Error al cargar datos para la pestaña ${tabId}:`, error);
+            if (dataContainer) dataContainer.innerHTML = `<p class='text-center text-red-500 p-8'>${error.message}</p>`;
         }
     }
     
@@ -279,6 +417,106 @@ export async function initUserProfilePage() {
         }
     };
 
+
+    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    // ▼▼▼         PEGA TU BLOQUE DE CÓDIGO EXACTAMENTE AQUÍ         ▼▼▼
+    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+
+    // Listener para abrir el modal al hacer clic en un icono de juego
+    const gamesGrid = document.getElementById('games-container');
+    if (gamesGrid) {
+        gamesGrid.addEventListener('click', (e) => {
+            const gameItem = e.target.closest('.game-item');
+            if (gameItem && isOwnProfile) {
+                e.preventDefault();
+                const game = {
+                    package: gameItem.dataset.package,
+                    name: gameItem.dataset.name,
+                    icon: gameItem.dataset.icon,
+                };
+                const existingCard = allPlayerCards.find(c => c.package_name === game.package);
+                openPlayerCardModal(game, existingCard);
+            }
+        });
+    }
+
+    // ==========================================================
+    // === ¡NUEVO LISTENER PARA EDITAR LAS TARJETAS EXISTENTES! ===
+    // ==========================================================
+    const playerCardsContainer = document.getElementById('player-cards-container');
+    if (playerCardsContainer) {
+        playerCardsContainer.addEventListener('click', (e) => {
+            // Solo permitir la edición si es el perfil del propio usuario
+            if (!isOwnProfile) return;
+
+            const cardElement = e.target.closest('.player-card');
+            if (cardElement) {
+                e.preventDefault();
+                const packageName = cardElement.dataset.package;
+                const cardToEdit = allPlayerCards.find(c => c.package_name === packageName);
+
+                if (cardToEdit) {
+                    // Construimos el objeto 'game' que la función del modal necesita
+                    const gameForModal = {
+                        package: cardToEdit.package_name,
+                        name: cardToEdit.app_name,
+                        icon: getFullImageUrl(cardToEdit.icon_url)
+                    };
+                    // Llamamos a la misma función, pero esta vez pasamos la tarjeta a editar
+                    openPlayerCardModal(gameForModal, cardToEdit);
+                }
+            }
+        });
+    }
+
+    // Listeners del modal
+    if(cancelCardBtn) cancelCardBtn.addEventListener('click', closePlayerCardModal);
+    if(coverImageTrigger) coverImageTrigger.addEventListener('click', () => coverImageInput.click());
+    if(coverImageInput) coverImageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            coverImagePreview.src = URL.createObjectURL(file);
+            coverImagePreview.style.display = 'block';
+            coverImagePlaceholder.style.display = 'none';
+        }
+    });
+
+    if(form) form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        saveCardBtn.disabled = true;
+        saveCardBtn.textContent = 'Guardando...';
+        const formData = new FormData(form);
+        try {
+            // ==========================================================
+            // === ¡LÓGICA CORREGIDA! ===
+            // ==========================================================
+            // 1. Guardamos la tarjeta
+            await apiFetch('/api/user/player-cards', { method: 'POST', body: formData });
+            
+            // 2. Cerramos el modal
+            closePlayerCardModal();
+            
+            // 3. ¡LA CLAVE! Refrescamos la lista COMPLETA desde el servidor.
+            //    Esto asegura que `allPlayerCards` tenga los datos más recientes
+            //    (incluyendo el nuevo card_id) antes de que se intente reordenar.
+            await refreshPlayerCards(); 
+            
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        } finally {
+            saveCardBtn.disabled = false;
+            saveCardBtn.textContent = 'Guardar';
+        }
+    });
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    // ▲▲▲              HASTA AQUÍ LLEGA TU BLOQUE DE CÓDIGO              ▲▲▲
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+
+    // ==========================================================
+    // DESPUÉS DE ESTO: Comienza la lógica de carga de datos inicial 
+    // que se ejecuta una sola vez.
+    // ==========================================================
 
     // ----------------------------------------------------------------
     // 4. CARGA PRINCIPAL DE DATOS Y RENDERIZADO

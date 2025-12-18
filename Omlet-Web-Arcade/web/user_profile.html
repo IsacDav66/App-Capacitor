@@ -264,18 +264,27 @@
 
 
     <!-- ========================================================== -->
-    <!-- === ¡NUEVO PANEL PARA LA PESTAÑA DE JUEGOS! === -->
+    <!-- === Panel de Juegos (VERSIÓN CORREGIDA Y FINAL) === -->
     <!-- ========================================================== -->
     <div id="games-content" class="tab-content">
-        <h3 class="games-title">Juegos que juegas</h3>
+        <!-- Contenedor para la cuadrícula de iconos de juegos jugados -->
         <div id="games-container" class="games-grid">
-            <!-- El JS llenará esta lista de juegos -->
+            <!-- El JS llenará esta lista de iconos de juegos -->
         </div>
-        <p class="games-placeholder" style="display: none;">Selecciona un juego para agregar tu tarjeta de jugador</p>
+    
+        <!-- Contenedor para las tarjetas de jugador ya creadas -->
+        <div id="player-cards-container">
+            <!-- El JS llenará esta lista de tarjetas -->
+        </div>
+    
+        <!-- Placeholder que se muestra si el usuario no tiene tarjetas -->
+        <p class="games-placeholder" style="display: none;">
+            Selecciona un juego para agregar tu tarjeta de jugador
+        </p>
     </div>
     <!-- ========================================================== -->
-
-        <!-- Panel 3: Guardado -->
+    
+    <!-- Panel de Guardado -->
     <div id="saved-content" class="tab-content">
         <div id="saved-container"></div>
     </div>
@@ -346,8 +355,56 @@
     
         </a>
     </div>
+
+
+    <!-- ========================================================== -->
+    <!-- === ¡NUEVO MODAL PARA LA TARJETA DE JUGADOR! === -->
+    <!-- ========================================================== -->
+    <div id="player-card-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h4 id="player-card-modal-title">Crea tu tarjeta de jugador</h4>
+            <form id="player-card-form">
+                <input type="hidden" id="player-card-package-name" name="packageName">
+    
+                <div class="form-group">
+                    <label for="player-card-username">Usuario:</label>
+                    <input type="text" id="player-card-username" name="inGameUsername" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="player-card-id">ID:</label>
+                    <input type="text" id="player-card-id" name="inGameId" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="player-card-invite">Link de invitación:</label>
+                    <input type="text" id="player-card-invite" name="inviteLink" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Agrega una imagen de portada:</label>
+                    <input type="file" id="cover-image-input" name="coverImage" accept="image/*" style="display: none;">
+                
+                    <!-- ¡AÑADE ESTA LÍNEA! -->
+                    <input type="hidden" id="existing-cover-url" name="existingCoverUrl">
+                
+                    <div id="cover-image-trigger" class="cover-image-preview">
+                        <img id="cover-image-preview-img" src="" style="display: none;">
+                        <span id="cover-image-placeholder">+</span>
+                    </div>
+                </div>
+    
+                <div class="modal-actions">
+                    <button type="button" id="cancel-card-btn" class="modal-btn secondary">Cancelar</button>
+                    <button type="submit" id="save-card-btn" class="modal-btn primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- ========================================================== -->
+
+
     <!-- Plyr.io JS (para la funcionalidad del reproductor) -->
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <!-- ¡AÑADE ESTA LÍNEA! SCRIPT DE SORTABLEJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="./js/app.js" type="module"></script>
 </body>
 
