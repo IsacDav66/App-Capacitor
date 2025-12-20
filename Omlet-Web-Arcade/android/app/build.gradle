@@ -1,5 +1,14 @@
+// ==========================================================
+// === ¡AÑADE ESTE BLOQUE AL PRINCIPIO DEL ARCHIVO! ===
+// ==========================================================
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+// ==========================================================
 apply plugin: 'com.android.application'
-apply plugin: 'com.google.gms.google-services' // <-- AÑADE ESTA LÍNEA
+apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace "com.omletwebfinal"
@@ -8,19 +17,43 @@ android {
         applicationId "com.omletwebfinal"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    // ==========================================================
+    // === ¡INICIO DE LA SECCIÓN AÑADIDA! ===
+    // ==========================================================
+    // Esta sección lee tu archivo keystore.properties para obtener las contraseñas
+    // y la ubicación de tu clave de firma.
+    signingConfigs {
+        release {
+            // ==========================================================
+            // === ¡REEMPLAZA LA LÓGICA ANTERIOR CON ESTO! ===
+            // ==========================================================
+            if (keystorePropertiesFile.exists()) {
+                storeFile file('../app/my-release-key.keystore') // Usamos una ruta relativa desde 'android'
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+    // ==========================================================
+    
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            
+            // ==========================================================
+            // === ¡AQUÍ LE DECIMOS A LA BUILD DE RELEASE QUE USE LA FIRMA! ===
+            // ==========================================================
+            signingConfig signingConfigs.release
         }
     }
 }
@@ -41,17 +74,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
-    // implementation 'com.github.capacitor-community:usage-stats:1.0.0'
-    // AÑADE ESTAS LÍNEAS DENTRO DEL BLOQUE 'dependencies'
-    // Importa la Firebase BoM (Bill of Materials) - ¡MUY IMPORTANTE!
-    implementation platform('com.google.firebase:firebase-bom:34.1.0') // Usa la versión que te recomienda Firebase en la captura
 
-    // Dependencia para Notificaciones Push (FCM)
+    implementation platform('com.google.firebase:firebase-bom:34.1.0')
     implementation 'com.google.firebase:firebase-messaging'
-
-    // Dependencia para Analytics (recomendado por Firebase)
     implementation 'com.google.firebase:firebase-analytics'
-
     implementation 'androidx.cardview:cardview:1.0.0' 
 }
 

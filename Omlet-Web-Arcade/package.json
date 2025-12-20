@@ -8,13 +8,16 @@
     "serve": "http-server ./web -o -c-1",
     "build:css": "tailwindcss -i ./web/css/main.css -o ./web/css/tailwind.css --minify",
     "watch:css": "tailwindcss -i ./web/css/main.css -o ./web/css/tailwind.css --watch",
+    "build:overlay": "esbuild web/js/floating_content.js --bundle --outfile=web/js/floating_content.bundle.js",
     "cap:add": "npx cap add android",
     "cap:open": "npx cap open android",
     "cap:copy": "npm run build:css && npm run build:overlay && npx cap copy android",
-    "build:overlay": "esbuild web/js/floating_content.js --bundle --outfile=web/js/floating_content.bundle.js",
     "build:apk": "npm run cap:copy && cd android && .\\gradlew.bat assembleDebug",
     "install:device": "adb install ./android/app/build/outputs/apk/debug/app-debug.apk",
-    "log:start": "adb logcat -s Capacitor WebView App System.err"
+    "log:start": "adb logcat -s Capacitor WebView App System.err",
+
+    "build:release": "npm run build:css && npm run build:overlay && npx cap sync android && cd android && gradlew.bat clean assembleRelease && cd .. && move android\\app\\build\\outputs\\apk\\release\\app-release.apk server\\public\\updates\\app-release.apk",
+    "publish": "node ./scripts/publish.js"
   },
   "keywords": [],
   "author": "",

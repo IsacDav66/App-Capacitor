@@ -6,6 +6,7 @@ import android.util.Log;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.JSObject; // <-- ¡AÑADE ESTA LÍNEA!
 
+import com.omletwebfinal.plugins.updater.AppUpdater;
 // Importaciones para tus plugins Java personalizados
 import com.omletwebfinal.plugins.gamedetector.GameDetector;
 import com.omletwebfinal.plugins.navigationbar.NavigationBarPlugin;
@@ -39,6 +40,7 @@ public class MainActivity extends BridgeActivity {
     public MainActivity() {
         registerPlugin(GameDetector.class);
         registerPlugin(NavigationBarPlugin.class);
+        registerPlugin(AppUpdater.class); // <-- ¡AÑADE ESTA LÍNEA!
     }
     
     /**

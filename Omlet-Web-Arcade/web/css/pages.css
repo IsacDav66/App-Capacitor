@@ -466,6 +466,22 @@ html[data-mode="light"] .last-played{
   font-weight: bold;
   font-size: 0.9rem;
 }
+
+/* --- ¡ESTILOS MODIFICADOS Y NUEVOS! --- */
+.last-played {
+    display: flex; /* Cambiado para alinear elementos internos */
+    align-items: center;
+    justify-content: center; /* Centra el contenido */
+    gap: 8px; /* Espacio entre el icono y el texto */
+}
+
+#last-played-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px; /* Pequeño redondeo para los iconos */
+    object-fit: cover;
+    background-color: var(--color-ui); /* Color de fondo mientras carga */
+}
 .profile-tabs {
     display: flex;
     justify-content: space-around;
@@ -577,11 +593,30 @@ html[data-mode="light"] .last-played{
     display: none !important;
 }
 /* -- Editor Quill.js -- */
+/* --- Editor Quill.js (¡AQUÍ ESTÁN LOS CAMBIOS!) --- */
 #bio-editor {
   background-color: transparent;
   color: white;
   min-height: 100px;
+  
+  /* --- ¡AÑADE ESTAS DOS LÍNEAS! --- */
+  max-height: 50vh; /* Altura máxima: 50% de la altura de la pantalla visible */
+  overflow-y: auto; /* Muestra una barra de scroll vertical solo si es necesario */
 }
+/* ========================================================== */
+/* === ¡BLOQUE CORREGIDO PARA EL EDITOR DE BIOGRAFÍA! === */
+/* ========================================================== */
+/* Aplicamos los estilos directamente al área editable de Quill */
+#bio-editor .ql-editor {
+    /* Le dice al navegador que puede romper palabras largas para que pasen a la siguiente línea. */
+    overflow-wrap: break-word;
+    word-wrap: break-word; /* Fallback para navegadores antiguos */
+
+    /* ¡LA LÍNEA CLAVE Y MÁS AGRESIVA! */
+    /* Fuerza un salto de línea dentro de una palabra para evitar el desbordamiento. */
+    word-break: break-all;
+}
+/* ========================================================== */
 .ql-container.ql-snow {
   border: 1px solid transparent;
 }
@@ -1827,17 +1862,48 @@ input:checked + .slider:before {
 }
 
 
+/* --- Estilos para la cuadrícula de juegos --- */
 .games-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--color-ui);
     
-    /* --- ¡AQUÍ ESTÁN LOS CAMBIOS! --- */
-    padding-bottom: 24px; /* Añade espacio debajo de los iconos */
-    margin-bottom: 24px;  /* Añade espacio después de la línea, antes de las tarjetas */
-    border-bottom: 1px solid var(--color-ui); /* La línea divisoria */
+    /* --- ¡NUEVAS PROPIEDADES PARA LA ANIMACIÓN! --- */
+    overflow: hidden; /* Oculta los iconos que se desbordan */
+    transition: max-height 0.4s ease-in-out; /* Anima el cambio de altura */
 }
 
+/* Clase para el estado colapsado (2 filas) */
+.games-grid.collapsed {
+    /* Altura para 2 filas: (64px * 2) + 15px de gap = 143px. Damos un poco de margen. */
+    max-height: 145px; 
+}
+
+/* --- ¡NUEVOS ESTILOS PARA EL BOTÓN "MOSTRAR MÁS"! --- */
+.show-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 24px; /* Espacio antes de la línea divisoria */
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-weight: bold;
+    cursor: pointer;
+    gap: 4px;
+}
+.show-more-btn .arrow-icon {
+    transition: transform 0.3s ease;
+}
+/* Cuando el contenedor está expandido, giramos la flecha */
+.show-more-btn.expanded .arrow-icon {
+    transform: rotate(180deg);
+}
 .game-item {
     display: flex;
     flex-direction: column;
@@ -1963,6 +2029,24 @@ input:checked + .slider:before {
     opacity: 0.4;
     background-color: var(--color-accent);
 }
+
+
+
+/* --- Estilos para el Modal de Actualización --- */
+.update-notes-container {
+    background-color: var(--color-ui);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin: 20px 0;
+    text-align: left;
+    white-space: pre-wrap; /* Respeta los saltos de línea de las notas */
+    font-size: 0.9rem;
+    max-height: 150px;
+    overflow-y: auto;
+}
+.modal-btn.primary { background-color: var(--color-accent); color: var(--color-text); }
+
 
 /* ========================================
    --- PÁGINA: Temas (themes.html) ---

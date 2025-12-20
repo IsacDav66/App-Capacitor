@@ -2,4 +2,13 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-path name="my_images" path="." />
     <cache-path name="my_cache_images" path="." />
+    
+    <!-- ========================================================== -->
+    <!-- === ¡AÑADE ESTA LÍNEA! === -->
+    <!-- ========================================================== -->
+    <!-- Esto le da permiso a tu app para acceder a los archivos
+         que el DownloadManager guarda en el directorio de descargas
+         específico de tu aplicación. -->
+    <external-files-path name="my_downloads" path="Download/" />
+
 </paths>

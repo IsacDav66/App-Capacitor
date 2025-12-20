@@ -15,6 +15,7 @@ import { initFriendsSidebarListener } from './modules/ui/friendsSidebar.js';
 import { deletePost, toggleLike, toggleSave } from './modules/ui/postActions.js';
 import { registerForPushNotifications } from './modules/ui/push.js';
 
+import { checkForUpdates } from './modules/ui/updater.js'; // <-- ¡AÑADE ESTA IMPORTACIÓN!
 // Asignaciones globales
 window.deletePost = deletePost;
 window.toggleLike = toggleLike;
@@ -76,6 +77,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // 5. Enrutamiento
+    // Al final del bloque `DOMContentLoaded`, justo antes de llamar a routePage()
+    await checkForUpdates(); // <-- ¡AÑADE ESTA LÍNEA!
+    
     routePage();
 });
 

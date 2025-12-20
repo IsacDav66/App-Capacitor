@@ -6,6 +6,7 @@ let isBackButtonListenerAttached = false;
 export let Toast;
 export let GameDetectorPlugin;
 export let GoogleAuth;
+export let AppUpdater; // <-- ¡AÑADE ESTA LÍNEA!
 
 export function initializeCapacitorPlugins() {
     if (window.Capacitor) {
@@ -18,6 +19,7 @@ export function initializeCapacitorPlugins() {
         if (GoogleAuth) {
             GoogleAuth.initialize();
         }
+        AppUpdater = Plugins.AppUpdater; // <-- ¡AÑADE ESTA LÍNEA!
     } else {
         console.log("Capacitor NO DEFINIDO. Modo Navegador.");
     }

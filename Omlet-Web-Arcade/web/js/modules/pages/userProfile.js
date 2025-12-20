@@ -16,9 +16,29 @@ import { initFriendsSidebarUI } from '../ui/friendsSidebar.js';
 // --- NUEVAS FUNCIONES PARA TARJETAS DE JUGADOR ---
 
 function renderPlayedGames(games, container, isOwnProfile) {
+    // Definimos cuántos iconos se muestran antes de necesitar el botón "Mostrar más"
+    // (Aprox. 2 filas en la mayoría de los móviles)
+    const MAX_ICONS_BEFORE_COLLAPSE = 10;
+    
     if (!games || games.length === 0) {
         container.innerHTML = ''; return;
     }
+    
+    const showMoreBtn = document.getElementById('show-more-games-btn');
+    
+    // Lógica para mostrar/ocultar el botón y colapsar la cuadrícula
+    if (games.length > MAX_ICONS_BEFORE_COLLAPSE) {
+        container.classList.add('collapsed');
+        if (showMoreBtn) {
+            showMoreBtn.style.display = 'flex';
+            showMoreBtn.classList.remove('expanded');
+            showMoreBtn.querySelector('span').textContent = 'Mostrar más';
+        }
+    } else {
+        container.classList.remove('collapsed');
+        if (showMoreBtn) showMoreBtn.style.display = 'none';
+    }
+    
     const title = isOwnProfile ? "Juegos que juegas" : "Juegos que juega";
     container.innerHTML = `<h3 class="games-title">${title}</h3>` + games.map(game => `
         <a href="#" class="game-item" data-package="${game.package_name}" data-name="${game.app_name}" data-icon="${getFullImageUrl(game.icon_url)}">
@@ -64,7 +84,7 @@ function renderPlayerCards(cards, container, placeholder, isOwnProfile) {
                         <span>ID: ${card.in_game_id || 'N/A'}</span>
                     </div>
                 </div>
-                ${card.invite_link ? `<div class="player-card-action"><a href="${card.invite_link}" target="_blank" class="invite-btn">Agregar por invitación</a></div>` : ''}
+                ${card.invite_link ? `<div class="player-card-action"><a href="${card.invite_link}" target="_blank" class="invite-btn">Link</a></div>` : ''}
             </div>
         </div>
     `;
@@ -95,6 +115,14 @@ export async function initUserProfilePage() {
     const isOwnProfile = String(targetUserId) === String(loggedInUserId);
 
     // --- Referencias a Elementos del DOM ---
+    // --- NUEVA REFERENCIA ---
+    // --- NUEVAS REFERENCIAS ---
+    const lastPlayedEl = document.getElementById('last-played');
+    const lastPlayedIconEl = document.getElementById('last-played-icon');
+    const lastPlayedTextEl = document.getElementById('last-played-text');
+
+    const showMoreGamesBtn = document.getElementById('show-more-games-btn');
+
     const mainContent = document.querySelector('main');
     const profileBg = document.getElementById('profile-bg-element');
     const editCoverBtn = document.getElementById('edit-cover-btn');
@@ -120,7 +148,6 @@ export async function initUserProfilePage() {
     const editBioBgBtn = document.getElementById('edit-bio-bg-btn');
     const bioBgInput = document.getElementById('bio-bg-input');
 
-    const lastPlayedEl = document.getElementById('last-played'); // <-- Nueva referencia
 
     // ----------------------------------------------------------------
     // 2. LÓGICA DE PESTAÑAS Y SWIPE
@@ -192,14 +219,19 @@ export async function initUserProfilePage() {
     const existingCoverUrlInput = document.getElementById('existing-cover-url');
     const cancelCardBtn = document.getElementById('cancel-card-btn');
     const saveCardBtn = document.getElementById('save-card-btn');
-
+    // --- NUEVA REFERENCIA ---
+    const deleteCardBtn = document.getElementById('delete-card-btn');
     let allPlayedGames = [];
     let allPlayerCards = [];
+    let currentEditingCard = null; // Variable para guardar la tarjeta que se está editando
 
     function openPlayerCardModal(game, card = null) {
         if (!isOwnProfile) return;
+        
+        currentEditingCard = card; // Guardamos la tarjeta actual
+        
         form.reset();
-        modalTitle.textContent = `Edita tu tarjeta de jugador de ${game.name}`; // Título más genérico
+        modalTitle.textContent = card ? `Edita tu tarjeta de ${game.name}` : `Crea tu tarjeta de ${game.name}`;
         packageNameInput.value = game.package;
         
         // Resetear la preview de imagen y el input oculto
@@ -219,12 +251,20 @@ export async function initUserProfilePage() {
                 coverImagePreview.style.display = 'block';
                 coverImagePlaceholder.style.display = 'none';
             }
+        // --- ¡MOSTRAR EL BOTÓN DE ELIMINAR! ---
+            deleteCardBtn.style.display = 'block';
+        } else {
+            // --- ¡OCULTAR EL BOTÓN DE ELIMINAR! ---
+            deleteCardBtn.style.display = 'none';
         }
         modal.style.display = 'flex';
     }
 
 
-    function closePlayerCardModal() { modal.style.display = 'none'; }
+    function closePlayerCardModal() {
+        modal.style.display = 'none';
+        currentEditingCard = null; // Limpiar la tarjeta en edición al cerrar
+    }
     
     // --- LÓGICA DE LA PÁGINA ---
 
@@ -340,13 +380,76 @@ export async function initUserProfilePage() {
     let quill; // Instancia de Quill.js
     let originalBioContent = '';
 
+    // --- ¡FUNCIÓN setupEditing ACTUALIZADA! ---
     const setupEditing = () => {
-        // Inicializar Quill
+        // --- 1. FUNCIÓN AUXILIAR PARA LA SUBIDA DE IMAGEN ---
+        async function selectLocalImage() {
+            // Creamos un input de tipo "file" en memoria
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click(); // Simulamos un clic para abrir el explorador de archivos
+
+            // Escuchamos el evento 'change' que se dispara cuando el usuario selecciona un archivo
+            input.onchange = async () => {
+                const file = input.files[0];
+                if (file) {
+                    // Creamos un FormData para enviar el archivo
+                    const formData = new FormData();
+                    formData.append('image', file); // La clave 'image' debe coincidir con la de tu middleware
+
+                    try {
+                        // Mostramos un indicador de carga (opcional pero recomendado)
+                        const range = quill.getSelection(true);
+                        quill.insertText(range.index, '\nCargando imagen...', 'user');
+
+                        // Llamamos a la API para subir la imagen
+                        const res = await apiFetch('/api/user/upload-bio-image', {
+                            method: 'POST',
+                            body: formData,
+                        });
+                        
+                        // Borramos el texto de "Cargando..."
+                        quill.deleteText(range.index, 18);
+
+                        if (res.success && res.url) {
+                            // Si la subida fue exitosa, insertamos la imagen en el editor
+                            // usando la URL completa que nos devuelve el servidor.
+                            quill.insertEmbed(range.index, 'image', getFullImageUrl(res.url));
+                        }
+                    } catch (error) {
+                        console.error('Error al subir la imagen de la biografía:', error);
+                        alert('Error al subir la imagen.');
+                        // Borramos el texto de "Cargando..." si falla
+                        const range = quill.getSelection(true);
+                        quill.deleteText(range.index, 18);
+                    }
+                }
+            };
+        }
+
+        // --- 2. CONFIGURACIÓN AVANZADA DE QUILL ---
         quill = new Quill(bioEditorEl, {
-            modules: { toolbar: [ [{ 'size': ['small', false, 'large', 'huge'] }], ['bold', 'italic', 'underline'], [{ 'color': [] }, { 'background': [] }], [{ 'align': [] }], ['image', 'link'] ] },
+            modules: {
+                toolbar: {
+                    container: [
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        ['bold', 'italic', 'underline'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'align': [] }],
+                        ['image', 'link'] // Mantenemos los botones en la barra de herramientas
+                    ],
+                    // ¡LA CLAVE! Sobrescribimos el manejador del botón de imagen
+                    handlers: {
+                        'image': selectLocalImage
+                    }
+                }
+            },
             theme: 'snow'
         });
-        quill.enable(false); // Deshabilitado por defecto
+
+        quill.enable(false);
+
         
         // Botón Editar/Cancelar Biografía
         editBioBtn.addEventListener('click', () => {
@@ -512,6 +615,62 @@ export async function initUserProfilePage() {
     // ▲▲▲              HASTA AQUÍ LLEGA TU BLOQUE DE CÓDIGO              ▲▲▲
     // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
+    // ==========================================================
+    // === ¡NUEVO LISTENER PARA EL BOTÓN DE ELIMINAR! ===
+    // ==========================================================
+    if (deleteCardBtn) {
+        deleteCardBtn.addEventListener('click', async () => {
+            // Usamos la variable global para saber qué tarjeta borrar
+            if (!currentEditingCard || !currentEditingCard.card_id) return;
+
+            if (confirm(`¿Estás seguro de que quieres eliminar tu tarjeta de jugador para ${currentEditingCard.app_name}?`)) {
+                deleteCardBtn.disabled = true;
+                deleteCardBtn.textContent = 'Eliminando...';
+
+                try {
+                    await apiFetch(`/api/user/player-cards/${currentEditingCard.card_id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    closePlayerCardModal();
+                    await refreshPlayerCards(); // Refrescar la lista de tarjetas
+
+                } catch (error) {
+                    alert(`Error al eliminar: ${error.message}`);
+                } finally {
+                    deleteCardBtn.disabled = false;
+                    deleteCardBtn.textContent = 'Eliminar';
+                }
+            }
+        });
+    }
+
+
+    // ==========================================================
+    // === ¡NUEVO LISTENER PARA EL BOTÓN "MOSTRAR MÁS"! ===
+    // ==========================================================
+    if (showMoreGamesBtn) {
+        showMoreGamesBtn.addEventListener('click', () => {
+            const gamesGrid = document.getElementById('games-container');
+            const btnText = showMoreGamesBtn.querySelector('span');
+
+            if (gamesGrid.classList.contains('collapsed')) {
+                // EXPANDIR
+                gamesGrid.classList.remove('collapsed');
+                showMoreGamesBtn.classList.add('expanded');
+                btnText.textContent = 'Mostrar menos';
+                // Animamos al alto total del contenido
+                gamesGrid.style.maxHeight = gamesGrid.scrollHeight + 'px';
+            } else {
+                // COLAPSAR
+                gamesGrid.classList.add('collapsed');
+                showMoreGamesBtn.classList.remove('expanded');
+                btnText.textContent = 'Mostrar más';
+                // Quitamos el estilo en línea para que la clase CSS tome el control de nuevo
+                gamesGrid.style.maxHeight = null;
+            }
+        });
+    }
 
     // ==========================================================
     // DESPUÉS DE ESTO: Comienza la lógica de carga de datos inicial 
@@ -539,14 +698,23 @@ export async function initUserProfilePage() {
          // ==========================================================
         // === ¡NUEVA LÓGICA PARA "ÚLTIMO JUEGO JUGADO"! ===
         // ==========================================================
-        if (lastPlayedEl) {
-            if (user.last_played_game && user.last_played_at) {
-                lastPlayedEl.textContent = `🎮 Jugó a ${user.last_played_game} ${formatTimeAgo(user.last_played_at)}`;
-                lastPlayedEl.style.display = 'block';
-            } else {
-                lastPlayedEl.style.display = 'none'; // Ocultar si no ha jugado a nada
+        // ==========================================================
+        // === ¡LÓGICA ACTUALIZADA PARA "ÚLTIMO JUEGO JUGADO"! ===
+        // ==========================================================
+        if (lastPlayedEl && user.last_played_game && user.last_played_at) {
+            // Usamos los nuevos elementos
+            if (lastPlayedIconEl) {
+                lastPlayedIconEl.src = getFullImageUrl(user.last_played_game_icon_url);
             }
+            if (lastPlayedTextEl) {
+                lastPlayedTextEl.textContent = `Jugó a ${user.last_played_game} ${formatTimeAgo(user.last_played_at)}`;
+            }
+            // Cambiamos el display a 'flex' para que se muestre correctamente
+            lastPlayedEl.style.display = 'flex';
+        } else if (lastPlayedEl) {
+            lastPlayedEl.style.display = 'none'; // Ocultar si no ha jugado a nada
         }
+        // ==========================================================
         // ==========================================================
         // Lógica condicional (dueño vs. visitante)
         if (isOwnProfile) {

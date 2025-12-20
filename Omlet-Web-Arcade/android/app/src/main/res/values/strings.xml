@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Omlet Web Arcade</string>
-    <string name="title_activity_main">Omlet Web Arcade</string>
+    <string name="app_name">AnarkWorld</string>
+    <string name="title_activity_main">AnarkWorld</string>
     <string name="package_name">com.omletwebfinal</string>
     <string name="custom_url_scheme">com.omletwebfinal</string>
     <!-- AÑADE ESTA LÍNEA EXACTAMENTE IGUAL QUE EN EL PASO ANTERIOR -->
