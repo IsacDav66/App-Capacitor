@@ -48,7 +48,42 @@
     
     <!-- Contenido Principal (donde se muestra la lista) -->
     <main id="chat-messages-container" class="chat-messages"></main>
+    <!-- ========================================================== -->
+    <!-- === ¡NUEVO CONTENEDOR PARA EL SELECTOR DE EMOJIS/STICKERS! === -->
+    <!-- ========================================================== -->
+    <div id="emoji-sticker-picker" class="picker-container">
+        <div class="picker-tabs">
+            <button class="picker-tab active" data-tab="emoji-content">😀</button>
+            <button class="picker-tab" data-tab="sticker-content">✨</button>
+        </div>
+        <div class="picker-content">
+            <div id="emoji-content" class="picker-content-panel active"></div>
+        
+            <!-- ¡CONTENIDO ACTUALIZADO PARA LOS STICKERS! -->
+            <div id="sticker-content" class="picker-content-panel">
+            
+            <!-- ========================================================== -->
+            <!-- === ¡BARRA DE BÚSQUEDA MEJORADA! === -->
+            <!-- ========================================================== -->
+            <div class="sticker-search-bar">
+                <div class="search-bar-container">
+                    <!-- Icono de Lupa -->
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/></svg>
+                    <!-- Campo de texto -->
+                    <input type="text" id="sticker-search-input" placeholder="Buscar stickers...">
+                    <!-- Botón para limpiar (oculto por defecto) -->
+                    <button id="clear-sticker-search-btn" class="clear-btn" style="display: none;">&times;</button>
+                </div>
+            </div>
+            <!-- ========================================================== -->
 
+            <div id="sticker-results-grid" class="sticker-grid">
+                <!-- El JS llenará esta cuadrícula -->
+            </div>
+        </div>
+        </div>
+    </div>
+    <!-- ========================================================== -->
     <!-- NUEVO: Barra de Contexto de Respuesta (oculta por defecto) -->
     <div id="reply-context-bar" class="reply-context">
         <div class="reply-preview">
@@ -58,8 +93,22 @@
         <button id="cancel-reply-btn" class="cancel-reply-btn">&times;</button>
     </div>
 
+    
+    <!-- Barra de input (MODIFICADA) -->
     <form id="chat-form" class="comment-input-bar">
         <div class="input-row">
+            <!-- ¡NUEVO BOTÓN DE EMOJI! -->
+            <button type="button" id="emoji-btn" class="emoji-toggle-btn">
+                <!-- El JS cambiará este icono -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                    <path fill="currentColor"
+                        d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10s10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8s8 3.589 8 8s-3.589 8-8 8z" />
+                    <path fill="currentColor"
+                        d="M15.5 8C14.672 8 14 8.672 14 9.5s.672 1.5 1.5 1.5s1.5-.672 1.5-1.5S16.328 8 15.5 8zm-7 0C7.672 8 7 8.672 7 9.5S7.672 11 8.5 11S10 10.328 10 9.5S9.328 8 8.5 8z" />
+                    <path fill="currentColor"
+                        d="M12 14c-2.336 0-4.46.883-6 2.225V17c0 .552.447 1 1 1h10c.553 0 1-.448 1-1v-.775c-1.54-1.342-3.664-2.225-6-2.225z" />
+                </svg>
+            </button>
             <textarea id="chat-message-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
             <button type="submit" id="send-chat-btn" class="comment-send-btn">
                 <!-- Icono de enviar -->
@@ -132,6 +181,9 @@
         </div>
     </div>
     <!-- ============================================= -->
+    
+    <!-- ¡AÑADE ESTE SCRIPT DE LA LIBRERÍA DE EMOJIS! -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 </body>
 
 </html>

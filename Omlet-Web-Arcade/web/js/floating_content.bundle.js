@@ -121,6 +121,7 @@
     messageDiv.className = `message-bubble ${isOwnMessage ? "sent" : "received"}`;
     messageDiv.dataset.senderId = message.sender_id;
     messageDiv.dataset.timestamp = message.created_at;
+    const isSticker = message.content.startsWith("https://media") && message.content.endsWith(".gif");
     if (String(message.message_id).startsWith("temp-")) {
       messageDiv.classList.add("pending");
     }
@@ -148,12 +149,26 @@
     }
     const mainContentWrapper = document.createElement("div");
     mainContentWrapper.className = "message-main-content";
-    const contentP = document.createElement("p");
-    contentP.textContent = message.content;
+    if (isSticker) {
+      messageDiv.style.backgroundColor = "transparent";
+      messageDiv.style.boxShadow = "none";
+      const stickerImg = document.createElement("img");
+      stickerImg.src = message.content;
+      stickerImg.className = "sticker-render";
+      stickerImg.style.maxWidth = "150px";
+      stickerImg.style.borderRadius = "8px";
+      stickerImg.onload = () => {
+        elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
+      };
+      mainContentWrapper.appendChild(stickerImg);
+    } else {
+      const contentP = document.createElement("p");
+      contentP.textContent = message.content;
+      mainContentWrapper.appendChild(contentP);
+    }
     const timestampSpan = document.createElement("span");
     timestampSpan.className = "message-timestamp";
     timestampSpan.innerHTML = messageDiv.classList.contains("pending") ? "\u{1F552}" : formatMessageTime(message.created_at);
-    mainContentWrapper.appendChild(contentP);
     mainContentWrapper.appendChild(timestampSpan);
     messageDiv.appendChild(mainContentWrapper);
     elements.messagesContainer.appendChild(messageDiv);
@@ -267,6 +282,8 @@
   }
   function openContextMenu(messageElement) {
     if (!messageElement) return;
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue("--color-accent").trim();
+    messageElement.style.setProperty("--message-color", accentColor);
     activeClone = messageElement.cloneNode(true);
     const rect = messageElement.getBoundingClientRect();
     originalParent = messageElement.parentElement;
@@ -396,13 +413,30 @@
     loggedInUserId = currentUserId;
     if (!otherUserId || !loggedInUserId || !elements.messagesContainer) {
       console.error("Faltan datos o elementos del DOM para inicializar el chat.");
-      return;
+      return null;
     }
     chatState = {
       currentReplyToId: null,
       contextMenuTarget: null,
       socket: null,
       roomName: null
+    };
+    const sendMessage = (messageData) => {
+      if (!chatState.socket || !chatState.socket.connected) {
+        console.error("No se puede enviar el mensaje, el socket no est\xE1 conectado.");
+        return;
+      }
+      const fullMessageData = {
+        ...messageData,
+        receiver_id: parseInt(otherUserId),
+        roomName: chatState.roomName,
+        created_at: (/* @__PURE__ */ new Date()).toISOString(),
+        parent_message_id: chatState.currentReplyToId
+      };
+      chatState.socket.emit("send_message", fullMessageData);
+      appendMessage(fullMessageData);
+      if (elements.chatInput) elements.chatInput.value = "";
+      cancelReplyMode();
     };
     try {
       const { default: io } = await import("https://cdn.socket.io/4.7.5/socket.io.esm.min.js");
@@ -480,11 +514,15 @@
         });
       }
       await fetchChatHistory();
+      return {
+        sendMessage
+      };
     } catch (error) {
-      console.error("Could not load Socket.IO library for chat.", error);
+      console.error("No se pudo cargar la librer\xEDa Socket.IO o inicializar el chat.", error);
       if (elements.messagesContainer) {
-        elements.messagesContainer.innerHTML = `<p class="search-placeholder">Chat connection error.</p>`;
+        elements.messagesContainer.innerHTML = `<p class="search-placeholder">Error en la conexi\xF3n del chat.</p>`;
       }
+      return null;
     }
   }
 

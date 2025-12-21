@@ -30,7 +30,7 @@ const appendMessage = (message) => {
     messageDiv.className = `message-bubble ${isOwnMessage ? 'sent' : 'received'}`;
     messageDiv.dataset.senderId = message.sender_id;
     messageDiv.dataset.timestamp = message.created_at;
-
+    const isSticker = message.content.startsWith('https://media') && message.content.endsWith('.gif');
     if (String(message.message_id).startsWith('temp-')) {
         messageDiv.classList.add('pending');
     }
@@ -55,12 +55,38 @@ const appendMessage = (message) => {
     }
     const mainContentWrapper = document.createElement('div');
     mainContentWrapper.className = 'message-main-content';
-    const contentP = document.createElement('p');
-    contentP.textContent = message.content;
+     if (isSticker) {
+        messageDiv.style.backgroundColor = 'transparent';
+        messageDiv.style.boxShadow = 'none';
+        
+        const stickerImg = document.createElement('img');
+        stickerImg.src = message.content;
+        stickerImg.className = 'sticker-render';
+        stickerImg.style.maxWidth = '150px';
+        stickerImg.style.borderRadius = '8px';
+
+        // ==========================================================
+        // === ¡AQUÍ ESTÁ LA LÓGICA CLAVE! ===
+        // ==========================================================
+        // Añadimos un listener que se disparará SOLO cuando la imagen
+        // haya terminado de cargarse y tenga sus dimensiones finales.
+        stickerImg.onload = () => {
+            // Ahora que la imagen tiene su altura, el scrollHeight será el correcto.
+            elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
+        };
+        // ==========================================================
+
+        mainContentWrapper.appendChild(stickerImg);
+    } else {
+        // Si no, creamos el párrafo de texto como antes
+        const contentP = document.createElement('p');
+        contentP.textContent = message.content;
+        mainContentWrapper.appendChild(contentP);
+    }
+
     const timestampSpan = document.createElement('span');
     timestampSpan.className = 'message-timestamp';
     timestampSpan.innerHTML = messageDiv.classList.contains('pending') ? '🕒' : formatMessageTime(message.created_at);
-    mainContentWrapper.appendChild(contentP);
     mainContentWrapper.appendChild(timestampSpan);
     messageDiv.appendChild(mainContentWrapper);
     elements.messagesContainer.appendChild(messageDiv);
@@ -71,6 +97,7 @@ const appendMessage = (message) => {
     if (!messageDiv.classList.contains('pending')) {
         addInteractionHandlers(messageDiv);
     }
+    
     elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
 };
 
@@ -211,6 +238,18 @@ async function deleteMessage(messageId) {
 
 function openContextMenu(messageElement) {
     if (!messageElement) return;
+
+    // ==========================================================
+    // === ¡CÓDIGO DE COLOR DEL RESPLANDOR! ===
+    // ==========================================================
+    // Obtenemos el color de acento actual del tema desde las variables CSS
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim();
+    
+    // Establecemos la variable CSS '--message-color' en la burbuja activa.
+    // Tanto la regla para .message-bubble.context-active como la nueva regla para
+    // .sticker-render usarán este color.
+    messageElement.style.setProperty('--message-color', accentColor);
+    // ==========================================================
 
     activeClone = messageElement.cloneNode(true);
     const rect = messageElement.getBoundingClientRect();
@@ -364,14 +403,13 @@ const getGroupClassFor = (messageEl) => {
 // === FUNCIÓN DE INICIALIZACIÓN PRINCIPAL DEL CONTROLADOR
 // ==========================================================
 export async function initChatController(domElements, partnerId, currentUserId) {
-    // 1. Guardar referencias y estado
     elements = domElements;
     otherUserId = partnerId;
     loggedInUserId = currentUserId;
 
     if (!otherUserId || !loggedInUserId || !elements.messagesContainer) {
         console.error("Faltan datos o elementos del DOM para inicializar el chat.");
-        return;
+        return null; // Devolvemos null si la inicialización falla
     }
 
     chatState = {
@@ -379,6 +417,27 @@ export async function initChatController(domElements, partnerId, currentUserId) 
         contextMenuTarget: null,
         socket: null,
         roomName: null,
+    };
+
+    // ==========================================================
+    // === MÉTODO PÚBLICO DEL CONTROLADOR QUE SERÁ DEVUELTO ===
+    // ==========================================================
+    const sendMessage = (messageData) => {
+        if (!chatState.socket || !chatState.socket.connected) {
+            console.error("No se puede enviar el mensaje, el socket no está conectado.");
+            return;
+        }
+        const fullMessageData = {
+            ...messageData,
+            receiver_id: parseInt(otherUserId),
+            roomName: chatState.roomName,
+            created_at: new Date().toISOString(),
+            parent_message_id: chatState.currentReplyToId,
+        };
+        chatState.socket.emit('send_message', fullMessageData);
+        appendMessage(fullMessageData);
+        if (elements.chatInput) elements.chatInput.value = '';
+        cancelReplyMode();
     };
 
     // 2. Conectar a Socket.IO
@@ -485,10 +544,20 @@ export async function initChatController(domElements, partnerId, currentUserId) 
 
         await fetchChatHistory();
 
+   // ==========================================================
+        // === ¡AQUÍ ESTÁ LA LÍNEA CRÍTICA QUE FALTA! ===
+        // ==========================================================
+        // Devolvemos el objeto del controlador con sus métodos públicos
+        return {
+            sendMessage
+        };
+
     } catch (error) {
-        console.error("Could not load Socket.IO library for chat.", error);
+        console.error("No se pudo cargar la librería Socket.IO o inicializar el chat.", error);
         if (elements.messagesContainer) {
-            elements.messagesContainer.innerHTML = `<p class="search-placeholder">Chat connection error.</p>`;
+            elements.messagesContainer.innerHTML = `<p class="search-placeholder">Error en la conexión del chat.</p>`;
         }
+        // Devolvemos null explícitamente si hay un error
+        return null;
     }
 }
