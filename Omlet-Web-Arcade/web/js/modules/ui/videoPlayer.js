@@ -39,8 +39,15 @@ export function setupAutoplayObserver(playersToObserve) {
                         otherPlayer.pause();
                     }
                 });
-                player.muted = true;
-                player.play().catch(() => {});
+                
+                // --- ¡CÓDIGO CORREGIDO! ---
+                // La promesa devuelta por player.play() puede ser undefined en algunos casos.
+                // Añadimos una comprobación para evitar el error.
+                const playPromise = player.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(() => { /* Ignorar errores si el usuario interactuó */ });
+                }
+                
             } else {
                 player.pause();
             }

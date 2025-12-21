@@ -71,6 +71,23 @@
         <!-- Puedes copiar el contenido de la barra inferior de home.html aquí si lo deseas -->
     </div>
 
+    <!-- ========================================================== -->
+    <!-- === ¡NUEVO MODAL DE CONFIRMACIÓN DE PERMISOS! === -->
+    <!-- ========================================================== -->
+    <div id="permission-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h4 id="permission-modal-title">Se Requiere Permiso</h4>
+            <p id="permission-modal-text">Para que esta función se active, necesitas conceder un permiso adicional en los
+                ajustes del sistema.</p>
+            <div class="modal-actions">
+                <button id="permission-cancel-btn" class="modal-btn secondary">Ahora No</button>
+                <button id="permission-grant-btn" class="modal-btn primary">Ir a Ajustes</button>
+            </div>
+        </div>
+    </div>
+    <!-- ========================================================== -->
+
+
     <script src="./js/app.js" type="module"></script>
 </body>
 

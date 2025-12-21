@@ -1,3 +1,4 @@
+// /android/app/src/main/java/com/omletwebfinal/plugins/gamedetector/OverlayService.java
 package com.omletwebfinal.plugins.gamedetector;
 
 import android.annotation.SuppressLint;
@@ -19,6 +20,7 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -32,15 +34,10 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.getcapacitor.Bridge;
 import com.getcapacitor.JSObject;
 import com.omletwebfinal.MainActivity;
 import com.omletwebfinal.R;
@@ -53,14 +50,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import android.app.ActivityManager;
-import android.util.TypedValue;
 
-import android.util.DisplayMetrics; // <-- AÑADE ESTA IMPORTACIÓN
-// ==========================================================
-// === ¡AÑADE ESTA LÍNEA EXACTAMENTE AQUÍ! ===
-// ==========================================================
-import com.omletwebfinal.R;
 public class OverlayService extends Service {
     private static final String CHANNEL_ID = "OverlayServiceChannel";
     private static final String TAG = "GameDetectorService";
@@ -75,39 +65,27 @@ public class OverlayService extends Service {
     private WindowManager.LayoutParams floatingWindowParams;
     private boolean isWindowOpen = false;
     private boolean isBubbleOverDismiss = false;
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable appCheckRunnable;
     private JSObject lastReceivedTheme = null;
     private BroadcastReceiver orientationChangeReceiver;
+    
     private final BroadcastReceiver themeUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if ("com.omletwebfinal.THEME_UPDATED".equals(intent.getAction())) {
-                JSObject themeData = new JSObject();
-                themeData.put("bgColor", intent.getStringExtra("bgColor"));
-                themeData.put("textColor", intent.getStringExtra("textColor"));
-                themeData.put("secondaryTextColor", intent.getStringExtra("secondaryTextColor"));
-                themeData.put("surfaceColor", intent.getStringExtra("surfaceColor"));
-                themeData.put("accentColor", intent.getStringExtra("accentColor"));
-                themeData.put("uiColor", intent.getStringExtra("uiColor"));
-                themeData.put("borderColor", intent.getStringExtra("borderColor"));
-                lastReceivedTheme = themeData;
-                Log.d(TAG, "Tema actualizado y guardado en el servicio: " + themeData.toString());
-
-                if (isWindowOpen && floatingWebView != null) {
-                    applyThemeToWebView(lastReceivedTheme);
-                }
-            }
-        }
-    };
-
-    private final BroadcastReceiver serviceCommandReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if ("com.omletwebfinal.SHOW_DEFINE_FORM".equals(intent.getAction())) {
-                String packageName = intent.getStringExtra("packageName");
-                if (isWindowOpen && floatingViewContainer != null && packageName != null) {
-                    showDefineFormInWindow(packageName);
+                String themeJson = intent.getStringExtra("themeJson");
+                if (themeJson != null) {
+                    try {
+                        JSObject themeData = new JSObject(themeJson);
+                        lastReceivedTheme = themeData;
+                        Log.e(TAG, "¡TEMA RECIBIDO EN VIVO VÍA LOCAL BROADCAST!");
+                        if (isWindowOpen && floatingWebView != null) {
+                            applyThemeToWebView(lastReceivedTheme);
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error al parsear el JSON del tema desde el LocalBroadcast", e);
+                    }
                 }
             }
         }
@@ -120,25 +98,35 @@ public class OverlayService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Omlet Web Arcade Activo")
+                .setContentTitle("AnarkWorld Activo")
                 .setContentText("Burbuja flotante activa.")
                 .setSmallIcon(R.mipmap.ic_launcher_round).build();
         startForeground(1, notification);
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        
+        SharedPreferences sharedPref = getSharedPreferences("OMLET_APP_PREFS", Context.MODE_PRIVATE);
+        String themeJson = sharedPref.getString("lastKnownTheme", null);
+        if (themeJson != null) {
+            try {
+                lastReceivedTheme = new JSObject(themeJson);
+                Log.d(TAG, "Tema inicial cargado desde SharedPreferences: " + lastReceivedTheme.toString());
+            } catch (Exception e) {
+                Log.e(TAG, "Error al parsear el JSON del tema desde SharedPreferences", e);
+            }
+        }
+
         showDismissView();
         showBubbleView();
 
         IntentFilter themeFilter = new IntentFilter("com.omletwebfinal.THEME_UPDATED");
-        ContextCompat.registerReceiver(this, themeUpdateReceiver, themeFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
+        LocalBroadcastManager.getInstance(this).registerReceiver(themeUpdateReceiver, themeFilter);
         
         setupOrientationChangeReceiver();
         IntentFilter orientationFilter = new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED);
         registerReceiver(orientationChangeReceiver, orientationFilter);
         
-        // --- ¡CAMBIO IMPORTANTE! ---
-        // Ya NO iniciamos la detección aquí automáticamente.
-        // startAppDetection();  <-- LÍNEA COMENTADA O ELIMINADA
+        // El bucle de detección ahora se inicia desde el JS a través de jsReady()
         
         return START_STICKY;
     }
@@ -146,7 +134,7 @@ public class OverlayService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(themeUpdateReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(themeUpdateReceiver);
         if (orientationChangeReceiver != null) {
             unregisterReceiver(orientationChangeReceiver);
         }
@@ -263,6 +251,16 @@ public class OverlayService extends Service {
             floatingViewContainer.setVisibility(View.VISIBLE);
             floatingViewContainer.requestFocus();
             Log.d(TAG, "Ventana flotante reutilizada y mostrada.");
+
+            // ==========================================================
+            // === ¡AQUÍ ESTÁ LA LÍNEA DE CORRECCIÓN! ===
+            // ==========================================================
+            // Al volver a mostrar la ventana, nos aseguramos de que tenga el último tema.
+            if (lastReceivedTheme != null) {
+                applyThemeToWebView(lastReceivedTheme);
+            }
+            // ==========================================================
+            
             return;
         }
 
