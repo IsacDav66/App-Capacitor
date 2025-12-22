@@ -3,6 +3,10 @@
 import { initChatController } from '../controllers/chatController.js';
 import { getCurrentUserId } from '../state.js';
 import { apiFetch } from '../api.js';
+// ==========================================================
+// === ¡AÑADE LA IMPORTACIÓN QUE FALTA AQUÍ! ===
+// =-=-========================================================
+import { getFullImageUrl } from '../utils.js';
 
 const SMILEY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10s10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8s8 3.589 8 8s-3.589 8-8 8z"/><path fill="currentColor" d="M15.5 8C14.672 8 14 8.672 14 9.5s.672 1.5 1.5 1.5s1.5-.672 1.5-1.5S16.328 8 15.5 8zm-7 0C7.672 8 7 8.672 7 9.5S7.672 11 8.5 11S10 10.328 10 9.5S9.328 8 8.5 8z"/><path fill="currentColor" d="M12 14c-2.336 0-4.46.883-6 2.225V17c0 .552.447 1 1 1h10c.553 0 1-.448 1-1v-.775c-1.54-1.342-3.664-2.225-6-2-2.225z"/></svg>`;
 const KEYBOARD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M20 3H4c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2zM4 19V5h16l.002 14H4z"/><path fill="currentColor" d="M5 7h2v2H5zm4 0h2v2H9zm4 0h2v2h-2zm4 0h2v2h-2zM5 11h2v2H5zm4 0h2v2H9zm4 0h2v2h-2zm4 0h2v2h-2zM5 15h8v2H5z"/></svg>`;
@@ -11,6 +15,8 @@ export async function initChatPage() {
     // 1. Obtener los IDs de los usuarios
     const otherUserId = new URLSearchParams(window.location.search).get('userId');
     const loggedInUserId = getCurrentUserId();
+
+
 
     if (!otherUserId || !loggedInUserId) {
         alert("Error: No se pudo iniciar el chat. Sesión o usuario inválido.");
@@ -54,6 +60,120 @@ export async function initChatPage() {
     let pickerInitialized = false;
     let stickerSearchTimeout;
 
+
+      // --- NUEVAS REFERENCIAS PARA EL CREADOR DE STICKERS ---
+    const createStickerBtn = document.getElementById('create-sticker-btn');
+    const stickerCreatorModal = document.getElementById('sticker-creator-modal');
+    const closeStickerCreatorBtn = document.getElementById('close-sticker-creator-btn');
+    const stickerSourceImage = document.getElementById('sticker-source-image');
+    const saveStickerBtn = document.getElementById('save-sticker-btn');
+    const customStickerGrid = document.getElementById('custom-sticker-grid');
+
+    let cropper = null;
+    let customStickers = JSON.parse(localStorage.getItem('customStickers')) || [];
+
+    // --- NUEVAS REFERENCIAS ---
+    const customStickerLoader = document.getElementById('custom-sticker-loader');
+     // --- NUEVAS FUNCIONES PARA EL CREADOR DE STICKERS (ACTUALIZADAS) ---
+
+    // Función unificada para subir un archivo (Blob o File)
+    // --- FUNCIONES AUXILIARES (ACTUALIZADAS) ---
+
+    // Esta función ahora también se encarga de re-renderizar la lista
+    async function uploadAndSendSticker(file, fileName = 'sticker.png') {
+        try {
+            const formData = new FormData();
+            formData.append('stickerFile', file, fileName);
+
+            const response = await apiFetch('/api/apps/stickers/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.success && response.url) {
+                const fullUrl = getFullImageUrl(response.url);
+                sendMessage(fullUrl);
+
+                // Actualizar el modelo de datos
+                customStickers.unshift(response.url);
+                localStorage.setItem('customStickers', JSON.stringify(customStickers.slice(0, 50)));
+                
+                // No necesitamos llamar a renderCustomStickers aquí, 
+                // ya que lo haremos en el `finally`
+            } else {
+                throw new Error(response.message || "La respuesta del servidor no fue exitosa.");
+            }
+        } catch (error) {
+            console.error("Error al subir el sticker:", error);
+            alert(`Error al subir el sticker: ${error.message}`);
+            // Lanzamos el error de nuevo para que el bloque `finally` se ejecute
+            // pero el flujo principal sepa que algo falló.
+            throw error;
+        }
+    }
+
+    function openStickerCreator() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,image/gif';
+        input.onchange = async (e) => { // <-- La hacemos async de nuevo
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.type === 'image/gif') {
+                // ==========================================================
+                // === ¡LÓGICA FINAL Y CORRECTA! ===
+                // ==========================================================
+                // 1. Ocultamos la cuadrícula y mostramos el cargador
+                if (customStickerGrid) customStickerGrid.style.display = 'none';
+                if (customStickerLoader) customStickerLoader.style.display = 'block';
+
+                try {
+                    // 2. Esperamos a que la subida se complete
+                    await uploadAndSendSticker(file, file.name);
+                } finally {
+                    // 3. (SE EJECUTA SIEMPRE) Ocultamos el cargador y mostramos la cuadrícula
+                    if (customStickerLoader) customStickerLoader.style.display = 'none';
+                    if (customStickerGrid) customStickerGrid.style.display = 'grid'; // 'grid' para que recupere su estilo
+                    
+                    // 4. Y ahora que la cuadrícula es visible, la re-renderizamos con los datos actualizados
+                    renderCustomStickers();
+                }
+                // ==========================================================
+
+            } else {
+                // La lógica para imágenes estáticas no cambia
+                const reader = new FileReader();
+                reader.onload = event => {
+                    stickerSourceImage.src = event.target.result;
+                    stickerCreatorModal.style.display = 'flex';
+
+                    if (cropper) cropper.destroy();
+                    cropper = new Cropper(stickerSourceImage, { /* ... */ });
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
+
+
+    function closeStickerCreator() {
+        stickerCreatorModal.style.display = 'none';
+        if (cropper) cropper.destroy();
+        cropper = null;
+    }
+
+    function renderCustomStickers() {
+        if (customStickers.length > 0) {
+            customStickerGrid.innerHTML = customStickers.map(url => `
+                <img src="${getFullImageUrl(url)}" class="sticker-item" data-sticker-url="${getFullImageUrl(url)}">
+            `).join('');
+        } else {
+            customStickerGrid.innerHTML = '<p class="search-placeholder">Crea tu primer sticker con el botón +</p>';
+        }
+    }
+    
     // 3. Inicializar el controlador de chat PRIMERO
     window.chatController = await initChatController(domElements, otherUserId, loggedInUserId);
     console.log("[initChatPage LOG] El chatController se ha inicializado:", window.chatController);
@@ -215,4 +335,73 @@ function sendMessage(contentToSend) {
         }
     });
     // ¡LA LLAMADA DUPLICADA A initChatController HA SIDO ELIMINADA DE AQUÍ!
+    // Listeners para el creador de stickers
+    if (createStickerBtn) createStickerBtn.addEventListener('click', openStickerCreator);
+    if (closeStickerCreatorBtn) closeStickerCreatorBtn.addEventListener('click', closeStickerCreator);
+
+    // ==========================================================
+    // === ¡LISTENER DE GUARDADO DE STICKER CORREGIDO! ===
+    // ==========================================================
+    if (saveStickerBtn) {
+        saveStickerBtn.addEventListener('click', async () => {
+            if (!cropper) return;
+
+            saveStickerBtn.disabled = true;
+            saveStickerBtn.textContent = 'Procesando...';
+            
+            // Referencias a los elementos de la UI del selector
+            const customStickerGrid = document.getElementById('custom-sticker-grid');
+            const customStickerLoader = document.getElementById('custom-sticker-loader');
+
+            try {
+                const getCroppedBlob = () => new Promise(resolve => {
+                    cropper.getCroppedCanvas({ width: 256, height: 256 }).toBlob(blob => resolve(blob), 'image/png');
+                });
+
+                const stickerBlob = await getCroppedBlob();
+                if (!stickerBlob) throw new Error("No se pudo crear el archivo del sticker.");
+
+                // Cerramos el modal inmediatamente y mostramos el cargador en el panel principal
+                closeStickerCreator();
+                if (customStickerGrid) customStickerGrid.style.display = 'none';
+                if (customStickerLoader) {
+                    customStickerLoader.querySelector('p').textContent = 'Subiendo Sticker...'; // Cambiamos el texto
+                    customStickerLoader.style.display = 'block';
+                }
+                
+                // Esperamos a que la subida se complete
+                await uploadAndSendSticker(stickerBlob, 'sticker.png');
+                
+            } catch (error) {
+                // El alert de error ya se muestra dentro de uploadAndSendSticker
+                console.error("Error en el proceso de guardado de sticker recortado:", error);
+            } finally {
+                // Este bloque se ejecuta SIEMPRE, restaurando la UI.
+                if (customStickerLoader) customStickerLoader.style.display = 'none';
+                if (customStickerGrid) customStickerGrid.style.display = 'grid';
+                
+                // Volvemos a renderizar para asegurar que la lista esté actualizada.
+                renderCustomStickers();
+                
+                // Restauramos el estado del botón del modal para la próxima vez
+                saveStickerBtn.disabled = false;
+                saveStickerBtn.textContent = 'Crear y Enviar';
+            }
+        });
+    }
+    
+    // Listener para enviar un sticker personalizado
+    if (customStickerGrid) {
+        customStickerGrid.addEventListener('click', (e) => {
+            if (e.target.classList.contains('sticker-item')) {
+                const stickerUrl = e.target.dataset.stickerUrl;
+                sendMessage(stickerUrl);
+            }
+        });
+    }
+    
+    // Cargar stickers personalizados al inicio
+    renderCustomStickers();
+
+
 }

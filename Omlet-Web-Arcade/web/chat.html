@@ -28,6 +28,10 @@
     <link href="./css/components.css" rel="stylesheet">
     <link href="./css/pages.css" rel="stylesheet">
 
+
+    <!-- ¡AÑADE ESTOS DOS! -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 </head>
 
 <body class="chat-layout">
@@ -54,33 +58,51 @@
     <div id="emoji-sticker-picker" class="picker-container">
         <div class="picker-tabs">
             <button class="picker-tab active" data-tab="emoji-content">😀</button>
-            <button class="picker-tab" data-tab="sticker-content">✨</button>
+            <button class="picker-tab" data-tab="giphy-sticker-content">✨</button>
+            <button class="picker-tab" data-tab="custom-sticker-content">👤</button> <!-- ¡NUEVA PESTAÑA! -->
         </div>
         <div class="picker-content">
             <div id="emoji-content" class="picker-content-panel active"></div>
         
             <!-- ¡CONTENIDO ACTUALIZADO PARA LOS STICKERS! -->
-            <div id="sticker-content" class="picker-content-panel">
+            <div id="giphy-sticker-content" class="picker-content-panel"> <!-- ID CAMBIADO -->
             
-            <!-- ========================================================== -->
-            <!-- === ¡BARRA DE BÚSQUEDA MEJORADA! === -->
-            <!-- ========================================================== -->
-            <div class="sticker-search-bar">
-                <div class="search-bar-container">
-                    <!-- Icono de Lupa -->
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/></svg>
-                    <!-- Campo de texto -->
-                    <input type="text" id="sticker-search-input" placeholder="Buscar stickers...">
-                    <!-- Botón para limpiar (oculto por defecto) -->
-                    <button id="clear-sticker-search-btn" class="clear-btn" style="display: none;">&times;</button>
+                <!-- ========================================================== -->
+                <!-- === ¡BARRA DE BÚSQUEDA MEJORADA! === -->
+                <!-- ========================================================== -->
+                <div class="sticker-search-bar">
+                    <div class="search-bar-container">
+                        <!-- Icono de Lupa -->
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/></svg>
+                        <!-- Campo de texto -->
+                        <input type="text" id="sticker-search-input" placeholder="Buscar stickers...">
+                        <!-- Botón para limpiar (oculto por defecto) -->
+                        <button id="clear-sticker-search-btn" class="clear-btn" style="display: none;">&times;</button>
+                    </div>
+                </div>
+                <!-- ========================================================== -->
+
+                <div id="sticker-results-grid" class="sticker-grid">
+                    <!-- El JS llenará esta cuadrícula -->
                 </div>
             </div>
-            <!-- ========================================================== -->
 
-            <div id="sticker-results-grid" class="sticker-grid">
-                <!-- El JS llenará esta cuadrícula -->
+            <!-- ¡NUEVO PANEL PARA STICKERS PERSONALIZADOS! -->
+            <!-- ¡PANEL DE STICKERS PERSONALIZADOS ACTUALIZADO! -->
+            <div id="custom-sticker-content" class="picker-content-panel">
+                
+                <!-- Contenedor para el mensaje de carga (oculto por defecto) -->
+                <div id="custom-sticker-loader" style="display: none;">
+                    <p class="search-placeholder">Subiendo GIF...</p>
+                </div>
+
+                <!-- La cuadrícula donde siempre se renderizarán los stickers -->
+                <div id="custom-sticker-grid" class="sticker-grid">
+                    <!-- El JS llenará esto -->
+                </div>
+                
+                <button id="create-sticker-btn" class="create-sticker-button">+</button>
             </div>
-        </div>
         </div>
     </div>
     <!-- ========================================================== -->
@@ -120,6 +142,30 @@
             </button>
         </div>
     </form>
+
+    <!-- ========================================================== -->
+    <!-- === ¡NUEVO MODAL PARA EL EDITOR DE STICKERS! === -->
+    <!-- ========================================================== -->
+    <div id="sticker-creator-modal" class="sticker-creator-overlay" style="display: none;">
+        <div class="sticker-creator-content">
+            <div class="sticker-creator-header">
+                <h3>Crear Sticker</h3>
+                <button id="close-sticker-creator-btn">&times;</button>
+            </div>
+            <div class="sticker-creator-body">
+                <!-- Vista de Edición (para recorte) -->
+                <div id="sticker-editor-view">
+                    <div class="sticker-crop-container">
+                        <img id="sticker-source-image" src="">
+                    </div>
+                </div>
+            </div>
+            <div class="sticker-creator-footer">
+                <button id="cancel-sticker-btn" class="modal-btn secondary">Cancelar</button>
+                <button id="save-sticker-btn" class="modal-btn primary">Crear y Enviar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Librería de Socket.IO para el cliente -->
     <script src="./js/app.js" type="module"></script>
@@ -184,6 +230,7 @@
     
     <!-- ¡AÑADE ESTE SCRIPT DE LA LIBRERÍA DE EMOJIS! -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+    <script src="./js/app.js" type="module"></script>
 </body>
 
 </html>

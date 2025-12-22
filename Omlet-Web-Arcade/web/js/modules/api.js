@@ -1,56 +1,64 @@
 // /js/modules/api.js
 
-// La URL base CORRECTA que tu proxy Nginx entiende.
 export const API_BASE_URL = 'https://davcenter.servequake.com/app';
 
-/**
- * Función genérica para realizar peticiones a la API.
- * Centraliza la lógica de autenticación y manejo de errores.
- */
 export async function apiFetch(endpoint, options = {}) {
-    // LOG A: Ver el token que estamos a punto de usar desde el localStorage.
     const token = localStorage.getItem('authToken');
-    console.log(`[API Fetch LOG] Token recuperado de localStorage para la petición a ${endpoint}:`, token);
-
     const headers = { ...options.headers };
-    const finalOptions = { ...options };
 
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
     
-    // Si el body es un FormData, no establecemos Content-Type.
+    // No establecemos 'Content-Type' para FormData, multer lo necesita así.
     if (!(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
     }
 
-    // Para peticiones GET, forzamos que no use la caché para obtener siempre datos frescos.
-    if (!finalOptions.method || finalOptions.method.toUpperCase() === 'GET') {
-        finalOptions.cache = 'no-store';
-    }
+    const finalOptions = {
+        ...options,
+        headers,
+        cache: 'no-store' // Siempre pedir datos frescos
+    };
+    
+    const finalUrl = `${API_BASE_URL}${endpoint}`;
     
     try {
-        const finalUrl = `${API_BASE_URL}${endpoint}`;
-        
-        // LOG B: Ver la petición final exacta que se va a enviar.
         console.log(`[API Fetch LOG] Enviando petición a: ${finalUrl}`);
+        const response = await fetch(finalUrl, finalOptions);
+
+        // --- LÓGICA DE RESPUESTA MÁS ROBUSTA ---
         
-        const response = await fetch(finalUrl, {
-            ...finalOptions,
-            headers,
-        });
+        // Obtenemos el texto de la respuesta para poder analizarlo si es necesario
+        const responseText = await response.text();
 
-        const responseData = await response.json().catch(() => ({}));
-
+        // Si la respuesta no es OK, mostramos el texto y lanzamos el error
         if (!response.ok) {
-            // Este error se mostrará si la respuesta es 404, 401, 500, etc.
-            throw new Error(responseData.message || `Error del servidor: ${response.status}`);
+            console.error(`[API Fetch ERROR] Respuesta no-OK (${response.status}) para ${endpoint}. Texto:`, responseText);
+            // Intentamos parsear el error del JSON, si no, usamos el texto.
+            try {
+                const errorJson = JSON.parse(responseText);
+                throw new Error(errorJson.message || `Error del servidor: ${response.status}`);
+            } catch (e) {
+                throw new Error(`Error del servidor: ${response.status}`);
+            }
         }
-
-        return responseData;
+        
+        // Si la respuesta es OK, intentamos parsearla como JSON.
+        try {
+            // Si la respuesta está vacía (algunas respuestas 200 OK no tienen cuerpo), devolvemos un objeto de éxito.
+            if (responseText === '') {
+                return { success: true };
+            }
+            return JSON.parse(responseText);
+        } catch (e) {
+            console.error(`[API Fetch ERROR] La respuesta para ${endpoint} no era un JSON válido, aunque el estado era OK. Texto:`, responseText);
+            throw new Error('La respuesta del servidor no tenía el formato esperado.');
+        }
+        
     } catch (error) {
-        // Este error se mostrará si hay un problema de red, CORS, etc.
-        console.error(`Error en API Fetch (${endpoint}):`, error);
+        // Captura errores de red (ej. sin conexión, problemas de CORS, etc.)
+        console.error(`[API Fetch NETWORK ERROR] Error de red para ${endpoint}:`, error);
         throw error;
     }
 }

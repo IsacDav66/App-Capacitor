@@ -30,7 +30,17 @@ const appendMessage = (message) => {
     messageDiv.className = `message-bubble ${isOwnMessage ? 'sent' : 'received'}`;
     messageDiv.dataset.senderId = message.sender_id;
     messageDiv.dataset.timestamp = message.created_at;
-    const isSticker = message.content.startsWith('https://media') && message.content.endsWith('.gif');
+     // ==========================================================
+    // === ¡AQUÍ ESTÁ LA LÓGICA DE DETECCIÓN CORREGIDA! ===
+    // ==========================================================
+    const content = message.content;
+    // Un sticker es cualquier URL que termine en .gif, .png, o .webp (para el futuro)
+    const isSticker = content.startsWith('http') && (
+        content.endsWith('.gif') || 
+        content.endsWith('.png') ||
+        content.endsWith('.webp')
+    );
+    // ==========================================================
     if (String(message.message_id).startsWith('temp-')) {
         messageDiv.classList.add('pending');
     }
@@ -53,34 +63,28 @@ const appendMessage = (message) => {
             messageDiv.appendChild(repliedSnippetLink);
         }
     }
-    const mainContentWrapper = document.createElement('div');
+     const mainContentWrapper = document.createElement('div');
     mainContentWrapper.className = 'message-main-content';
-     if (isSticker) {
+
+    if (isSticker) {
+        // Esta lógica ahora se ejecutará para AMBOS tipos de stickers
         messageDiv.style.backgroundColor = 'transparent';
         messageDiv.style.boxShadow = 'none';
         
         const stickerImg = document.createElement('img');
-        stickerImg.src = message.content;
+        stickerImg.src = content; // Usamos la variable 'content'
         stickerImg.className = 'sticker-render';
         stickerImg.style.maxWidth = '150px';
         stickerImg.style.borderRadius = '8px';
 
-        // ==========================================================
-        // === ¡AQUÍ ESTÁ LA LÓGICA CLAVE! ===
-        // ==========================================================
-        // Añadimos un listener que se disparará SOLO cuando la imagen
-        // haya terminado de cargarse y tenga sus dimensiones finales.
         stickerImg.onload = () => {
-            // Ahora que la imagen tiene su altura, el scrollHeight será el correcto.
             elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
         };
-        // ==========================================================
-
         mainContentWrapper.appendChild(stickerImg);
     } else {
-        // Si no, creamos el párrafo de texto como antes
+        // Mensaje de texto normal
         const contentP = document.createElement('p');
-        contentP.textContent = message.content;
+        contentP.textContent = content; // Usamos la variable 'content'
         mainContentWrapper.appendChild(contentP);
     }
 
@@ -88,8 +92,10 @@ const appendMessage = (message) => {
     timestampSpan.className = 'message-timestamp';
     timestampSpan.innerHTML = messageDiv.classList.contains('pending') ? '🕒' : formatMessageTime(message.created_at);
     mainContentWrapper.appendChild(timestampSpan);
+    
     messageDiv.appendChild(mainContentWrapper);
     elements.messagesContainer.appendChild(messageDiv);
+
     if (lastMessageEl) {
         lastMessageEl.className = lastMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(lastMessageEl);
     }
