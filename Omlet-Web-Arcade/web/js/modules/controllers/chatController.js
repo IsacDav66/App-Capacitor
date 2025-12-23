@@ -1,137 +1,142 @@
-// /js/modules/controllers/chatController.js
-
 import { apiFetch, API_BASE_URL } from '../api.js';
 import { getFullImageUrl, formatMessageTime, formatDateSeparator } from '../utils.js';
 
-// --- VARIABLES GLOBALES DEL CONTROLADOR ---
-let elements = {}; // Guardará las referencias a los elementos del DOM
-let chatState = {}; // Guardará el estado específico de esta instancia del chat
-let loggedInUserId, otherUserId; // IDs de los participantes
-let activeClone = null; // NUEVA variable para guardar la referencia al clon
+export async function initChatController(domElements, partnerId, currentUserId) {
+    
+    // --- 1. DEFINICIÓN DE VARIABLES Y ESTADO (PRIVADAS AL CONTROLADOR) ---
+    const elements = domElements;
+    const otherUserId = partnerId;
+    const loggedInUserId = currentUserId;
+    let activeClone = null;
+    let originalParent = null;
+    let nextSibling = null;
 
-
-// ¡VARIABLES QUE FALTABAN, AHORA DECLARADAS!
-let originalParent = null;
-let nextSibling = null;
-
-
-// ==========================================================
-// === FUNCIONES DE LÓGICA Y RENDERIZADO (AHORA REUTILIZABLES)
-// ==========================================================
-
-// Todas las funciones internas ahora usarán `elements.nombreDelElemento`
-// en lugar de `document.getElementById('nombre-del-elemento')`.
-
-const appendMessage = (message) => {
-    const isOwnMessage = message.sender_id === loggedInUserId;
-    const lastMessageEl = elements.messagesContainer.querySelector('.message-bubble:last-child');
-    const messageDiv = document.createElement('div');
-    messageDiv.id = `msg-${message.message_id}`;
-    messageDiv.className = `message-bubble ${isOwnMessage ? 'sent' : 'received'}`;
-    messageDiv.dataset.senderId = message.sender_id;
-    messageDiv.dataset.timestamp = message.created_at;
-     // ==========================================================
-    // === ¡AQUÍ ESTÁ LA LÓGICA DE DETECCIÓN CORREGIDA! ===
-    // ==========================================================
-    const content = message.content;
-    // Un sticker es cualquier URL que termine en .gif, .png, o .webp (para el futuro)
-    const isSticker = content.startsWith('http') && (
-        content.endsWith('.gif') || 
-        content.endsWith('.png') ||
-        content.endsWith('.webp')
-    );
-    // ==========================================================
-    if (String(message.message_id).startsWith('temp-')) {
-        messageDiv.classList.add('pending');
+    if (!otherUserId || !loggedInUserId || !elements.messagesContainer) {
+        console.error("Faltan datos o elementos del DOM para inicializar el chat.");
+        return null; // Devolvemos null si la inicialización falla
     }
-    if (message.parent_message_id) {
-        let parentUsername = message.parent_username;
-        let parentContent = message.parent_content;
-        if (isOwnMessage && !parentContent) {
-            const parentMessageEl = elements.messagesContainer.querySelector(`#msg-${message.parent_message_id}`); 
-            if (parentMessageEl) {
-                parentContent = parentMessageEl.querySelector('p').textContent;
-                parentUsername = parentMessageEl.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
+
+    const chatState = {
+        currentReplyToId: null,
+        contextMenuTarget: null,
+        socket: null,
+        roomName: null,
+    };
+    
+    // --- 2. DEFINICIÓN DE TODAS LAS FUNCIONES AUXILIARES ---
+
+    const appendMessage = (message) => {
+        const isOwnMessage = message.sender_id === loggedInUserId;
+        const lastMessageEl = elements.messagesContainer.querySelector('.message-bubble:last-child');
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.id = `msg-${message.message_id}`;
+        messageDiv.className = `message-bubble ${isOwnMessage ? 'sent' : 'received'}`;
+        messageDiv.dataset.senderId = message.sender_id;
+        messageDiv.dataset.timestamp = message.created_at;
+
+        const content = message.content;
+        const isImageSticker = content.startsWith('http') && (content.endsWith('.gif') || content.endsWith('.png') || content.endsWith('.webp'));
+        const isVideoSticker = content.startsWith('http') && content.endsWith('.mp4');
+
+        if (String(message.message_id).startsWith('temp-')) {
+            messageDiv.classList.add('pending');
+        }
+
+        if (message.parent_message_id) {
+            let parentUsername = message.parent_username;
+            let parentContent = message.parent_content;
+            if (isOwnMessage && !parentContent) {
+                const parentMessageEl = elements.messagesContainer.querySelector(`#msg-${message.parent_message_id}`); 
+                if (parentMessageEl) {
+                    const parentP = parentMessageEl.querySelector('p');
+                    const parentImg = parentMessageEl.querySelector('img.sticker-render');
+                    parentContent = parentP ? parentP.textContent : (parentImg ? 'Sticker' : 'Mensaje');
+                    parentUsername = parentMessageEl.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
+                }
+            }
+            if (parentContent) {
+                const repliedSnippetLink = document.createElement('a');
+                repliedSnippetLink.className = 'replied-to-snippet';
+                repliedSnippetLink.href = '#';
+                repliedSnippetLink.onclick = (e) => { e.preventDefault(); scrollToMessage(`msg-${message.parent_message_id}`); };
+                repliedSnippetLink.innerHTML = `<span class="replied-user">${parentUsername || 'Usuario'}</span><span class="replied-text">${parentContent}</span>`;
+                messageDiv.appendChild(repliedSnippetLink);
             }
         }
-        if (parentContent) {
-            const repliedSnippetLink = document.createElement('a');
-            repliedSnippetLink.className = 'replied-to-snippet';
-            repliedSnippetLink.href = '#';
-            repliedSnippetLink.onclick = (e) => { e.preventDefault(); scrollToMessage(`msg-${message.parent_message_id}`); };
-            repliedSnippetLink.innerHTML = `<span class="replied-user">${parentUsername || 'Usuario'}</span><span class="replied-text">${parentContent}</span>`;
-            messageDiv.appendChild(repliedSnippetLink);
-        }
-    }
-     const mainContentWrapper = document.createElement('div');
-    mainContentWrapper.className = 'message-main-content';
 
-    if (isSticker) {
-        // Esta lógica ahora se ejecutará para AMBOS tipos de stickers
-        messageDiv.style.backgroundColor = 'transparent';
-        messageDiv.style.boxShadow = 'none';
+        const mainContentWrapper = document.createElement('div');
+        mainContentWrapper.className = 'message-main-content';
+
+        if (isImageSticker) {
+            messageDiv.style.backgroundColor = 'transparent';
+            messageDiv.style.boxShadow = 'none';
+            const stickerImg = document.createElement('img');
+            stickerImg.src = content;
+            stickerImg.className = 'sticker-render';
+            stickerImg.style.maxWidth = '150px';
+            stickerImg.style.borderRadius = '8px';
+            stickerImg.onload = () => { elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight; };
+            mainContentWrapper.appendChild(stickerImg);
+        } else if (isVideoSticker) {
+            messageDiv.style.backgroundColor = 'transparent';
+            messageDiv.style.boxShadow = 'none';
+
+            const videoEl = document.createElement('video');
+            videoEl.src = content;
+            videoEl.className = 'sticker-render video-sticker';
+            videoEl.style.maxWidth = '200px';
+            videoEl.style.borderRadius = '16px';
+            videoEl.autoplay = true;
+            videoEl.muted = true; // Sigue empezando sin sonido por defecto
+            videoEl.loop = true;
+            videoEl.playsInline = true;
+
+            // ==========================================================
+            // === ¡LÓGICA DE AUDIO MEJORADA! ===
+            // ==========================================================
+            videoEl.addEventListener('click', () => {
+                // 1. Buscamos todos los demás vídeos en el chat.
+                document.querySelectorAll('video.video-sticker').forEach(otherVideo => {
+                    // Si es un vídeo diferente al que hemos clicado, lo silenciamos.
+                    if (otherVideo !== videoEl) {
+                        otherVideo.muted = true;
+                    }
+                });
+                // 2. Después de silenciar a los demás, alternamos el sonido del vídeo actual.
+                videoEl.muted = !videoEl.muted;
+        });
+        // ==========================================================
         
-        const stickerImg = document.createElement('img');
-        stickerImg.src = content; // Usamos la variable 'content'
-        stickerImg.className = 'sticker-render';
-        stickerImg.style.maxWidth = '150px';
-        stickerImg.style.borderRadius = '8px';
+        mainContentWrapper.appendChild(videoEl);
 
-        stickerImg.onload = () => {
-            elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
-        };
-        mainContentWrapper.appendChild(stickerImg);
-    } else {
-        // Mensaje de texto normal
-        const contentP = document.createElement('p');
-        contentP.textContent = content; // Usamos la variable 'content'
-        mainContentWrapper.appendChild(contentP);
-    }
+        } else {
+            const contentP = document.createElement('p');
+            contentP.textContent = content;
+            mainContentWrapper.appendChild(contentP);
+        }
 
-    const timestampSpan = document.createElement('span');
-    timestampSpan.className = 'message-timestamp';
-    timestampSpan.innerHTML = messageDiv.classList.contains('pending') ? '🕒' : formatMessageTime(message.created_at);
-    mainContentWrapper.appendChild(timestampSpan);
-    
-    messageDiv.appendChild(mainContentWrapper);
-    elements.messagesContainer.appendChild(messageDiv);
+        const timestampSpan = document.createElement('span');
+        timestampSpan.className = 'message-timestamp';
+        timestampSpan.innerHTML = messageDiv.classList.contains('pending') ? '🕒' : formatMessageTime(message.created_at);
+        mainContentWrapper.appendChild(timestampSpan);
+        
+        messageDiv.appendChild(mainContentWrapper);
+        elements.messagesContainer.appendChild(messageDiv);
 
-    if (lastMessageEl) {
-        lastMessageEl.className = lastMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(lastMessageEl);
-    }
-    messageDiv.classList.add(getGroupClassFor(messageDiv));
-    if (!messageDiv.classList.contains('pending')) {
-        addInteractionHandlers(messageDiv);
-    }
-    
-    elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
-};
+        if (lastMessageEl) {
+            lastMessageEl.className = lastMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(lastMessageEl);
+        }
+        messageDiv.classList.add(getGroupClassFor(messageDiv));
 
-const removeMessageFromDOM = (messageId) => {
-    // <-- CAMBIO: Busca dentro del contenedor específico
-    const messageElement = elements.messagesContainer.querySelector(`#msg-${messageId}`);
-    if (!messageElement) return;
+        if (!messageDiv.classList.contains('pending')) {
+            addInteractionHandlers(messageDiv);
+        }
+        
+        elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
+    };
 
-            let prevMessageEl = messageElement.previousElementSibling;
-            while (prevMessageEl && !prevMessageEl.classList.contains('message-bubble')) prevMessageEl = prevMessageEl.previousElementSibling;
-            let nextMessageEl = messageElement.nextElementSibling;
-            while (nextMessageEl && !nextMessageEl.classList.contains('message-bubble')) nextMessageEl = nextMessageEl.nextElementSibling;
-
-            messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease, margin 0.3s ease, height 0.3s ease, padding 0.3s ease';
-            messageElement.style.opacity = '0';
-            messageElement.style.transform = 'scale(0.8)';
-            messageElement.style.marginTop = `-${messageElement.offsetHeight}px`;
-            messageElement.style.padding = '0';
-            messageElement.style.height = '0';
-
-            setTimeout(() => {
-                messageElement.remove();
-                if (prevMessageEl) prevMessageEl.className = prevMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(prevMessageEl);
-                if (nextMessageEl) nextMessageEl.className = nextMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(nextMessageEl);
-            }, 300);
-};
-
-const fetchChatHistory = async () => {
+    const fetchChatHistory = async () => {
     try {
         const { data: user } = await apiFetch(`/api/user/profile/${otherUserId}`);
         // <-- CAMBIO: Usa `elements`
@@ -159,8 +164,31 @@ const fetchChatHistory = async () => {
         elements.messagesContainer.innerHTML = `<p class="search-placeholder">Error loading history: ${error.message}</p>`;
     }
 };
+    const removeMessageFromDOM = (messageId) => {
+    // <-- CAMBIO: Busca dentro del contenedor específico
+    const messageElement = elements.messagesContainer.querySelector(`#msg-${messageId}`);
+    if (!messageElement) return;
 
-const enterReplyMode = (messageId, username, content) => {
+            let prevMessageEl = messageElement.previousElementSibling;
+            while (prevMessageEl && !prevMessageEl.classList.contains('message-bubble')) prevMessageEl = prevMessageEl.previousElementSibling;
+            let nextMessageEl = messageElement.nextElementSibling;
+            while (nextMessageEl && !nextMessageEl.classList.contains('message-bubble')) nextMessageEl = nextMessageEl.nextElementSibling;
+
+            messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease, margin 0.3s ease, height 0.3s ease, padding 0.3s ease';
+            messageElement.style.opacity = '0';
+            messageElement.style.transform = 'scale(0.8)';
+            messageElement.style.marginTop = `-${messageElement.offsetHeight}px`;
+            messageElement.style.padding = '0';
+            messageElement.style.height = '0';
+
+            setTimeout(() => {
+                messageElement.remove();
+                if (prevMessageEl) prevMessageEl.className = prevMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(prevMessageEl);
+                if (nextMessageEl) nextMessageEl.className = nextMessageEl.className.replace(/single|start-group|middle-group|end-group/g, '').trim() + ' ' + getGroupClassFor(nextMessageEl);
+            }, 300);
+};
+
+    const enterReplyMode = (messageId, username, content) => {
     chatState.currentReplyToId = messageId;
     // <-- CAMBIO: Usa `elements`
     elements.replyToUser.textContent = username;
@@ -173,8 +201,7 @@ const cancelReplyMode = () => {
     chatState.currentReplyToId = null;
     elements.replyContextBar.classList.remove('visible'); // <-- CAMBIO: Usa `elements`
 };
-
-const scrollToMessage = (messageId) => {
+    const scrollToMessage = (messageId) => {
     // <-- CAMBIO: Busca dentro del contenedor específico
     const targetMessage = elements.messagesContainer.querySelector(`#${messageId}`);
     if (targetMessage) {
@@ -183,17 +210,7 @@ const scrollToMessage = (messageId) => {
         setTimeout(() => targetMessage.classList.remove('highlighted'), 1500);
     }
 };
-
-        const copyMessageText = (messageElement) => {
-            const textToCopy = messageElement.querySelector('p').textContent;
-            navigator.clipboard.writeText(textToCopy).catch(err => console.error('Error copying:', err));
-        };
-
-        /**
- * Muestra un modal de confirmación y llama a la API para eliminar un mensaje.
- * @param {string} messageId - El ID del mensaje a eliminar.
- */
-async function deleteMessage(messageId) {
+    async function deleteMessage(messageId) {
     // 1. Usamos el objeto `elements` para encontrar los elementos del modal
     const modal = elements.deleteConfirmModal;
     const cancelBtn = elements.cancelDeleteBtn;
@@ -237,12 +254,7 @@ async function deleteMessage(messageId) {
         }
     }
 }
-
-// ==========================================================
-// === FUNCIONES DEL MENÚ CONTEXTUAL (VERSIÓN CON CLONACIÓN) ===
-// ==========================================================
-
-function openContextMenu(messageElement) {
+    function openContextMenu(messageElement) {
     if (!messageElement) return;
 
     // ==========================================================
@@ -318,8 +330,7 @@ function openContextMenu(messageElement) {
     deleteBtn.onclick = () => { deleteMessage(messageElement.id.replace('msg-', '')); closeContextMenu(); };
     overlay.onclick = closeContextMenu;
 }
-
-function closeContextMenu() {
+    function closeContextMenu() {
     const overlay = elements.contextMenuOverlay;
     const menu = elements.contextMenu;
     if (!overlay || !menu) return;
@@ -339,7 +350,7 @@ function closeContextMenu() {
     originalParent = null;
     nextSibling = null;
 }
-const addInteractionHandlers = (messageElement) => {
+    const addInteractionHandlers = (messageElement) => {
     let startX = 0, deltaX = 0, longPressTimer;
     const swipeThreshold = 80;
 
@@ -381,12 +392,7 @@ const addInteractionHandlers = (messageElement) => {
         }
     });
 };
-        
-        // ----------------------------------------------------------------
-        // 4. MESSAGE GROUPING LOGIC & OTHER HELPERS
-        // ----------------------------------------------------------------
-
-const getGroupClassFor = (messageEl) => {
+    const getGroupClassFor = (messageEl) => {
             const timeThreshold = 60;
             const senderId = messageEl.dataset.senderId;
             const timestamp = new Date(messageEl.dataset.timestamp);
@@ -405,29 +411,8 @@ const getGroupClassFor = (messageEl) => {
             return 'middle-group';
         };
 
-// ==========================================================
-// === FUNCIÓN DE INICIALIZACIÓN PRINCIPAL DEL CONTROLADOR
-// ==========================================================
-export async function initChatController(domElements, partnerId, currentUserId) {
-    elements = domElements;
-    otherUserId = partnerId;
-    loggedInUserId = currentUserId;
 
-    if (!otherUserId || !loggedInUserId || !elements.messagesContainer) {
-        console.error("Faltan datos o elementos del DOM para inicializar el chat.");
-        return null; // Devolvemos null si la inicialización falla
-    }
-
-    chatState = {
-        currentReplyToId: null,
-        contextMenuTarget: null,
-        socket: null,
-        roomName: null,
-    };
-
-    // ==========================================================
-    // === MÉTODO PÚBLICO DEL CONTROLADOR QUE SERÁ DEVUELTO ===
-    // ==========================================================
+    // --- 3. MÉTODO PÚBLICO DEL CONTROLADOR ---
     const sendMessage = (messageData) => {
         if (!chatState.socket || !chatState.socket.connected) {
             console.error("No se puede enviar el mensaje, el socket no está conectado.");
@@ -445,21 +430,20 @@ export async function initChatController(domElements, partnerId, currentUserId) 
         if (elements.chatInput) elements.chatInput.value = '';
         cancelReplyMode();
     };
-
-    // 2. Conectar a Socket.IO
+    
+    // --- 4. LÓGICA DE INICIALIZACIÓN ---
     try {
         const { default: io } = await import('https://cdn.socket.io/4.7.5/socket.io.esm.min.js');
         chatState.socket = io(API_BASE_URL.replace('/app', ''), { path: "/app/socket.io/" });
         chatState.roomName = [loggedInUserId, parseInt(otherUserId)].sort().join('-');
         
         chatState.socket.on('connect', () => {
-            console.log('Connected to chat server:', chatState.socket.id);
+            console.log('Socket conectado:', chatState.socket.id);
             const token = localStorage.getItem('authToken');
             chatState.socket.emit('authenticate', token);
             chatState.socket.emit('join_room', chatState.roomName);
         });
 
-        // 3. Configurar listeners de Socket.IO
         chatState.socket.on('receive_message', (message) => {
             if (message.sender_id === loggedInUserId) return;
             appendMessage(message);
@@ -475,45 +459,24 @@ export async function initChatController(domElements, partnerId, currentUserId) 
         });
         chatState.socket.on('message_deleted', ({ messageId }) => removeMessageFromDOM(messageId));
 
-        // 4. Configurar listeners del DOM
-        // --- LISTENERS DEL DOM ---
+        if (elements.chatForm) {
+            elements.chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const content = elements.chatInput.value.trim();
+                if (content) {
+                    sendMessage({
+                        message_id: `temp-${Date.now()}`,
+                        sender_id: loggedInUserId,
+                        content: content
+                    });
+                }
+            });
+        }
         
-        // Listener del botón Cancelar Respuesta (si existe)
         if (elements.cancelReplyBtn) {
             elements.cancelReplyBtn.addEventListener('click', cancelReplyMode);
         }
-        
-        // Listener del formulario de envío (si existe)
-        if (elements.chatForm) {
-            // ==========================================================
-            // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
-            // ==========================================================
-            elements.chatForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                // Usamos `elements.chatInput` en lugar de `chatInput`
-                const content = elements.chatInput.value.trim();
-                if (content) {
-                    const tempId = `temp-${Date.now()}`;
-                    const messageData = {
-                        message_id: tempId, sender_id: loggedInUserId, receiver_id: parseInt(otherUserId),
-                        content: content, roomName: chatState.roomName, created_at: new Date().toISOString(),
-                        parent_message_id: chatState.currentReplyToId,
-                    };
-                    chatState.socket.emit('send_message', messageData);
-                    appendMessage(messageData); 
-                    // Usamos `elements.chatInput` para limpiar el campo
-                    elements.chatInput.value = '';
-                    cancelReplyMode();
-                }
-            });
-            // ==========================================================
-        }
 
-
-        // ==========================================================
-        // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
-        // ==========================================================
-        // Listener de scroll para el header de fecha pegajoso (si existe)
         if (elements.messagesContainer && elements.stickyHeader) {
             let hideHeaderTimeout;
             elements.messagesContainer.addEventListener('scroll', () => {
@@ -550,10 +513,7 @@ export async function initChatController(domElements, partnerId, currentUserId) 
 
         await fetchChatHistory();
 
-   // ==========================================================
-        // === ¡AQUÍ ESTÁ LA LÍNEA CRÍTICA QUE FALTA! ===
-        // ==========================================================
-        // Devolvemos el objeto del controlador con sus métodos públicos
+        // --- 5. DEVOLVER EL OBJETO DEL CONTROLADOR ---
         return {
             sendMessage
         };
@@ -563,7 +523,6 @@ export async function initChatController(domElements, partnerId, currentUserId) 
         if (elements.messagesContainer) {
             elements.messagesContainer.innerHTML = `<p class="search-placeholder">Error en la conexión del chat.</p>`;
         }
-        // Devolvemos null explícitamente si hay un error
         return null;
     }
 }

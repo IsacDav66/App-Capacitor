@@ -5,10 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Chat</title>
-    <!-- ... (tus scripts de tema y CSS links) ... -->
-    <!-- ========================================================= -->
-    <!-- === INICIO DEL SCRIPT ANTI-PARPADEO DE TEMA === -->
-    <!-- ========================================================= -->
+    <!-- Script de Tema -->
     <script>
         (function () {
             const theme = localStorage.getItem('app-theme') || 'purple';
@@ -17,21 +14,16 @@
             document.documentElement.setAttribute('data-mode', mode);
         })();
     </script>
-    <!-- ========================================================= -->
-    <!-- === FIN DEL SCRIPT === -->
-    <!-- ========================================================= -->
-    <!-- Plyr.io CSS (para los estilos del reproductor) -->
+    <!-- Estilos -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
-    <!-- Hojas de Estilo Estandarizadas -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <link href="./css/tailwind.css" rel="stylesheet">
     <link href="./css/global.css" rel="stylesheet">
     <link href="./css/components.css" rel="stylesheet">
     <link href="./css/pages.css" rel="stylesheet">
-
-
-    <!-- ¡AÑADE ESTOS DOS! -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <!-- Scripts de Librerías -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 </head>
 
 <body class="chat-layout">
@@ -45,68 +37,34 @@
         <div class="top-right"></div>
     </div>
 
-    <!-- NUEVO: Header de Fecha Anclado (Sticky) -->
-    <div id="sticky-date-header" class="sticky-date-header">
-        <span></span>
-    </div>
-    
-    <!-- Contenido Principal (donde se muestra la lista) -->
+    <div id="sticky-date-header" class="sticky-date-header"><span></span></div>
+
     <main id="chat-messages-container" class="chat-messages"></main>
-    <!-- ========================================================== -->
-    <!-- === ¡NUEVO CONTENEDOR PARA EL SELECTOR DE EMOJIS/STICKERS! === -->
-    <!-- ========================================================== -->
-    <div id="emoji-sticker-picker" class="picker-container">
+
+    <div id="emoji-sticker-picker" class="picker-container" style="display: none;">
         <div class="picker-tabs">
             <button class="picker-tab active" data-tab="emoji-content">😀</button>
             <button class="picker-tab" data-tab="giphy-sticker-content">✨</button>
-            <button class="picker-tab" data-tab="custom-sticker-content">👤</button> <!-- ¡NUEVA PESTAÑA! -->
+            <button class="picker-tab" data-tab="custom-sticker-content">👤</button>
         </div>
         <div class="picker-content">
             <div id="emoji-content" class="picker-content-panel active"></div>
-        
-            <!-- ¡CONTENIDO ACTUALIZADO PARA LOS STICKERS! -->
-            <div id="giphy-sticker-content" class="picker-content-panel"> <!-- ID CAMBIADO -->
-            
-                <!-- ========================================================== -->
-                <!-- === ¡BARRA DE BÚSQUEDA MEJORADA! === -->
-                <!-- ========================================================== -->
+            <div id="giphy-sticker-content" class="picker-content-panel">
                 <div class="sticker-search-bar">
-                    <div class="search-bar-container">
-                        <!-- Icono de Lupa -->
-                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/></svg>
-                        <!-- Campo de texto -->
-                        <input type="text" id="sticker-search-input" placeholder="Buscar stickers...">
-                        <!-- Botón para limpiar (oculto por defecto) -->
-                        <button id="clear-sticker-search-btn" class="clear-btn" style="display: none;">&times;</button>
-                    </div>
+                    <input type="text" id="sticker-search-input" placeholder="Buscar stickers en GIPHY...">
                 </div>
-                <!-- ========================================================== -->
-
-                <div id="sticker-results-grid" class="sticker-grid">
-                    <!-- El JS llenará esta cuadrícula -->
-                </div>
+                <div id="giphy-sticker-grid" class="sticker-grid"></div>
             </div>
-
-            <!-- ¡NUEVO PANEL PARA STICKERS PERSONALIZADOS! -->
-            <!-- ¡PANEL DE STICKERS PERSONALIZADOS ACTUALIZADO! -->
             <div id="custom-sticker-content" class="picker-content-panel">
-                
-                <!-- Contenedor para el mensaje de carga (oculto por defecto) -->
                 <div id="custom-sticker-loader" style="display: none;">
-                    <p class="search-placeholder">Subiendo GIF...</p>
+                    <p class="search-placeholder">Subiendo...</p>
                 </div>
-
-                <!-- La cuadrícula donde siempre se renderizarán los stickers -->
-                <div id="custom-sticker-grid" class="sticker-grid">
-                    <!-- El JS llenará esto -->
-                </div>
-                
+                <div id="custom-sticker-grid" class="sticker-grid"></div>
                 <button id="create-sticker-btn" class="create-sticker-button">+</button>
             </div>
         </div>
     </div>
-    <!-- ========================================================== -->
-    <!-- NUEVO: Barra de Contexto de Respuesta (oculta por defecto) -->
+
     <div id="reply-context-bar" class="reply-context">
         <div class="reply-preview">
             <span id="reply-to-user" class="reply-to-user"></span>
@@ -115,13 +73,9 @@
         <button id="cancel-reply-btn" class="cancel-reply-btn">&times;</button>
     </div>
 
-    
-    <!-- Barra de input (MODIFICADA) -->
     <form id="chat-form" class="comment-input-bar">
         <div class="input-row">
-            <!-- ¡NUEVO BOTÓN DE EMOJI! -->
             <button type="button" id="emoji-btn" class="emoji-toggle-btn">
-                <!-- El JS cambiará este icono -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                     <path fill="currentColor"
                         d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10s10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8s8 3.589 8 8s-3.589 8-8 8z" />
@@ -133,7 +87,6 @@
             </button>
             <textarea id="chat-message-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
             <button type="submit" id="send-chat-btn" class="comment-send-btn">
-                <!-- Icono de enviar -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                     <path fill="currentColor" fill-rule="evenodd"
                         d="M3.402 6.673c-.26-2.334 2.143-4.048 4.266-3.042l11.944 5.658c2.288 1.083 2.288 4.339 0 5.422L7.668 20.37c-2.123 1.006-4.525-.708-4.266-3.042L3.882 13H12a1 1 0 1 0 0-2H3.883z"
@@ -143,9 +96,6 @@
         </div>
     </form>
 
-    <!-- ========================================================== -->
-    <!-- === ¡NUEVO MODAL PARA EL EDITOR DE STICKERS! === -->
-    <!-- ========================================================== -->
     <div id="sticker-creator-modal" class="sticker-creator-overlay" style="display: none;">
         <div class="sticker-creator-content">
             <div class="sticker-creator-header">
@@ -153,11 +103,29 @@
                 <button id="close-sticker-creator-btn">&times;</button>
             </div>
             <div class="sticker-creator-body">
-                <!-- Vista de Edición (para recorte) -->
-                <div id="sticker-editor-view">
+                <div id="sticker-editor-view-image" style="display: none;">
                     <div class="sticker-crop-container">
                         <img id="sticker-source-image" src="">
                     </div>
+                </div>
+                <div id="sticker-editor-view-video" style="display: none;">
+                    <video id="sticker-source-video" controls style="width: 100%; max-height: 300px;"></video>
+                    <div id="trimmer-container" class="trimmer">
+                        <div class="trimmer-timeline">
+                            <div id="trimmer-selection" class="trimmer-selection"></div>
+                            <div id="trimmer-playhead" class="trimmer-playhead"></div>
+                        </div>
+                        <div id="trimmer-start-handle" class="trimmer-handle"></div>
+                        <div id="trimmer-end-handle" class="trimmer-handle"></div>
+                    </div>
+                    <div class="audio-toggle-container">
+                        <input type="checkbox" id="sticker-audio-toggle" checked>
+                        <label for="sticker-audio-toggle">Incluir audio</label>
+                    </div>
+                </div>
+                <div id="ffmpeg-loader-view" style="display: none;">
+                    <p class="search-placeholder">Inicializando editor de video...</p>
+                    <p id="ffmpeg-log"></p>
                 </div>
             </div>
             <div class="sticker-creator-footer">
@@ -167,68 +135,65 @@
         </div>
     </div>
 
-    <!-- Librería de Socket.IO para el cliente -->
-    <script src="./js/app.js" type="module"></script>
+<!-- ==================================================== -->
+<!-- === NUEVO: MENÚ CONTEXTUAL PARA MENSAJES       === -->
+<!-- ==================================================== -->
+<div id="context-menu-overlay" class="context-overlay"></div>
 
+<div id="context-menu" class="context-menu">
+    <div id="context-menu-options" class="context-menu-options">
+        <button id="reply-from-menu-btn" class="context-menu-button">
+            <span class="context-menu-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                        d="M6.40625 1.08752C6.76562 1.24689 7 1.60627 7 2.00002V4.00002H10.5C13.5375 4.00002 16 6.46252 16 9.50002C16 13.0406 13.4531 14.6219 12.8687 14.9406C12.7906 14.9844 12.7031 15 12.6156 15C12.275 15 12 14.7219 12 14.3844C12 14.15 12.1344 13.9344 12.3062 13.775C12.6 13.5 13 12.95 13 12.0031C13 10.3469 11.6562 9.00314 10 9.00314H7V11.0031C7 11.3969 6.76875 11.7563 6.40625 11.9156C6.04375 12.075 5.625 12.0094 5.33125 11.7469L0.33125 7.24689C0.121875 7.05314 0 6.78439 0 6.50002C0 6.21564 0.121875 5.94689 0.33125 5.75627L5.33125 1.25627C5.625 0.990644 6.04688 0.925019 6.40625 1.08752Z"
+                        fill="currentColor" />
+                </svg>
+            </span>
+            <span class="context-menu-text">Responder</span>
+        </button>
+        <button id="copy-btn" class="context-menu-button">
+            <span class="context-menu-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path
+                        d="M14.3438 16.875H6.46875C5.79742 16.875 5.15359 16.6083 4.67889 16.1336C4.20418 15.6589 3.9375 15.0151 3.9375 14.3438V6.46875C3.9375 5.79742 4.20418 5.15359 4.67889 4.67889C5.15359 4.20418 5.79742 3.9375 6.46875 3.9375H14.3438C15.0151 3.9375 15.6589 4.20418 16.1336 4.67889C16.6083 5.15359 16.875 5.79742 16.875 6.46875V14.3438C16.875 15.0151 16.6083 15.6589 16.1336 16.1336C15.6589 16.6083 15.0151 16.875 14.3438 16.875Z"
+                        fill="currentColor" />
+                    <path
+                        d="M5.625 2.8125H13.9177C13.7426 2.31934 13.4193 1.89242 12.9921 1.59029C12.5648 1.28816 12.0545 1.12563 11.5312 1.125H3.65625C2.98492 1.125 2.34109 1.39168 1.86639 1.86639C1.39168 2.34109 1.125 2.98492 1.125 3.65625V11.5312C1.12563 12.0545 1.28816 12.5648 1.59029 12.9921C1.89242 13.4193 2.31934 13.7426 2.8125 13.9177V5.625C2.8125 4.87908 3.10882 4.16371 3.63626 3.63626C4.16371 3.10882 4.87908 2.8125 5.625 2.8125Z"
+                        fill="currentColor" />
+                </svg>
+            </span>
+            <span class="context-menu-text">Copiar</span>
+        </button>
+        <button id="delete-from-menu-btn" class="context-menu-button destructive" style="display: none;">
+            <span class="context-menu-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="18" viewBox="0 0 14 18" fill="none">
+                    <path
+                        d="M1 16C1 17.1 1.9 18 3 18H11C12.1 18 13 17.1 13 16V6C13 4.9 12.1 4 11 4H3C1.9 4 1 4.9 1 6V16ZM13 1H10.5L9.79 0.29C9.61 0.11 9.35 0 9.09 0H4.91C4.65 0 4.39 0.11 4.21 0.29L3.5 1H1C0.45 1 0 1.45 0 2C0 2.55 0.45 3 1 3H13C13.55 3 14 2.55 14 2C14 1.45 13.55 1 13 1Z"
+                        fill="#D33F49" />
+                </svg>
+            </span>
+            <span class="context-menu-text">Eliminar</span>
+        </button>
+    </div>
+</div>
+<!-- ==================================================== -->
 
-    <!-- ==================================================== -->
-    <!-- === NUEVO: MENÚ CONTEXTUAL PARA MENSAJES       === -->
-    <!-- ==================================================== -->
-    <div id="context-menu-overlay" class="context-overlay"></div>
-    
-    <div id="context-menu" class="context-menu">
-        <div id="context-menu-options" class="context-menu-options">
-            <button id="reply-from-menu-btn" class="context-menu-button">
-                <span class="context-menu-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M6.40625 1.08752C6.76562 1.24689 7 1.60627 7 2.00002V4.00002H10.5C13.5375 4.00002 16 6.46252 16 9.50002C16 13.0406 13.4531 14.6219 12.8687 14.9406C12.7906 14.9844 12.7031 15 12.6156 15C12.275 15 12 14.7219 12 14.3844C12 14.15 12.1344 13.9344 12.3062 13.775C12.6 13.5 13 12.95 13 12.0031C13 10.3469 11.6562 9.00314 10 9.00314H7V11.0031C7 11.3969 6.76875 11.7563 6.40625 11.9156C6.04375 12.075 5.625 12.0094 5.33125 11.7469L0.33125 7.24689C0.121875 7.05314 0 6.78439 0 6.50002C0 6.21564 0.121875 5.94689 0.33125 5.75627L5.33125 1.25627C5.625 0.990644 6.04688 0.925019 6.40625 1.08752Z" fill="currentColor"/>
-                    </svg>
-                </span>
-                <span class="context-menu-text">Responder</span>
-            </button>
-            <button id="copy-btn" class="context-menu-button">
-                <span class="context-menu-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
-                        <path
-                            d="M14.3438 16.875H6.46875C5.79742 16.875 5.15359 16.6083 4.67889 16.1336C4.20418 15.6589 3.9375 15.0151 3.9375 14.3438V6.46875C3.9375 5.79742 4.20418 5.15359 4.67889 4.67889C5.15359 4.20418 5.79742 3.9375 6.46875 3.9375H14.3438C15.0151 3.9375 15.6589 4.20418 16.1336 4.67889C16.6083 5.15359 16.875 5.79742 16.875 6.46875V14.3438C16.875 15.0151 16.6083 15.6589 16.1336 16.1336C15.6589 16.6083 15.0151 16.875 14.3438 16.875Z"
-                            fill="currentColor" />
-                        <path
-                            d="M5.625 2.8125H13.9177C13.7426 2.31934 13.4193 1.89242 12.9921 1.59029C12.5648 1.28816 12.0545 1.12563 11.5312 1.125H3.65625C2.98492 1.125 2.34109 1.39168 1.86639 1.86639C1.39168 2.34109 1.125 2.98492 1.125 3.65625V11.5312C1.12563 12.0545 1.28816 12.5648 1.59029 12.9921C1.89242 13.4193 2.31934 13.7426 2.8125 13.9177V5.625C2.8125 4.87908 3.10882 4.16371 3.63626 3.63626C4.16371 3.10882 4.87908 2.8125 5.625 2.8125Z"
-                            fill="currentColor" />
-                    </svg>
-                </span>
-                <span class="context-menu-text">Copiar</span>
-            </button>
-            <button id="delete-from-menu-btn" class="context-menu-button destructive" style="display: none;">
-                <span class="context-menu-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="18" viewBox="0 0 14 18" fill="none">
-                        <path
-                            d="M1 16C1 17.1 1.9 18 3 18H11C12.1 18 13 17.1 13 16V6C13 4.9 12.1 4 11 4H3C1.9 4 1 4.9 1 6V16ZM13 1H10.5L9.79 0.29C9.61 0.11 9.35 0 9.09 0H4.91C4.65 0 4.39 0.11 4.21 0.29L3.5 1H1C0.45 1 0 1.45 0 2C0 2.55 0.45 3 1 3H13C13.55 3 14 2.55 14 2C14 1.45 13.55 1 13 1Z"
-                            fill="#D33F49" />
-                    </svg>
-                </span>
-                <span class="context-menu-text">Eliminar</span>
-            </button>
+<!-- ============================================= -->
+<!-- === MODAL DE CONFIRMACIÓN DE BORRADO === -->
+<!-- ============================================= -->
+<div id="delete-confirm-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h4>Confirmar Eliminación</h4>
+        <p>¿Estás seguro de que quieres eliminar este mensaje? Esta acción no se puede deshacer.</p>
+        <div class="modal-actions">
+            <button id="cancel-delete-btn" class="modal-btn secondary">Cancelar</button>
+            <button id="confirm-delete-btn" class="modal-btn danger">Eliminar</button>
         </div>
     </div>
-    <!-- ==================================================== -->
+</div>
+<!-- ============================================= -->
 
-    <!-- ============================================= -->
-    <!-- === MODAL DE CONFIRMACIÓN DE BORRADO === -->
-    <!-- ============================================= -->
-    <div id="delete-confirm-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h4>Confirmar Eliminación</h4>
-            <p>¿Estás seguro de que quieres eliminar este mensaje? Esta acción no se puede deshacer.</p>
-            <div class="modal-actions">
-                <button id="cancel-delete-btn" class="modal-btn secondary">Cancelar</button>
-                <button id="confirm-delete-btn" class="modal-btn danger">Eliminar</button>
-            </div>
-        </div>
-    </div>
-    <!-- ============================================= -->
-    
-    <!-- ¡AÑADE ESTE SCRIPT DE LA LIBRERÍA DE EMOJIS! -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     <script src="./js/app.js" type="module"></script>
 </body>
