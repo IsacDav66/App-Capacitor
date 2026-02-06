@@ -53,20 +53,38 @@ export async function loadSideMenuData() {
     const menuAvatarLink = document.getElementById('menu-avatar-link');
     const menuAvatar = document.getElementById('menu-avatar');
     const menuUsername = document.getElementById('menu-username');
+    const adminLink = document.getElementById('admin-link'); // Referencia al botón de bots
 
     if (!menuAvatar || !menuUsername) return;
 
     try {
+        // Obtenemos los datos frescos del usuario (incluyendo el role)
         const { data: userData } = await apiFetch('/api/user/me');
+        
         if (userData) {
             menuUsername.textContent = userData.username || 'Usuario';
             menuAvatar.src = getFullImageUrl(userData.profile_pic_url);
+            
             if (userData.userId) {
                 menuAvatarLink.href = `user_profile.html?id=${userData.userId}`;
             }
+            
             if (menuProfileBg && userData.cover_pic_url) {
                 menuProfileBg.style.backgroundImage = `url(${getFullImageUrl(userData.cover_pic_url)})`;
             }
+
+            // ==========================================================
+            // === ¡LÓGICA DE ADMIN IA CORREGIDA! ===
+            // ==========================================================
+            if (adminLink) {
+                if (userData.role === 'admin') {
+                    adminLink.style.display = 'flex';
+                    console.log("👑 Rango Admin detectado. Panel de bots activado.");
+                } else {
+                    adminLink.style.display = 'none';
+                }
+            }
+            // ==========================================================
         }
     } catch (error) {
         console.error('Error al cargar datos del menú lateral:', error);

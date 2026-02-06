@@ -149,6 +149,25 @@ async function routePage() {
         } else if (path.includes('categorize_apps.html')) {
             const { initCategorizeAppsPage } = await import('./modules/pages/categorizeApps.js');
             initCategorizeAppsPage();
+         } else if (path.includes('bot_list.html')) {
+            const user = getCurrentUser();
+            // BLOQUEO DE SEGURIDAD
+            if (!user || user.role !== 'admin') {
+                window.location.href = 'home.html';
+                return;
+            }
+            const { initBotListPage } = await import('./modules/pages/botList.js');
+            initBotListPage();
+            
+        } else if (path.includes('bot_manager.html')) {
+            const user = getCurrentUser();
+            // BLOQUEO DE SEGURIDAD
+            if (!user || user.role !== 'admin') {
+                window.location.href = 'home.html';
+                return;
+            }
+            const { initBotManagerPage } = await import('./modules/pages/botManager.js');
+            initBotManagerPage();
         }
     } catch (error) {
         console.error(`Error al cargar el módulo de la página para: ${path}`, error);
