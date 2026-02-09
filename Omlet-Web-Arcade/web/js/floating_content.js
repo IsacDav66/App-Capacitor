@@ -3,6 +3,7 @@
 import { apiFetch, API_BASE_URL } from './modules/api.js';
 import { getFullImageUrl, formatTimeAgo } from './modules/utils.js';
 import { initChatController } from './modules/controllers/chatController.js'; // <-- ¡IMPORTAMOS EL CONTROLADOR!
+import { getFormattedSnippet } from './modules/utils.js';
 
 
 // --- VARIABLES GLOBALES DEL MÓDULO ---
@@ -125,22 +126,23 @@ const updateFriendStatusInUI = async (data) => {
 
 const renderChatList = (conversations, container) => {
     if (!conversations || conversations.length === 0) {
-        container.innerHTML = '<p class="friend-status" style="padding: 1rem; text-align: center;">No tienes chats recientes.</p>';
+        container.innerHTML = '<p class="friend-status">No tienes chats recientes.</p>';
         return;
     }
     
-    // Reutilizamos la lógica de la página `chat_list.js`
     container.innerHTML = conversations.map(convo => {
-        const snippet = convo.last_message_content.length > 25 ? convo.last_message_content.substring(0, 25) + '...' : convo.last_message_content;
+        const snippetHTML = getFormattedSnippet(convo.last_message_content);
+        
         return `
             <div class="chat-list-item" data-user-id="${convo.user_id}">
                 <img src="${getFullImageUrl(convo.profile_pic_url)}" class="chat-list-avatar">
                 <div class="chat-list-content">
                     <div class="chat-list-header">
                         <span class="chat-list-username">${convo.username}</span>
-                        <span class="chat-list-time">${formatTimeAgo(convo.last_message_at)}</span>
                     </div>
-                    <p class="chat-list-snippet">${snippet}</p>
+                    <p class="chat-list-snippet" style="display: flex; align-items: center; gap: 4px;">
+                        ${snippetHTML}
+                    </p>
                 </div>
             </div>`;
     }).join('');

@@ -42,13 +42,61 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
-        Log.d(TAG, "Notificación de DATOS recibida en segundo plano.");
 
-        // Solo procesamos notificaciones que vienen con un payload de "data".
-        if (remoteMessage.getData().size() > 0) {
-            sendMessagingStyleNotification(remoteMessage.getData());
+        if (remoteMessage.getData().containsKey("type") && 
+            "update_alert".equals(remoteMessage.getData().get("type"))) {
+            
+            // 1. Intentamos obtener el título y cuerpo de la notificación
+            String title = "¡Nueva Actualización!";
+            String body = "Hay mejoras disponibles.";
+
+            if (remoteMessage.getNotification() != null) {
+                title = remoteMessage.getNotification().getTitle();
+                body = remoteMessage.getNotification().getBody();
+            } else if (remoteMessage.getData().containsKey("title")) {
+                // Fallback: Si no hay objeto notification, buscamos en data
+                title = remoteMessage.getData().get("title");
+                body = remoteMessage.getData().get("body");
+            }
+            
+            showUpdateNotification(title, body);
+        } else {
+            if (remoteMessage.getData().size() > 0) {
+                sendMessagingStyleNotification(remoteMessage.getData());
+            }
         }
     }
+
+
+    private void showUpdateNotification(String title, String body) {
+        // 1. Crear la acción (abrir la app)
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 
+                999, // ID único
+                intent, 
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        // 2. Construir la notificación
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "fcm_default_channel")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true) // Se borra al tocarla
+                .setContentIntent(pendingIntent); // <--- ESTO ES LO QUE FALTABA
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        
+        // 3. Verificar permiso antes de mostrar (Obligatorio en Android moderno)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            notificationManager.notify(999, builder.build());
+        }
+    }
+
 
     /**
      * Construye y muestra una notificación de estilo mensajería agrupada.

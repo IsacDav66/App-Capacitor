@@ -1,9 +1,24 @@
 import { apiFetch, API_BASE_URL } from '../api.js';
 import { getFullImageUrl, formatMessageTime, formatDateSeparator } from '../utils.js';
 
+console.log("💣 [SISTEMA] El archivo chatController.js ha sido cargado en el navegador.");
+const getMsgMetadata = (content) => {
+    // Si la URL contiene estas carpetas, ES UN STICKER sin importar la extensión
+    const isSticker = content.includes('/uploads/stickers') || content.includes('giphy.com');
+    const isVideo = content.endsWith('.mp4');
+    
+    if (isSticker) return { label: "Sticker", url: content, isVideo };
+    if (isVideo) return { label: "Video", url: content, isVideo: true };
+    if (content.startsWith('http')) return { label: "Imagen", url: content, isVideo: false };
+    
+    return { label: null, url: null, isVideo: false };
+};
 export async function initChatController(domElements, partnerId, currentUserId) {
     
     // --- 1. DEFINICIÓN DE VARIABLES Y ESTADO (PRIVADAS AL CONTROLADOR) ---
+    // --- DIAGNÓSTICO INICIAL ---
+    console.log("🚀 CONTROLADOR: Iniciando para el usuario:", partnerId);
+
     const elements = domElements;
     const otherUserId = partnerId;
     const loggedInUserId = currentUserId;
@@ -25,7 +40,7 @@ export async function initChatController(domElements, partnerId, currentUserId) 
     
     // --- 2. DEFINICIÓN DE TODAS LAS FUNCIONES AUXILIARES ---
 
-    const appendMessage = (message) => {
+    const appendMessage = (message, shouldScroll = true) => { 
         const isOwnMessage = message.sender_id === loggedInUserId;
         const lastMessageEl = elements.messagesContainer.querySelector('.message-bubble:last-child');
         
@@ -46,71 +61,95 @@ export async function initChatController(domElements, partnerId, currentUserId) 
         if (message.parent_message_id) {
             let parentUsername = message.parent_username;
             let parentContent = message.parent_content;
-            if (isOwnMessage && !parentContent) {
-                const parentMessageEl = elements.messagesContainer.querySelector(`#msg-${message.parent_message_id}`); 
-                if (parentMessageEl) {
-                    const parentP = parentMessageEl.querySelector('p');
-                    const parentImg = parentMessageEl.querySelector('img.sticker-render');
-                    parentContent = parentP ? parentP.textContent : (parentImg ? 'Sticker' : 'Mensaje');
-                    parentUsername = parentMessageEl.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
+            let parentMediaUrl = (parentContent && parentContent.startsWith('http')) ? parentContent : null;
+
+            let displayLabel = parentContent;
+            let isVideo = false;
+
+            if (parentMediaUrl) {
+                // Identificar si es un sticker
+                displayLabel = (parentMediaUrl.includes('/uploads/stickers') || parentMediaUrl.includes('giphy.com')) 
+                               ? "Sticker" : "Imagen";
+                
+                // Identificar si es un video
+                isVideo = parentMediaUrl.toLowerCase().endsWith('.mp4');
+            }
+
+            const repliedSnippetLink = document.createElement('a');
+            repliedSnippetLink.className = 'replied-to-snippet';
+            repliedSnippetLink.href = '#';
+            repliedSnippetLink.onclick = (e) => { 
+                e.preventDefault(); 
+                scrollToMessage(`msg-${message.parent_message_id}`); 
+            };
+
+            // ==========================================================
+            // === ¡LÓGICA DE MINIATURA CORREGIDA! ===
+            // ==========================================================
+            let mediaTagHTML = '';
+            if (parentMediaUrl) {
+                if (isVideo) {
+                    // Si es video, usamos <video> en miniatura, silenciado y auto-reproducido
+                    mediaTagHTML = `<video src="${parentMediaUrl}" class="replied-media-thumb" muted playsinline autoplay loop></video>`;
+                } else {
+                    // Si es imagen o gif, usamos <img> normal
+                    mediaTagHTML = `<img src="${parentMediaUrl}" class="replied-media-thumb">`;
                 }
             }
-            if (parentContent) {
-                const repliedSnippetLink = document.createElement('a');
-                repliedSnippetLink.className = 'replied-to-snippet';
-                repliedSnippetLink.href = '#';
-                repliedSnippetLink.onclick = (e) => { e.preventDefault(); scrollToMessage(`msg-${message.parent_message_id}`); };
-                repliedSnippetLink.innerHTML = `<span class="replied-user">${parentUsername || 'Usuario'}</span><span class="replied-text">${parentContent}</span>`;
-                messageDiv.appendChild(repliedSnippetLink);
-            }
+
+            repliedSnippetLink.innerHTML = `
+                <span class="replied-user">${parentUsername || 'Usuario'}</span>
+                <div class="replied-text-with-media">
+                    ${mediaTagHTML}
+                    <span class="replied-text">${displayLabel}</span>
+                </div>
+            `;
+            messageDiv.appendChild(repliedSnippetLink);
         }
 
         const mainContentWrapper = document.createElement('div');
         mainContentWrapper.className = 'message-main-content';
 
-        if (isImageSticker) {
-            messageDiv.style.backgroundColor = 'transparent';
-            messageDiv.style.boxShadow = 'none';
-            const stickerImg = document.createElement('img');
-            stickerImg.src = content;
-            stickerImg.className = 'sticker-render';
-            stickerImg.style.maxWidth = '150px';
-            stickerImg.style.borderRadius = '8px';
-            stickerImg.onload = () => { elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight; };
-            mainContentWrapper.appendChild(stickerImg);
-        } else if (isVideoSticker) {
-            messageDiv.style.backgroundColor = 'transparent';
-            messageDiv.style.boxShadow = 'none';
+        if (isImageSticker || isVideoSticker) {
+            // Marcamos la burbuja como sticker para quitarle el fondo
+            messageDiv.classList.add('is-sticker');
+            
+            // Creamos el contenedor unificado
+            const stickerContainer = document.createElement('div');
+            stickerContainer.className = 'sticker-container';
 
-            const videoEl = document.createElement('video');
-            videoEl.src = content;
-            videoEl.className = 'sticker-render video-sticker';
-            videoEl.style.maxWidth = '200px';
-            videoEl.style.borderRadius = '16px';
-            videoEl.autoplay = true;
-            videoEl.muted = true; // Sigue empezando sin sonido por defecto
-            videoEl.loop = true;
-            videoEl.playsInline = true;
-
-            // ==========================================================
-            // === ¡LÓGICA DE AUDIO MEJORADA! ===
-            // ==========================================================
-            videoEl.addEventListener('click', () => {
-                // 1. Buscamos todos los demás vídeos en el chat.
-                document.querySelectorAll('video.video-sticker').forEach(otherVideo => {
-                    // Si es un vídeo diferente al que hemos clicado, lo silenciamos.
-                    if (otherVideo !== videoEl) {
-                        otherVideo.muted = true;
+            if (isImageSticker) {
+                const stickerImg = document.createElement('img');
+                stickerImg.src = content;
+                stickerImg.className = 'sticker-render';
+                stickerImg.onload = () => { 
+                    if (shouldScroll) { // Ahora ya no dará error
+                        elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight; 
                     }
+                };
+                stickerContainer.appendChild(stickerImg);
+            } else if (isVideoSticker) {
+                const videoEl = document.createElement('video');
+                videoEl.src = content;
+                videoEl.className = 'sticker-render video-sticker';
+                videoEl.autoplay = true;
+                videoEl.muted = true;
+                videoEl.loop = true;
+                videoEl.playsInline = true;
+
+                videoEl.addEventListener('click', () => {
+                    document.querySelectorAll('video.video-sticker').forEach(otherVideo => {
+                        if (otherVideo !== videoEl) otherVideo.muted = true;
+                    });
+                    videoEl.muted = !videoEl.muted;
                 });
-                // 2. Después de silenciar a los demás, alternamos el sonido del vídeo actual.
-                videoEl.muted = !videoEl.muted;
-        });
-        // ==========================================================
-        
-        mainContentWrapper.appendChild(videoEl);
+                stickerContainer.appendChild(videoEl);
+            }
+            
+            mainContentWrapper.appendChild(stickerContainer);
 
         } else {
+            // Texto normal
             const contentP = document.createElement('p');
             contentP.textContent = content;
             mainContentWrapper.appendChild(contentP);
@@ -137,33 +176,70 @@ export async function initChatController(domElements, partnerId, currentUserId) 
     };
 
     const fetchChatHistory = async () => {
-    try {
-        const { data: user } = await apiFetch(`/api/user/profile/${otherUserId}`);
-        // <-- CAMBIO: Usa `elements`
-        elements.userAvatar.src = getFullImageUrl(user.profile_pic_url);
-        elements.userUsername.textContent = user.username;
+        console.log("🛠️ [CONTROLADOR] Iniciando fetchChatHistory...");
+        try {
+            const { data: user } = await apiFetch(`/api/user/profile/${otherUserId}`);
+            elements.userAvatar.src = getFullImageUrl(user.profile_pic_url);
+            elements.userUsername.textContent = user.username;
 
-        const { messages } = await apiFetch(`/api/chat/history/${otherUserId}`);
-        elements.messagesContainer.innerHTML = '';
-        let lastDate = null;
-        messages.forEach(message => {
-            const messageDate = new Date(message.created_at).toDateString();
-            if (messageDate !== lastDate) {
-                const separator = document.createElement('div');
-                separator.className = 'date-separator';
-                separator.innerHTML = `<span>${formatDateSeparator(message.created_at)}</span>`;
-                elements.messagesContainer.appendChild(separator);
-                lastDate = messageDate;
+            const { messages } = await apiFetch(`/api/chat/history/${otherUserId}`);
+            console.log("📦 [DATOS] Mensajes recibidos:", messages.length);
+
+            elements.messagesContainer.innerHTML = '';
+            let lastDate = null;
+            let dividerAdded = false;
+
+            // 1. FILTRAR MENSAJES NO LEÍDOS (Los que él me envió)
+            const unreads = messages.filter(m => 
+                String(m.sender_id) === String(otherUserId) && m.is_read === false
+            );
+            console.log("👀 [FILTRO] Mensajes no leídos encontrados:", unreads.length);
+
+            messages.forEach(message => {
+                const mDate = new Date(message.created_at).toDateString();
+                if (mDate !== lastDate) {
+                    const sep = document.createElement('div');
+                    sep.className = 'date-separator';
+                    sep.innerHTML = `<span>${formatDateSeparator(message.created_at)}</span>`;
+                    elements.messagesContainer.appendChild(sep);
+                    lastDate = mDate;
+                }
+
+                // 2. DIBUJAR DIVISOR SI ES EL PRIMER MENSAJE NUEVO
+                if (!dividerAdded && unreads.length > 0 && String(message.message_id) === String(unreads[0].message_id)) {
+                    console.log("📍 [UI] Insertando divisor de no leídos.");
+                    const div = document.createElement('div');
+                    div.className = 'unread-divider';
+                    div.innerHTML = `<span>${unreads.length} Mensajes nuevos</span>`;
+                    elements.messagesContainer.appendChild(div);
+                    dividerAdded = true;
+                }
+
+                appendMessage(message, false);
+            });
+
+            // 3. MARCAR COMO LEÍDOS SOLO SI HABÍA MENSAJES NUEVOS
+            // Lo hacemos DESPUÉS de haberlos procesado en el UI
+            if (unreads.length > 0) {
+                apiFetch(`/api/chat/read-all/${otherUserId}`, { method: 'POST' })
+                    .then(() => console.log("✅ [SERVER] Base de datos actualizada a LEÍDO."))
+                    .catch(e => console.error("Error al actualizar lectura", e));
             }
-            appendMessage(message); // <-- CAMBIO: appendMessage ya sabe si es propio
-        });
-        setTimeout(() => {
-            elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
-        }, 100);
-    } catch (error) {
-        elements.messagesContainer.innerHTML = `<p class="search-placeholder">Error loading history: ${error.message}</p>`;
+
+            // 4. SCROLL INTELIGENTE
+            setTimeout(() => {
+    const divider = elements.messagesContainer.querySelector('.unread-divider');
+    if (divider) {
+        // Usa 'auto' para el primer salto, 'center' o 'start' para posicionar
+        divider.scrollIntoView({ behavior: 'auto', block: 'start' });
+    } else {
+        elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
     }
-};
+}, 300); // Sube un poco el tiempo (de 200 a 300) para dar tiempo al renderizado
+
+        } catch (e) { console.error("❌ Error en el historial:", e); }
+    };
+
     const removeMessageFromDOM = (messageId) => {
     // <-- CAMBIO: Busca dentro del contenedor específico
     const messageElement = elements.messagesContainer.querySelector(`#msg-${messageId}`);
@@ -188,11 +264,30 @@ export async function initChatController(domElements, partnerId, currentUserId) 
             }, 300);
 };
 
-    const enterReplyMode = (messageId, username, content) => {
+    const enterReplyMode = (messageId, username, content, mediaUrl = null) => {
     chatState.currentReplyToId = messageId;
-    // <-- CAMBIO: Usa `elements`
     elements.replyToUser.textContent = username;
-    elements.replySnippet.textContent = content;
+
+    // Lógica de etiqueta inteligente
+    let cleanContent = content;
+    if (mediaUrl && (mediaUrl.includes('/uploads/stickers') || mediaUrl.includes('giphy.com'))) {
+        cleanContent = "Sticker";
+    }
+    elements.replySnippet.textContent = cleanContent;
+
+    // Gestionar miniatura en la barra
+    const prevMedia = elements.replyContextBar.querySelector('.reply-media-preview');
+    if (prevMedia) prevMedia.remove();
+
+    if (mediaUrl) {
+        const isVideo = mediaUrl.endsWith('.mp4');
+        const thumb = document.createElement(isVideo ? 'video' : 'img');
+        thumb.src = mediaUrl;
+        thumb.className = 'reply-media-preview';
+        if (isVideo) { thumb.muted = true; thumb.autoplay = true; thumb.loop = true; }
+        elements.replyContextBar.querySelector('.reply-preview').appendChild(thumb);
+    }
+
     elements.replyContextBar.classList.add('visible');
     elements.chatInput.focus();
 };
@@ -202,14 +297,20 @@ const cancelReplyMode = () => {
     elements.replyContextBar.classList.remove('visible'); // <-- CAMBIO: Usa `elements`
 };
     const scrollToMessage = (messageId) => {
-    // <-- CAMBIO: Busca dentro del contenedor específico
-    const targetMessage = elements.messagesContainer.querySelector(`#${messageId}`);
-    if (targetMessage) {
-        targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetMessage.classList.add('highlighted');
-        setTimeout(() => targetMessage.classList.remove('highlighted'), 1500);
-    }
-};
+        // Buscamos el elemento directamente por su ID
+        const targetMessage = document.getElementById(messageId);
+        
+        if (targetMessage) {
+            // Hacemos el scroll suave y lo centramos en pantalla
+            targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Añadimos el efecto visual de resaltado
+            targetMessage.classList.add('highlighted');
+            setTimeout(() => targetMessage.classList.remove('highlighted'), 2000);
+        } else {
+            console.warn("No se encontró el mensaje original en el historial cargado.");
+        }
+    };
     async function deleteMessage(messageId) {
     // 1. Usamos el objeto `elements` para encontrar los elementos del modal
     const modal = elements.deleteConfirmModal;
@@ -322,7 +423,7 @@ const cancelReplyMode = () => {
 
     replyBtn.onclick = () => {
         const username = messageElement.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
-        const content = messageElement.querySelector('p').textContent;
+        const content = messageElement.querySelector('p')?.textContent || "✨ Sticker";
         enterReplyMode(messageElement.id.replace('msg-', ''), username, content);
         closeContextMenu();
     };
@@ -351,47 +452,49 @@ const cancelReplyMode = () => {
     nextSibling = null;
 }
     const addInteractionHandlers = (messageElement) => {
-    let startX = 0, deltaX = 0, longPressTimer;
-    const swipeThreshold = 80;
+        let startX = 0, deltaX = 0, longPressTimer;
+        const swipeThreshold = 80;
 
-    messageElement.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        deltaX = 0;
-        messageElement.style.transition = 'transform 0.1s ease-out';
-        longPressTimer = setTimeout(() => {
-            e.preventDefault();
-            openContextMenu(messageElement)
-        }, 500);
-    }, { passive: false });
+        messageElement.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            deltaX = 0;
+            messageElement.style.transition = 'transform 0.1s ease-out';
+            longPressTimer = setTimeout(() => {
+                // e.preventDefault(); // Comentado para permitir scroll natural si no hay longpress
+                openContextMenu(messageElement)
+            }, 500);
+        }, { passive: false });
 
-    messageElement.addEventListener('touchmove', (e) => {
+        messageElement.addEventListener('touchmove', (e) => {
+            clearTimeout(longPressTimer);
+            deltaX = e.touches[0].clientX - startX;
+            if (deltaX > 0) {
+                const pullDistance = Math.min(deltaX, swipeThreshold + 40);
+                messageElement.style.transform = `translateX(${pullDistance}px)`;
+            }
+        }, { passive: true });
+
+        messageElement.addEventListener('touchend', () => {
         clearTimeout(longPressTimer);
-        deltaX = e.touches[0].clientX - startX;
-        if (deltaX > 0) {
-            const pullDistance = Math.min(deltaX, swipeThreshold + 40);
-            messageElement.style.transform = `translateX(${pullDistance}px)`;
-        }
-    }, { passive: true });
-
-    messageElement.addEventListener('touchend', () => {
-        clearTimeout(longPressTimer);
-        messageElement.style.transition = 'transform 0.3s ease-out';
-        if (deltaX > swipeThreshold) {
-            // ==========================================================
-            // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
-            // ==========================================================
-            // Usamos `elements.userUsername` en lugar de `userUsernameEl`
+        if (deltaX > 80) {
             const username = messageElement.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
-            // ==========================================================
-            const content = messageElement.querySelector('p').textContent;
-            enterReplyMode(messageElement.id.replace('msg-', ''), username, content);
-            messageElement.style.transform = `translateX(60px)`;
-            setTimeout(() => { messageElement.style.transform = 'translateX(0)'; }, 150);
+            
+            // Buscamos si hay un sticker o video dentro de la burbuja
+            const mediaEl = messageElement.querySelector('.sticker-render');
+            const mediaUrl = mediaEl ? mediaEl.src : null;
+            
+            // Usamos nuestra lógica de etiquetas
+            const meta = mediaUrl ? getMsgMetadata(mediaUrl) : { label: null };
+            const content = messageElement.querySelector('p')?.textContent || meta.label || "Mensaje";
+
+            enterReplyMode(messageElement.id.replace('msg-', ''), username, content, mediaUrl);
+            
+            messageElement.style.transform = 'translateX(0)';
         } else {
             messageElement.style.transform = 'translateX(0)';
         }
     });
-};
+    };
     const getGroupClassFor = (messageEl) => {
             const timeThreshold = 60;
             const senderId = messageEl.dataset.senderId;
@@ -414,19 +517,42 @@ const cancelReplyMode = () => {
 
     // --- 3. MÉTODO PÚBLICO DEL CONTROLADOR ---
     const sendMessage = (messageData) => {
-        if (!chatState.socket || !chatState.socket.connected) {
-            console.error("No se puede enviar el mensaje, el socket no está conectado.");
-            return;
+        if (!chatState.socket || !chatState.socket.connected) return;
+
+        // --- NUEVA LÓGICA PARA CAPTURAR DATOS DEL PADRE AL INSTANTE ---
+        let parentContent = null;
+        let parentUsername = null;
+
+        if (chatState.currentReplyToId) {
+            // Buscamos el elemento en el DOM al que estamos respondiendo
+            const parentEl = document.getElementById(`msg-${chatState.currentReplyToId}`);
+            if (parentEl) {
+                // Obtenemos el nombre del autor
+                parentUsername = parentEl.classList.contains('sent') ? 'Tú' : elements.userUsername.textContent;
+                
+                // Obtenemos el contenido (texto o la URL si es sticker)
+                const p = parentEl.querySelector('p');
+                const media = parentEl.querySelector('.sticker-render');
+                parentContent = p ? p.textContent : (media ? media.src : "Sticker");
+            }
         }
+
         const fullMessageData = {
             ...messageData,
             receiver_id: parseInt(otherUserId),
             roomName: chatState.roomName,
             created_at: new Date().toISOString(),
             parent_message_id: chatState.currentReplyToId,
+            // ENRIQUECEMOS EL OBJETO LOCALMENTE
+            parent_username: parentUsername,
+            parent_content: parentContent
         };
+
         chatState.socket.emit('send_message', fullMessageData);
-        appendMessage(fullMessageData);
+        
+        // Ahora appendMessage ya tiene toda la info para dibujar el snippet inmediatamente
+        appendMessage(fullMessageData, true); 
+
         if (elements.chatInput) elements.chatInput.value = '';
         cancelReplyMode();
     };
@@ -511,18 +637,13 @@ const cancelReplyMode = () => {
         }
         // ==========================================================
 
+    console.log("⌛ [PASO FINAL] Llamando a la carga de historial...");
         await fetchChatHistory();
 
-        // --- 5. DEVOLVER EL OBJETO DEL CONTROLADOR ---
-        return {
-            sendMessage
-        };
-
     } catch (error) {
-        console.error("No se pudo cargar la librería Socket.IO o inicializar el chat.", error);
-        if (elements.messagesContainer) {
-            elements.messagesContainer.innerHTML = `<p class="search-placeholder">Error en la conexión del chat.</p>`;
-        }
-        return null;
+        console.error("❌ [ERROR FATAL]:", error);
     }
+
+    return { sendMessage };
+
 }

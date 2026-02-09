@@ -1039,6 +1039,72 @@ input:checked + .slider:before {
     padding: 0 5px;
 }
 
+/* Opcional: Color especial para iconos en el snippet */
+.chat-list-snippet {
+    color: var(--color-text-secondary);
+}
+/* Si quieres que los emojis de los snippets resalten */
+.chat-list-snippet:contains('✨'), .chat-list-snippet:contains('📷') {
+    color: var(--color-accent);
+}
+
+
+/* Conversación no leída */
+.chat-list-item.unread {
+    background-color: rgba(138, 43, 226, 0.05); /* Un toque del color de acento */
+}
+
+/* El nombre en negrita cuando no se ha leído */
+.chat-list-item.unread .chat-list-username {
+    color: var(--color-accent);
+}
+
+/* El punto indicador de mensaje nuevo */
+.unread-dot {
+    min-width: 20px; /* Un poco más ancho para que quepan números */
+    height: 20px;
+    background-color: var(--color-accent);
+    border-radius: 10px; /* Forma de píldora */
+    
+    /* Centrar el número */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Texto del número */
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 0 6px;
+    
+    flex-shrink: 0;
+    margin-right: 15px;
+    box-shadow: 0 0 10px var(--color-accent);
+
+    
+    animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Animación de pulso para el mensaje que acaba de llegar */
+@keyframes pulse-new {
+    0% { background-color: transparent; }
+    50% { background-color: rgba(var(--color-accent), 0.2); }
+    100% { background-color: transparent; }
+}
+.chat-list-item.just-arrived {
+    animation: pulse-new 2s ease-in-out;
+}
+
+
+
+
+
 
 /* ========================================
    --- PÁGINA: CHAT EN TIEMPO REAL (chat.html) ---
@@ -1422,6 +1488,33 @@ input:checked + .slider:before {
 }
 
 
+/* Miniatura en la barra de respuesta (encima del input) */
+.reply-media-preview {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-left: 10px;
+    background: var(--color-ui);
+    flex-shrink: 0;
+}
+
+/* Miniatura dentro de la burbuja (mensaje citado) */
+.replied-text-with-media {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.replied-media-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    object-fit: cover; /* Recorta el video para que quepa en el cuadrado de 24px */
+    flex-shrink: 0;
+    background-color: rgba(0,0,0,0.2);
+}
 /* --- ESTILOS PARA EL MODAL DE CONFIRMACIÓN --- */
 
 .modal-overlay {
@@ -1710,30 +1803,94 @@ input:checked + .slider:before {
     border-bottom-color: var(--color-accent);
 }
 
+
+
+
+
+/* Si es el panel de Giphy, usamos flex solo para el buscador */
+#giphy-sticker-content.active {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* 3. Ajustar el botón de crear sticker */
+.create-sticker-button {
+    background-color: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 30px;
+    
+    /* Cambiamos a absolute para que se mueva CON el panel */
+    position: absolute; 
+    bottom: 15px;
+    right: 15px;
+    
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    z-index: 5;
+}
+
+
+
+
+
+
+
+
+/* El contenedor padre debe tener un fondo sólido para que no se transparente el chat */
 .picker-content {
     flex-grow: 1;
     position: relative;
+    height: 280px; 
+    background-color: var(--color-bg); /* Fondo sólido del tema */
+    overflow: hidden;
+    border-top: 1px solid var(--color-border);
 }
 
+/* Regla base para cada panel */
 .picker-content-panel {
+    display: none !important; /* Oculto por defecto */
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    overflow-y: auto;
     
-    /* --- ¡LÓGICA CORREGIDA! --- */
-    /* Por defecto, los paneles están ocultos y fuera del apilamiento visual */
-    display: none;
-    z-index: 1; 
+    /* ¡LA SOLUCIÓN!: Fondo sólido para tapar a los demás */
+    background-color: var(--color-bg); 
+    
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1;
 }
 
+/* El panel activo se muestra y se pone encima de todos */
 .picker-content-panel.active {
-    /* El panel activo se muestra y se pone por encima de los demás */
-    display: block; 
-    z-index: 2;
+    display: flex !important; /* Usamos flex para organizar el contenido interior */
+    flex-direction: column;
+    z-index: 5; /* Asegura que esté por encima de cualquier otro panel */
 }
+
+
+
+/* Asegurar que el buscador de Giphy no sea transparente */
+.sticker-search-bar {
+    position: sticky;
+    top: 0;
+    background-color: var(--color-surface); /* Un poco más claro para distinguir */
+    z-index: 10;
+    padding: 10px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+
+
+
 
 /* Estilos para la librería emoji-picker-element */
 #emoji-content emoji-picker {
@@ -1764,19 +1921,45 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
 }
-.sticker-search-bar {
-    padding: 8px 12px; /* Damos un poco más de espacio */
-    flex-shrink: 0;
-}
+
 
 
 /* --- Estilos para la pestaña de Stickers Personalizados --- */
 #custom-sticker-content { display: flex; flex-direction: column; }
 .create-sticker-button {
-    background-color: var(--color-accent); color: var(--color-text);
-    border: none; border-radius: 50%; width: 50px; height: 50px;
-    font-size: 30px; position: absolute; bottom: 15px; right: 15px;
-    cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1; /* Cuadrado perfecto */
+    background-color: var(--color-ui);
+    border: 2px dashed var(--color-accent); /* Borde punteado estilo "añadir" */
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: var(--color-accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    /* IMPORTANTE: Quitamos el position absolute anterior */
+    position: relative; 
+    bottom: auto;
+    right: auto;
+}
+
+.create-sticker-button:active {
+    transform: scale(0.95);
+    background-color: var(--color-surface);
+}
+
+/* Contenedor de la cuadrícula */
+.sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 5px;
+    padding: 12px;
+    background-color: var(--color-bg); /* Aseguramos fondo aquí también */
+
 }
 
 /* --- Estilos para el Modal Editor de Stickers --- */
@@ -1914,14 +2097,7 @@ input:checked + .slider:before {
     justify-content: center;
 }
 /* ========================================================== */
-.sticker-grid {
-    flex-grow: 1;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-    padding: 8px;
-}
+
 .sticker-item {
     width: 100%;
     aspect-ratio: 1 / 1;
@@ -1930,12 +2106,147 @@ input:checked + .slider:before {
     cursor: pointer;
     transition: transform 0.2s;
 }
-.sticker-item:hover {
-    transform: scale(1.1);
+.sticker-item:active {
+    transform: scale(0.9); /* Efecto de presión */
+    opacity: 0.8;
+}
+/* Contenedor estándar para stickers */
+.sticker-container {
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 12px;
+    background-color: transparent;
+}
+
+/* Ajuste de la imagen/video dentro del contenedor */
+.sticker-render {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Muestra el sticker completo sin deformarlo */
+}
+
+/* Clase para la burbuja cuando es un sticker */
+.message-bubble.is-sticker {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+/* Cuando la burbuja es un sticker, forzamos que el contenido sea vertical */
+.message-bubble.is-sticker .message-main-content {
+    display: flex;
+    flex-direction: column; /* Pone la hora debajo del sticker */
+    align-items: flex-end;   /* Alinea la hora a la derecha del sticker */
+    gap: 4px;                /* Espacio entre el sticker y la hora */
+}
+
+/* Estilo para que la hora se vea clara sobre el fondo oscuro */
+.message-bubble.is-sticker .message-timestamp {
+    align-self: flex-end;    /* Asegura que la hora se pegue a la derecha */
+    background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro sutil */
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    margin-top: -25px;       /* Opcional: sube la hora un poco para que flote sobre el sticker */
+    margin-right: 5px;
+    z-index: 1;
+}
+
+/* Asegurar que el contenedor del sticker no limite el dibujo de la hora */
+.message-bubble.is-sticker {
+    overflow: visible !important;
+}
+
+
+/* 
+   Forzamos un margen inferior de 12px a todos los stickers, 
+   aunque pertenezcan a un grupo (start, middle o end).
+*/
+.message-bubble.is-sticker {
+    margin-bottom: 12px !important; 
+}
+
+/* 
+   Si el sticker es el último de un grupo (end-group) o un mensaje único (single), 
+   le damos un poco más de aire respecto al siguiente bloque de mensajes.
+*/
+.message-bubble.is-sticker.end-group,
+.message-bubble.is-sticker.single {
+    margin-bottom: 18px !important;
+}
+
+/* 
+   Pequeño ajuste: Si un sticker sigue a otro sticker, 
+   añadimos un margen superior para asegurar la separación.
+*/
+.message-wrapper + .message-wrapper .message-bubble.is-sticker {
+    margin-top: 5px;
+}
+
+/* Linea divisoria de no leido */
+.unread-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 25px 0;
+    width: 100%;
+}
+
+.unread-divider::before,
+.unread-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--color-accent);
+    opacity: 0.3; /* Línea suave */
+}
+
+.unread-divider span {
+    background-color: var(--color-ui);
+    color: var(--color-accent);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 
 
+
+/* --- ESTILOS PARA LA CUADRÍCULA DE GIPHY --- */
+#giphy-sticker-content {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* Stickers de GIPHY: Siempre transparentes */
+#giphy-sticker-grid .sticker-item {
+    background-color: transparent !important; /* Quita el cuadro gris */
+    border: none !important;
+    padding: 4px;
+    object-fit: contain;
+}
+
+/* --- ESTILOS PARA TUS STICKERS PERSONALIZADOS --- */
+#custom-sticker-grid .sticker-item {
+    background-color: var(--color-ui); /* Mantiene el fondo para los tuyos */
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    transition: transform 0.2s ease;
+}
+
+/* Efecto al tocar cualquier sticker */
+.sticker-item:active {
+    transform: scale(0.9);
+    opacity: 0.7;
+}
 
 /* ========================================
    --- COMPONENTE: Panel de Notificaciones ---

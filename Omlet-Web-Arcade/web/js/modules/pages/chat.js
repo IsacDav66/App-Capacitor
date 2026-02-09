@@ -8,17 +8,17 @@ import { apiFetch } from '../api.js';
 // =-=-========================================================
 import { getFullImageUrl } from '../utils.js';
 
-const SMILEY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10s10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8s8 3.589 8 8s-3.589 8-8 8z"/><path fill="currentColor" d="M15.5 8C14.672 8 14 8.672 14 9.5s.672 1.5 1.5 1.5s1.5-.672 1.5-1.5S16.328 8 15.5 8zm-7 0C7.672 8 7 8.672 7 9.5S7.672 11 8.5 11S10 10.328 10 9.5S9.328 8 8.5 8z"/><path fill="currentColor" d="M12 14c-2.336 0-4.46.883-6 2.225V17c0 .552.447 1 1 1h10c.553 0 1-.448 1-1v-.775c-1.54-1.342-3.664-2.225-6-2-2.225z"/></svg>`;
+const SMILEY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10s-4.477 10-10 10m0-4a5.5 5.5 0 0 0 5.478-5H6.522A5.5 5.5 0 0 0 12 18m-3.5-7.5a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3m7 0a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3"/></svg>`;
 const KEYBOARD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M20 3H4c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2zM4 19V5h16l.002 14H4z"/><path fill="currentColor" d="M5 7h2v2H5zm4 0h2v2H9zm4 0h2v2h-2zm4 0h2v2h-2zM5 11h2v2H5zm4 0h2v2H9zm4 0h2v2h-2zm4 0h2v2h-2zM5 15h8v2H5z"/></svg>`;
-
 export async function initChatPage() {
-    // 1. OBTENER IDS Y REFERENCIAS AL DOM
-    const otherUserId = new URLSearchParams(window.location.search).get('userId');
+    console.log("📱 PÁGINA: Cargando chat.html");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const otherUserId = urlParams.get('userId');
     const loggedInUserId = getCurrentUserId();
 
     if (!otherUserId || !loggedInUserId) {
-        alert("Error: No se pudo iniciar el chat. Sesión o usuario inválido.");
-        window.history.back();
+        window.location.href = 'chat_list.html';
         return;
     }
 
@@ -98,12 +98,7 @@ export async function initChatPage() {
     // ==========================================================
     let sourceFile = null;
 
-    // 2. INICIALIZAR EL CONTROLADOR DE CHAT
-    window.chatController = await initChatController(domElements, otherUserId, loggedInUserId);
-    if (!window.chatController) {
-        console.error("[initChatPage LOG] La inicialización del controlador falló. Abortando.");
-        return;
-    }
+
 
     // 3. DEFINIR FUNCIONES AUXILIARES
     
@@ -178,62 +173,64 @@ export async function initChatPage() {
 
     function sendMessage(contentToSend) {
         if (!contentToSend || !window.chatController) return;
+        
         const tempId = `temp-${Date.now()}`;
         const messageData = {
             message_id: tempId,
             sender_id: loggedInUserId,
             content: contentToSend,
         };
+
+        // Llamamos al controlador (que ahora sí usará la función completa)
         window.chatController.sendMessage(messageData);
+        
         domElements.chatInput.value = '';
+        
+        // CORRECCIÓN: Usar domElements en lugar de elements
         setTimeout(() => {
-            domElements.messagesContainer.scrollTop = domElements.messagesContainer.scrollHeight;
+            if (domElements.messagesContainer) {
+                domElements.messagesContainer.scrollTop = domElements.messagesContainer.scrollHeight;
+            }
         }, 50);
     }
     
      // --- FUNCIÓN renderCustomStickers (CORREGIDA) ---
     // --- FUNCIÓN renderCustomStickers (ACTUALIZADA) ---
     function renderCustomStickers() {
-    if (customStickers.length > 0) {
-        customStickerGrid.innerHTML = customStickers.map(url => {
-            const fullUrl = getFullImageUrl(url);
+    // 1. Siempre creamos primero el HTML del botón de añadir
+    let gridHTML = `
+        <div class="create-sticker-button" id="create-sticker-btn">
+            <span>+</span>
+        </div>
+    `;
 
+    // 2. Si hay stickers, los añadimos después
+    if (customStickers.length > 0) {
+        gridHTML += customStickers.map(url => {
+            const fullUrl = getFullImageUrl(url);
             if (fullUrl.endsWith('.mp4')) {
-                // --- ¡LÓGICA DE EVENTOS DE VÍDEO CORREGIDA Y ROBUSTA! ---
                 return `
-                    <video 
-                           src="${fullUrl}" 
-                           class="sticker-item" 
-                           data-sticker-url="${fullUrl}"
-                           muted 
-                           loop 
-                           playsinline
-                           
-                           onmouseover="this.play()" 
-                           onmouseout="this.pause(); this.currentTime=0;"
-                           
-                           ontouchstart="this.muted=false; this.play();"
-                           ontouchend="this.muted=true; this.pause(); this.currentTime=0;"
-                           ontouchcancel="this.muted=true; this.pause(); this.currentTime=0;"
-                           
-                           onmousedown="this.muted=false; this.play();"
-                           onmouseup="this.muted=true;"
-                           onmouseleave="this.muted=true;"
-                    ></video>
-                `;
+                    <div class="sticker-item-wrapper">
+                        <video src="${fullUrl}" class="sticker-item" data-sticker-url="${fullUrl}" muted loop playsinline></video>
+                    </div>`;
             } else {
-                // Para imágenes y GIFs, la etiqueta <img> se mantiene igual
                 return `
-                    <img src="${fullUrl}" 
-                         class="sticker-item" 
-                         data-sticker-url="${fullUrl}">
-                `;
+                    <div class="sticker-item-wrapper">
+                        <img src="${fullUrl}" class="sticker-item" data-sticker-url="${fullUrl}">
+                    </div>`;
             }
         }).join('');
-    } else {
-        customStickerGrid.innerHTML = '<p class="search-placeholder">Crea tu primer sticker con el botón +</p>';
+    }
+
+    customStickerGrid.innerHTML = gridHTML;
+
+    // 3. ¡VITAL!: Como borramos e insertamos el botón, debemos volver a asignar el evento de click
+    const newAddBtn = document.getElementById('create-sticker-btn');
+    if (newAddBtn) {
+        newAddBtn.addEventListener('click', openStickerCreator);
     }
 }
+
 
 
     async function uploadAndSendSticker(file, fileName) {
@@ -446,19 +443,31 @@ export async function initChatPage() {
     if (domElements.chatInput) domElements.chatInput.addEventListener('focus', () => { if (isPickerOpen) closePicker(false); });
 
     pickerTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetPanelId = tab.dataset.tab;
-            pickerTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.picker-content-panel').forEach(panel => {
-                panel.classList.toggle('active', panel.id === targetPanelId);
-            });
-            // --- ¡CORRECCIÓN DE ID! ---
-            if (tab.dataset.tab === 'giphy-sticker-content' && giphyStickerGrid.children.length <= 1) {
-                fetchAndRenderStickers('/api/apps/stickers/trending');
-            }
+    tab.addEventListener('click', () => {
+        const targetPanelId = tab.dataset.tab;
+
+        // 1. Quitar 'active' de todos los botones de pestaña
+        pickerTabs.forEach(t => t.classList.remove('active'));
+        // 2. Poner 'active' solo al botón clickeado
+        tab.classList.add('active');
+
+        // 3. Quitar 'active' de TODOS los paneles de contenido
+        document.querySelectorAll('.picker-content-panel').forEach(panel => {
+            panel.classList.remove('active');
         });
+
+        // 4. Activar solo el panel que corresponde
+        const targetPanel = document.getElementById(targetPanelId);
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+        }
+
+        // Carga de Giphy si es necesario
+        if (targetPanelId === 'giphy-sticker-content' && giphyStickerGrid.children.length <= 1) {
+            fetchAndRenderStickers('/api/apps/stickers/trending');
+        }
     });
+});
 
     if (stickerSearchInput) {
         stickerSearchInput.addEventListener('input', () => {
@@ -596,13 +605,26 @@ export async function initChatPage() {
 
     if (customStickerGrid) {
         customStickerGrid.addEventListener('click', (e) => {
-            if (e.target.classList.contains('sticker-item')) {
-                const stickerUrl = e.target.dataset.stickerUrl;
-                sendMessage(stickerUrl);
+            // Buscamos el item (img o video)
+            const item = e.target.closest('.sticker-item');
+            
+            // Si tocamos un sticker (y NO el botón de añadir), enviamos
+            if (item) {
+                const stickerUrl = item.getAttribute('data-sticker-url');
+                if (stickerUrl) {
+                    sendMessage(stickerUrl);
+                    closePicker();
+                }
             }
         });
     }
     
     // Cargar stickers personalizados al inicio
+
+    console.log("🔗 PÁGINA: Intentando inicializar controlador...");
     renderCustomStickers();
+    // 2. INICIALIZAR EL CONTROLADOR DE CHAT
+    // Llamada única
+    window.chatController = await initChatController(domElements, otherUserId, loggedInUserId);
+    
 }

@@ -15,7 +15,6 @@
     "build:apk": "npm run cap:copy && cd android && .\\gradlew.bat assembleDebug",
     "install:device": "adb install ./android/app/build/outputs/apk/debug/app-debug.apk",
     "log:start": "adb logcat -s Capacitor WebView App System.err",
-
     "build:release": "npm run build:css && npm run build:overlay && npx cap sync android && cd android && gradlew.bat clean assembleRelease && cd .. && move android\\app\\build\\outputs\\apk\\release\\app-release.apk server\\public\\updates\\app-release.apk",
     "publish": "node ./scripts/publish.js"
   },
@@ -39,6 +38,8 @@
     "@capacitor/push-notifications": "^7.0.3",
     "@capacitor/status-bar": "^7.0.3",
     "@capacitor/toast": "^7.0.2",
-    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "dotenv": "^17.2.4",
+    "pg": "^8.18.0"
   }
 }
