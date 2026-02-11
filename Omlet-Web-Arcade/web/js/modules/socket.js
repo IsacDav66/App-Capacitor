@@ -13,7 +13,7 @@ export async function getSocket() {
     if (socket) return socket;
 
     try {
-        const { default: io } = await import('https://cdn.socket.io/4.7.5/socket.io.esm.min.js');
+        const { default: io } = await import('../../libs/socket.io.esm.min.js');
         const token = localStorage.getItem('authToken');
         
         if (!token) {

@@ -76,11 +76,16 @@
                 <div id="giphy-sticker-grid" class="sticker-grid"></div>
             </div>
             <div id="custom-sticker-content" class="picker-content-panel">
-                <div id="custom-sticker-loader" style="display: none;">
-                    <p class="search-placeholder">Subiendo...</p>
+                <!-- La lista de iconos se queda fija arriba -->
+                <div id="collection-tabs-container" class="collection-tabs-bar"></div>
+            
+                <!-- El wrapper es el que tiene el scroll -->
+                <div id="custom-sticker-grid-wrapper">
+                    <!-- MOVEMOS EL TÍTULO AQUÍ ADENTRO -->
+                    <div id="current-collection-title" class="collection-title-display">General</div>
+            
+                    <!-- Los grids se inyectarán aquí abajo -->
                 </div>
-                <div id="custom-sticker-grid" class="sticker-grid"></div>
-                
             </div>
         </div>
     </div>
@@ -92,6 +97,15 @@
         </div>
         <button id="cancel-reply-btn" class="cancel-reply-btn">&times;</button>
     </div>
+
+
+    <!-- EL BOTÓN DEBE ESTAR AQUÍ -->
+    <button id="scroll-bottom-btn" class="scroll-bottom-btn" style="display: none;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+        </svg>
+        <div id="scroll-unread-badge" class="scroll-unread-badge" style="display: none;">0</div>
+    </button>
 
     <form id="chat-form" class="comment-input-bar">
         <div class="input-row">
@@ -209,6 +223,64 @@
     </div>
 </div>
 <!-- ============================================= -->
+
+
+
+<!-- Modal para elegir colección -->
+<div id="collection-picker-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h4>Guardar en Colección</h4>
+        <p>¿En qué carpeta quieres guardar tu sticker?</p>
+
+        <div class="collection-modal-content" id="collection-list-container">
+            <!-- Las colecciones se cargarán aquí -->
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #444; margin: 15px 0;">
+
+        <p class="text-[10px] uppercase opacity-40 font-bold mb-2 ml-1">Crear nueva colección</p>
+        <div class="new-collection-bar">
+            <input type="text" id="new-collection-name" class="new-collection-input-clean"
+                placeholder="Nombre de la carpeta...">
+            <button id="add-collection-btn" class="new-collection-add-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-actions mt-4">
+            <button id="close-collection-modal" class="modal-btn secondary">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para stickers -->
+<div id="delete-sticker-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h4 id="ds-modal-title">Eliminar de la colección</h4>
+        <p id="ds-modal-text">¿Estás seguro de que quieres quitar este sticker?</p>
+        <div class="modal-actions">
+            <button id="ds-cancel-btn" class="modal-btn secondary">Cancelar</button>
+            <button id="ds-confirm-btn" class="modal-btn danger">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Progreso de Subida -->
+<div id="upload-progress-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 280px;">
+        <h4 id="upload-status-text">Subiendo Sticker...</h4>
+
+        <div class="progress-container">
+            <div id="progress-bar-fill" class="progress-fill"></div>
+        </div>
+
+        <p id="progress-percent" class="text-xs mt-2 opacity-60">0%</p>
+    </div>
+</div>
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     <script src="./js/app.js" type="module"></script>

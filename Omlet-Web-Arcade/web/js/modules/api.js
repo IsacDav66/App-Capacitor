@@ -62,3 +62,20 @@ export async function apiFetch(endpoint, options = {}) {
         throw error;
     }
 }
+
+
+
+
+export const ChatCache = {
+    // Guarda los mensajes de un chat específico
+    set: (myId, partnerId, messages) => {
+        const key = `chat_cache_${myId}_${partnerId}`;
+        localStorage.setItem(key, JSON.stringify(messages.slice(-200))); // <--- Guardamos los últimos 200
+    },
+    // Recupera los mensajes del disco
+    get: (myId, partnerId) => {
+        const key = `chat_cache_${myId}_${partnerId}`;
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+    }
+};

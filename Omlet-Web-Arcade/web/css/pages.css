@@ -371,6 +371,11 @@
   box-shadow: 0 0 0 1px var(--color-border); /* focus:ring-1 + focus:ring-gray-600 */
 }
 
+
+
+
+
+
 /* ========================================
    --- PÁGINA: Perfil de Usuario (user_profile.html) ---
    ======================================== */
@@ -1220,6 +1225,632 @@ input:checked + .slider:before {
     align-self: flex-end; /* Se alinea a la derecha */
 }
 
+
+
+
+/* Cargador centrado */
+.chat-loading-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 20;
+    transition: opacity 0.4s ease;
+}
+
+.chat-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid var(--color-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* El contenedor de mensajes empieza oculto */
+.chat-messages {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Clase para mostrarlo cuando esté listo */
+.chat-messages.ready {
+    opacity: 1;
+}
+
+
+.scroll-bottom-btn {
+    position: absolute;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    background-color: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: scale(0.8);
+    opacity: 0;
+
+    z-index: 100 !important; /* Asegurar que esté por encima del panel visualmente */
+    bottom: 80px; /* Posición por defecto (con teclado cerrado) */
+    
+    /* Añadimos 'bottom' a la transición para que suba suavemente */
+    transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                opacity 0.3s, 
+                transform 0.3s;
+
+}
+
+/* --- ESTADO: BOTÓN SUBIDO (Cuando el panel mide 350px) --- */
+/* 350px (panel) + 80px (margen original) = 430px */
+.picker-open-active .scroll-bottom-btn {
+    bottom: 430px; 
+}
+
+
+.scroll-bottom-btn.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Insignia de mensajes nuevos sobre la flecha */
+.scroll-unread-badge {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    background-color: #ef4444; /* Rojo alerta */
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-bg);
+}
+
+#custom-sticker-grid video::-webkit-media-controls {
+    display: none !important;
+}
+
+/* Fondo desenfocado para la previsualización */
+.sticker-preview-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000 !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease-out;
+}
+
+/* Capa 2: Modal de confirmación (Nivel 10000) */
+/* Ponemos un número mucho más alto para asegurar que gane */
+#delete-sticker-modal {
+    z-index: 10000 !important;
+}
+
+/* Mejora: Asegurar que el modal se vea bien sobre el otro fondo */
+#delete-sticker-modal .modal-content {
+    box-shadow: 0 0 100px rgba(0,0,0,0.8);
+}
+
+
+/* Miniatura dentro de los botones del modal */
+.modal-collection-thumb {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    object-fit: cover;
+    background-color: var(--color-bg);
+    flex-shrink: 0;
+}
+
+/* Placeholder si la carpeta está vacía */
+.modal-collection-placeholder {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background-color: var(--color-ui);
+    color: var(--color-accent); /* Los iconos SVG heredarán este color */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.modal-collection-placeholder svg {
+    fill: currentColor; /* Importante para que tome el color del texto definido arriba */
+}
+
+/* Ajuste del botón para alinear la miniatura con el texto */
+.collection-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Espacio entre imagen y nombre */
+    padding: 10px 14px;
+}
+
+
+
+.sticker-preview-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* El contenedor de la miniatura en el centro */
+.preview-content {
+    width: 150px;           /* Mismo tamaño que el sticker del chat */
+    height: 150px;          /* Mismo tamaño que el sticker del chat */
+    background-color: var(--color-ui);
+    border-radius: 12px;    /* Mismo redondeo que el sticker del chat */
+    overflow: hidden;       /* ¡CRÍTICO! Para que el video no se salga de las esquinas */
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
+    
+    transform: scale(0.8);
+    opacity: 0;
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.sticker-preview-overlay.active .preview-content {
+    transform: scale(1.1); /* Un pequeño aumento para dar énfasis */
+    opacity: 1;
+}
+
+/* Asegurar que el contenido llene el cuadro de 150px */
+.preview-render {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Muestra el sticker completo */
+    background-color: #000; /* Fondo negro si el sticker no es cuadrado */
+}
+
+
+/* Contenedor del icono de sonido */
+.video-sound-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 6px;
+    padding: 4px;
+    pointer-events: none; /* Para que el clic pase a través del icono al video */
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.video-sound-indicator svg {
+    width: 14px;
+    height: 14px;
+    color: white;
+}
+
+/* Ocultar el indicador cuando el video se des-silencia (opcional) */
+.video-sticker:not([muted]) + .video-sound-indicator {
+    opacity: 0;
+}
+
+
+
+
+/* El contenedor del icono */
+.video-sound-indicator {
+    /* Mantenemos tus estilos de posición y fondo... */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Estado cuando el sonido está ACTIVO */
+.video-sound-indicator.is-playing {
+    background: var(--color-accent); /* Cambia al color del tema cuando suena */
+    transform: scale(1.1);
+    box-shadow: 0 0 10px var(--color-accent);
+}
+
+/* Animación de las ondas del altavoz */
+.video-sound-indicator.is-playing svg .sound-wave {
+    animation: wave-pulse 1s infinite;
+    transform-origin: center left;
+}
+
+/* Retraso para la segunda onda para que se vea progresivo */
+.video-sound-indicator.is-playing svg .sound-wave-2 {
+    animation-delay: 0.3s;
+}
+
+@keyframes wave-pulse {
+    0% { opacity: 0; transform: scale(0.7); }
+    50% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.2); }
+}
+
+/* Icono de silenciado (opcional: una raya cruzada) */
+.video-sound-indicator.is-muted svg .sound-wave {
+    display: none; /* Escondemos las ondas si está mudo */
+}
+
+
+
+
+/* ========================================
+   --- ESTILOS PARA EL PANEL DE STICKERS ---
+======================================== */
+/* Estilo para las carpetas en el panel de stickers */
+.collection-folder {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: var(--color-ui);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+}
+
+.folder-icon {
+    font-size: 24px;
+    color: var(--color-accent);
+}
+
+.folder-name {
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+}
+
+/* Modal de Selección de Colección */
+.collection-modal-content {
+    text-align: left;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.collection-item-btn {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: var(--color-ui);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    text-align: left;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+}
+
+.collection-item-btn:active {
+    background: var(--color-accent);
+}
+
+.new-collection-input {
+    background: var(--color-bg) !important;
+    border: 2px dashed var(--color-accent) !important;
+    color: white !important;
+    margin-bottom: 15px;
+}
+
+
+
+/*============================================*/
+
+/* /web/css/pages.css */
+
+/* Barra horizontal de colecciones (estilo WhatsApp/Telegram) */
+.collection-tabs-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 8px 12px;
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    scrollbar-width: none; /* Ocultar scrollbar en Firefox */
+}
+.collection-tabs-bar::-webkit-scrollbar { display: none; } /* Ocultar en Chrome/Safari */
+
+/* Item de miniatura de colección */
+.collection-tab-item {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    cursor: pointer;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+    background-color: var(--color-ui);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, opacity 0.2s, border-color 0.2s;
+    color: var(--color-text-secondary); /* Color inactivo */
+}
+
+.collection-tab-item.active {
+    opacity: 1;
+    border-color: var(--color-accent);
+    transform: scale(1.1);
+}
+
+.collection-tab-item svg {
+    /* Esto permite que el SVG use el 'color' definido arriba */
+    fill: currentColor; 
+}
+
+.tab-thumb-render {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Ajuste del grid para que no choque con la barra */
+#custom-sticker-content {
+    display: flex;
+    flex-direction: column;
+}
+
+
+
+
+
+
+
+
+
+/* 1. Forzamos al panel de stickers a ser un bloque vertical */
+#custom-sticker-content.active {
+    display: flex !important;
+    flex-direction: column;
+    height: 100%; /* Ocupa los 280px del picker */
+    overflow: hidden; /* El panel en sí no scrollea, scrollea el grid */
+}
+
+/* 2. La barra de pestañas se queda fija arriba */
+.collection-tabs-bar {
+    flex-shrink: 0; /* Evita que se aplaste */
+    height: 54px;   /* Altura fija para control total */
+    display: flex;
+    align-items: center;
+    padding: 5px 12px;
+    gap: 10px;
+    overflow-x: auto;
+    background-color: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* 3. El GRID ahora ocupa el resto del espacio y SÍ tiene scroll */
+#custom-sticker-grid {
+    flex-grow: 1; 
+    overflow-y: auto !important; /* El scroll ocurre solo aquí */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    padding: 15px 12px; /* Añadimos un poco de aire arriba */
+}
+
+
+
+
+
+/* Contenedor que envuelve todos los grids */
+#custom-sticker-grid-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* Estilo para cada grid de colección individual */
+.collection-grid {
+    display: none; /* Oculto por defecto */
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    padding: 15px 12px;
+}
+
+/* Solo el grid de la colección activa se muestra */
+.collection-grid.active {
+    display: grid;
+}
+
+
+#custom-sticker-grid-wrapper .sticker-item {
+    width: 80px;  /* Tamaño aproximado en el grid */
+    height: 80px;
+    background-color: var(--color-ui);
+    border-radius: 8px;
+    object-fit: cover;
+    display: block;
+}
+
+
+
+
+
+.collection-title-display {
+    padding: 15px 16px 10px 16px; /* Más espacio arriba */
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-accent);
+    background-color: transparent; /* Transparente para que no tape al scrolear */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none; /* Quitamos el borde para un look más fluido */
+    
+    /* IMPORTANTE: Aseguramos que no se quede pegado */
+    position: relative;
+    z-index: 2;
+}
+
+/* El wrapper debe permitir que sus hijos se apilen correctamente */
+#custom-sticker-grid-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Opcional: Un pequeño efecto de degradado sutil */
+.collection-title-display::before {
+    content: '•';
+    margin-right: 8px;
+    opacity: 0.6;
+}
+
+
+
+
+
+/* El contenedor principal de la lista */
+#custom-sticker-grid-wrapper {
+    display: block !important;
+    overflow-y: auto !important;
+    height: 100%;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Títulos de sección: NO ANCLADOS */
+.collection-title-display {
+    position: relative !important; /* Cambiado de sticky a relative */
+    padding: 20px 16px 10px 16px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent;
+}
+
+/* Espaciado entre secciones */
+.collection-section {
+    min-height: 120px; /* Asegura que la sección sea detectable */
+    padding-bottom: 30px;
+    position: relative;
+    scroll-margin-top: 20px; /* Ajuste fino para el salto */
+}
+
+/* La cuadrícula de cada sección */
+.collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    padding: 0 12px 20px 12px;
+}
+
+
+
+
+
+/* Contenedor del sticker en el grid */
+.sticker-item-wrapper {
+    position: relative; /* Clave para que el icono se pegue a la esquina del sticker */
+    width: 100%;
+    aspect-ratio: 1 / 1;
+}
+
+/* Ajuste del icono para que sea más pequeño en el panel que en el chat */
+.sticker-item-wrapper .video-sound-indicator {
+    top: 5px;
+    right: 5px;
+    padding: 2px; /* Un poco más pequeño */
+}
+
+.sticker-item-wrapper .video-sound-indicator svg {
+    width: 10px; /* Icono más sutil para la cuadrícula */
+    height: 10px;
+}
+
+
+
+/* Contenedor del menú debajo del sticker */
+.preview-options-menu {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 200px;
+    /* Estado inicial oculto */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+
+.preview-options-menu.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.preview-opt-btn {
+    background: var(--color-surface);
+    color: white;
+    border: 1px solid var(--color-border);
+    padding: 12px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.preview-opt-btn.danger {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.preview-opt-btn:active {
+    transform: scale(0.95);
+    background: var(--color-ui);
+}
+
+
+
+
+
+
+
+
+
+
+
 /* =========================================================
    --- NUEVOS ESTILOS PARA BURBUJAS AGRUPADAS ---
 ========================================================= */
@@ -1773,7 +2404,6 @@ input:checked + .slider:before {
 /* ========================================================== */
 
 .picker-container {
-    height: 280px;
     background-color: var(--color-bg);
     border-top: 1px solid var(--color-ui);
     display: flex;
@@ -1845,7 +2475,7 @@ input:checked + .slider:before {
 .picker-content {
     flex-grow: 1;
     position: relative;
-    height: 280px; 
+    height: 250px; 
     background-color: var(--color-bg); /* Fondo sólido del tema */
     overflow: hidden;
     border-top: 1px solid var(--color-border);
@@ -2114,21 +2744,27 @@ input:checked + .slider:before {
 .sticker-container {
     width: 150px;
     height: 150px;
+    background-color: var(--color-ui); /* Color de fondo mientras carga */
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    border-radius: 12px;
-    background-color: transparent;
+    
+    /* Evita saltos visuales al cargar */
+    contain: strict; 
 }
 
-/* Ajuste de la imagen/video dentro del contenedor */
 .sticker-render {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Muestra el sticker completo sin deformarlo */
+    opacity: 0;
+    transition: opacity 0.3s ease-in;
 }
 
+/* Cuando el elemento ya tiene SRC (se cargó), lo mostramos suavemente */
+.sticker-render[src] {
+    opacity: 1;
+}
 /* Clase para la burbuja cuando es un sticker */
 .message-bubble.is-sticker {
     background: transparent !important;
@@ -2385,6 +3021,56 @@ input:checked + .slider:before {
 
 
 
+
+
+
+
+/* ========================================
+   --- COMPONENTE: Barra de Progreso para Carga de Stickers ---
+   ======================================== */
+
+.progress-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 15px;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%; /* Empieza en 0 */
+    background: var(--color-accent);
+    border-radius: 10px;
+    box-shadow: 0 0 15px var(--color-accent);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Efecto de brillo que recorre la barra */
+    background-image: linear-gradient(
+        90deg, 
+        rgba(255,255,255,0) 0%, 
+        rgba(255,255,255,0.3) 50%, 
+        rgba(255,255,255,0) 100%
+    );
+    background-size: 100px 100%;
+    background-repeat: no-repeat;
+    animation: bar-shine 1.5s infinite;
+}
+
+@keyframes bar-shine {
+    0% { background-position: -100px 0; }
+    100% { background-position: calc(100% + 100px) 0; }
+}
+
+
+
+
+
+
+
+
 /* ========================================
    --- PÁGINA: Lista de Chats (chat_list.html) ---
    ======================================== */
@@ -2444,6 +3130,62 @@ input:checked + .slider:before {
     overflow: hidden;
     text-overflow: ellipsis;
     margin-top: 2px;
+}
+
+
+/* Contenedor de la nueva barra de colección */
+.new-collection-bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-ui);
+    border: 2px solid var(--color-border);
+    border-radius: 16px;
+    padding: 4px;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+}
+
+.new-collection-bar:focus-within {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.3);
+}
+
+/* El input interno */
+.new-collection-input-clean {
+    flex-grow: 1;
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    padding: 10px 15px !important;
+    font-size: 0.9rem;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* El botón + integrado */
+.new-collection-add-btn {
+    width: 40px;
+    height: 40px;
+    background-color: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+    flex-shrink: 0;
+}
+
+.new-collection-add-btn:active {
+    transform: scale(0.9);
+    filter: brightness(1.2);
+}
+
+.new-collection-add-btn svg {
+    width: 20px;
+    height: 20px;
 }
 
 
